@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { PriceRangeSlider } from '@/components/ui/PriceRangeSlider'
 import { ChevronDown, ChevronUp, X } from 'lucide-react'
-import { CategoriaProduto, CondicaoProduto } from '@prisma/client'
+import { CategoriaProduto, CondicaoProduto } from '@/types'
 
 interface FiltersSidebarProps {
   isOpen: boolean

@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Heart, ShoppingCart, Star, Eye, Share2 } from 'lucide-react'
-import { CondicaoProduto } from '@prisma/client'
+import { CondicaoProduto } from '@/types'
 
 interface ProductCardProps {
   id: string
