@@ -9,19 +9,21 @@ datasource db {
 }
 
 model Usuario {
-  id              String      @id @default(cuid())
-  email           String      @unique
-  senha           String
-  nome            String
-  cpf             String      @unique
-  telefone        String
-  tipoUsuario     String      // PAI_RESPONSAVEL, ESCOLA
-  enderecoId      String?
-  escolaId        String?
-  emailVerificado Boolean     @default(false)
-  tokenVerificacao String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                    String      @id @default(cuid())
+  email                 String      @unique
+  senha                 String
+  nome                  String
+  cpf                   String      @unique
+  telefone              String
+  tipoUsuario           String      // PAI_RESPONSAVEL, ESCOLA
+  enderecoId            String?
+  escolaId              String?
+  emailVerificado       Boolean     @default(false)
+  tokenVerificacao      String?
+  tokenResetSenha       String?
+  tokenResetExpiracao   DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
   endereco        Endereco?   @relation(fields: [enderecoId], references: [id])
   escola          Escola?     @relation(fields: [escolaId], references: [id])
