@@ -1,0 +1,278 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Usuario {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  senha           String
+  nome            String
+  cpf             String      @unique
+  telefone        String
+  tipo            TipoUsuario
+  escola          Escola?     @relation(fields: [escolaId], references: [id])
+  escolaId        String?
+  endereco        Endereco[]
+  produtosVendidos Produto[]  @relation("Vendedor")
+  pedidosComprador Pedido[]   @relation("Comprador")
+  avaliacoes      Avaliacao[]
+  criadoEm        DateTime    @default(now())
+  atualizadoEm    DateTime    @updatedAt
+  emailVerificado Boolean     @default(false)
+  ativo           Boolean     @default(true)
+
+  @@map("usuarios")
+  @@index([email])
+  @@index([cpf])
+  @@index([tipo])
+}
+
+model Escola {
+  id              String                  @id @default(cuid())
+  nome            String
+  cnpj            String                  @unique
+  endereco        String
+  telefone        String
+  email           String
+  usuarios        Usuario[]
+  produtos        Produto[]
+  uniformes       ConfiguracaoUniforme[]
+  criadoEm        DateTime                @default(now())
+  atualizadoEm    DateTime                @updatedAt
+
+  @@map("escolas")
+  @@index([cnpj])
+  @@index([email])
+}
+
+model Produto {
+  id                    String                @id @default(cuid())
+  nome                  String
+  descricao             String
+  preco                 Decimal               @db.Decimal(10, 2)
+  categoria             CategoriaProduto
+  estoque               Int
+  condicao              CondicaoProduto?
+  tamanho               String?
+  cor                   String?
+  imagens               String[]
+  vendedor              Usuario               @relation("Vendedor", fields: [vendedorId], references: [id])
+  vendedorId            String
+  escola                Escola?               @relation(fields: [escolaId], references: [id])
+  escolaId              String?
+  ativo                 Boolean               @default(true)
+  necessitaHigienizacao Boolean               @default(false)
+  statusHigienizacao    StatusHigienizacao?
+  avaliacoes            Avaliacao[]
+  itensPedido           ItemPedido[]
+  criadoEm              DateTime              @default(now())
+  atualizadoEm          DateTime              @updatedAt
+
+  @@map("produtos")
+  @@index([categoria])
+  @@index([vendedorId])
+  @@index([escolaId])
+  @@index([ativo])
+  @@index([statusHigienizacao])
+}
+
+model Pedido {
+  id              String        @id @default(cuid())
+  numero          String        @unique
+  comprador       Usuario       @relation("Comprador", fields: [compradorId], references: [id])
+  compradorId     String
+  itens           ItemPedido[]
+  total           Decimal       @db.Decimal(10, 2)
+  subtotal        Decimal       @db.Decimal(10, 2)
+  taxaServico     Decimal       @db.Decimal(10, 2)
+  status          StatusPedido  @default(PENDENTE)
+  pagamento       Pagamento?
+  enderecoEntrega Endereco      @relation(fields: [enderecoEntregaId], references: [id])
+  enderecoEntregaId String
+  criadoEm        DateTime      @default(now())
+  atualizadoEm    DateTime      @updatedAt
+
+  @@map("pedidos")
+  @@index([numero])
+  @@index([compradorId])
+  @@index([status])
+  @@index([criadoEm])
+}
+
+model Pagamento {
+  id                    String           @id @default(cuid())
+  pedido                Pedido           @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  pedidoId              String           @unique
+  stripePaymentIntentId String
+  metodo                MetodoPagamento
+  status                StatusPagamento  @default(PENDENTE)
+  parcelas              Int              @default(1)
+  splits                SplitPagamento[]
+  criadoEm              DateTime         @default(now())
+  atualizadoEm          DateTime         @updatedAt
+
+  @@map("pagamentos")
+  @@index([stripePaymentIntentId])
+  @@index([status])
+  @@index([metodo])
+}
+
+model SplitPagamento {
+  id           String      @id @default(cuid())
+  pagamento    Pagamento   @relation(fields: [pagamentoId], references: [id], onDelete: Cascade)
+  pagamentoId  String
+  destinatario String      // ID Stripe Connect
+  valor        Decimal     @db.Decimal(10, 2)
+  percentual   Decimal     @db.Decimal(5, 2)
+  tipo         TipoSplit
+  criadoEm     DateTime    @default(now())
+
+  @@map("splits_pagamento")
+  @@index([pagamentoId])
+  @@index([destinatario])
+  @@index([tipo])
+}
+
+model Endereco {
+  id          String   @id @default(cuid())
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId   String
+  cep         String
+  logradouro  String
+  numero      String
+  complemento String?
+  bairro      String
+  cidade      String
+  estado      String
+  pais        String   @default("Brasil")
+  tipo        TipoEndereco @default(RESIDENCIAL)
+  principal   Boolean  @default(false)
+  pedidos     Pedido[]
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("enderecos")
+  @@index([usuarioId])
+  @@index([cep])
+  @@index([principal])
+}
+
+model Avaliacao {
+  id        String   @id @default(cuid())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId String
+  produto   Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  produtoId String
+  nota      Int      // 1 a 5
+  comentario String?
+  criadoEm  DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([usuarioId, produtoId])
+  @@map("avaliacoes")
+  @@index([produtoId])
+  @@index([nota])
+}
+
+model ItemPedido {
+  id        String  @id @default(cuid())
+  pedido    Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  pedidoId  String
+  produto   Produto @relation(fields: [produtoId], references: [id])
+  produtoId String
+  quantidade Int
+  precoUnitario Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  @@map("itens_pedido")
+  @@index([pedidoId])
+  @@index([produtoId])
+}
+
+model ConfiguracaoUniforme {
+  id          String   @id @default(cuid())
+  escola      Escola   @relation(fields: [escolaId], references: [id], onDelete: Cascade)
+  escolaId    String
+  nome        String
+  descricao   String?
+  tamanhos    String[] // ["P", "M", "G", "GG"]
+  cores       String[] // ["Azul", "Branco", "Verde"]
+  precoBase   Decimal  @db.Decimal(10, 2)
+  ativo       Boolean  @default(true)
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("configuracoes_uniforme")
+  @@index([escolaId])
+  @@index([ativo])
+}
+
+// Enums
+enum TipoUsuario {
+  ADMIN_ESCOLA
+  PAI_VENDEDOR
+  PAI_COMPRADOR
+}
+
+enum CategoriaProduto {
+  UNIFORME_NOVO
+  UNIFORME_USADO
+  MATERIAL_ESCOLAR
+  LIVRO
+}
+
+enum CondicaoProduto {
+  NOVO
+  SEMINOVO
+  USADO
+}
+
+enum StatusPedido {
+  PENDENTE
+  PROCESSANDO
+  CONFIRMADO
+  ENVIADO
+  ENTREGUE
+  CANCELADO
+}
+
+enum StatusPagamento {
+  PENDENTE
+  PROCESSANDO
+  APROVADO
+  RECUSADO
+  CANCELADO
+}
+
+enum StatusHigienizacao {
+  PENDENTE
+  EM_PROCESSO
+  CONCLUIDO
+}
+
+enum MetodoPagamento {
+  CARTAO_CREDITO
+  PIX
+  BOLETO
+  CARTAO_PIX_BOLETO
+}
+
+enum TipoSplit {
+  VENDEDOR
+  PLATAFORMA
+  HIGIENIZACAO
+}
+
+enum TipoEndereco {
+  RESIDENCIAL
+  COMERCIAL
+  ENTREGA
+}

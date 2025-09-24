@@ -1,0 +1,160 @@
+// Schema simplificado para desenvolvimento local com SQLite
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Usuario {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  senha           String
+  nome            String
+  cpf             String      @unique
+  telefone        String
+  tipoUsuario     String      // PAI_RESPONSAVEL, ESCOLA
+  enderecoId      String?
+  escolaId        String?
+  emailVerificado Boolean     @default(false)
+  tokenVerificacao String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  endereco        Endereco?   @relation(fields: [enderecoId], references: [id])
+  escola          Escola?     @relation(fields: [escolaId], references: [id])
+  produtos        Produto[]   @relation("Vendedor")
+  pedidos         Pedido[]    @relation("Comprador")
+  avaliacoes      Avaliacao[] @relation("Avaliador")
+
+  @@map("usuarios")
+}
+
+model Escola {
+  id          String    @id @default(cuid())
+  nome        String
+  cnpj        String    @unique
+  enderecoId  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  endereco    Endereco  @relation(fields: [enderecoId], references: [id])
+  usuarios    Usuario[]
+  produtos    Produto[]
+
+  @@map("escolas")
+}
+
+model Endereco {
+  id          String    @id @default(cuid())
+  cep         String
+  logradouro  String
+  numero      String
+  complemento String?
+  bairro      String
+  cidade      String
+  estado      String
+  tipo        String    // RESIDENCIAL, COMERCIAL, ENTREGA
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  usuarios    Usuario[]
+  escolas     Escola[]
+
+  @@map("enderecos")
+}
+
+model Produto {
+  id              String    @id @default(cuid())
+  nome            String
+  descricao       String
+  preco           Float
+  categoria       String    // UNIFORME_NOVO, UNIFORME_USADO, MATERIAL_ESCOLAR, LIVRO
+  condicao        String    // NOVO, SEMINOVO, USADO
+  tamanho         String?
+  cor             String?
+  imagens         String    // JSON string com array de URLs
+  vendedorId      String
+  escolaId        String?
+  ativo           Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vendedor        Usuario   @relation("Vendedor", fields: [vendedorId], references: [id])
+  escola          Escola?   @relation(fields: [escolaId], references: [id])
+  itensPedido     ItemPedido[]
+  avaliacoes      Avaliacao[]
+
+  @@map("produtos")
+}
+
+model Pedido {
+  id              String    @id @default(cuid())
+  numero          String    @unique
+  compradorId     String
+  status          String    // PENDENTE, PROCESSANDO, CONFIRMADO, ENVIADO, ENTREGUE, CANCELADO
+  metodoPagamento String    // CARTAO_CREDITO, PIX, BOLETO
+  total           Float
+  subtotal        Float
+  taxaServico     Float
+  taxaHigienizacao Float?
+  frete           Float
+  enderecoEntrega String    // JSON string
+  dataPedido      DateTime  @default(now())
+  dataEntrega     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  comprador       Usuario   @relation("Comprador", fields: [compradorId], references: [id])
+  itens           ItemPedido[]
+  pagamentos      Pagamento[]
+
+  @@map("pedidos")
+}
+
+model ItemPedido {
+  id          String    @id @default(cuid())
+  pedidoId    String
+  produtoId   String
+  quantidade  Int
+  precoUnitario Float
+  subtotal    Float
+  createdAt   DateTime  @default(now())
+
+  pedido      Pedido    @relation(fields: [pedidoId], references: [id])
+  produto     Produto   @relation(fields: [produtoId], references: [id])
+
+  @@map("itens_pedido")
+}
+
+model Pagamento {
+  id              String    @id @default(cuid())
+  pedidoId        String
+  valor           Float
+  metodo          String    // CARTAO_CREDITO, PIX, BOLETO
+  status          String    // PENDENTE, PROCESSANDO, APROVADO, RECUSADO, CANCELADO
+  transacaoId     String?   // ID da transação no gateway
+  dataPagamento   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  pedido          Pedido    @relation(fields: [pedidoId], references: [id])
+
+  @@map("pagamentos")
+}
+
+model Avaliacao {
+  id          String    @id @default(cuid())
+  produtoId   String
+  avaliadorId String
+  nota        Int       // 1-5
+  comentario  String?
+  createdAt   DateTime  @default(now())
+
+  produto     Produto   @relation(fields: [produtoId], references: [id])
+  avaliador   Usuario   @relation("Avaliador", fields: [avaliadorId], references: [id])
+
+  @@map("avaliacoes")
+}

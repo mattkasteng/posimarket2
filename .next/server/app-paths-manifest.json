@@ -1,0 +1,11 @@
+{
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/dashboard/admin/page": "app/dashboard/admin/page.js",
+  "/dashboard/admin/aprovacao-produtos/page": "app/dashboard/admin/aprovacao-produtos/page.js",
+  "/dashboard/admin/vendedores/page": "app/dashboard/admin/vendedores/page.js",
+  "/dashboard/admin/relatorios/page": "app/dashboard/admin/relatorios/page.js",
+  "/dashboard/admin/uniformes/page": "app/dashboard/admin/uniformes/page.js",
+  "/dashboard/admin/produtos/page": "app/dashboard/admin/produtos/page.js",
+  "/(marketplace)/carrinho/page": "app/(marketplace)/carrinho/page.js",
+  "/page": "app/page.js"
+}
