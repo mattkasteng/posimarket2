@@ -103,7 +103,7 @@ export function LoginForm() {
       console.log('🏷️ Tipo de usuário sendo salvo:', result.user.tipoUsuario)
       console.log('🔍 Tipo como string:', `"${result.user.tipoUsuario}"`)
       console.log('📏 Length:', result.user.tipoUsuario.length)
-      console.log('🔤 Char codes:', Array.from(result.user.tipoUsuario).map(c => c.charCodeAt(0)))
+      console.log('🔤 Char codes:', Array.from(result.user.tipoUsuario as string).map((c: string) => c.charCodeAt(0)))
       console.log('🔄 Redirecionando para /dashboard...')
       
       // Redirecionar DIRETAMENTE baseado no tipo de usuário
