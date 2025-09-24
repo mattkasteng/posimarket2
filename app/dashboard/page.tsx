@@ -24,7 +24,7 @@ export default function DashboardPage() {
           console.log('🏷️ Tipo:', parsedUser.tipoUsuario)
           console.log('🔍 Tipo como string:', `"${parsedUser.tipoUsuario}"`)
           console.log('📏 Length:', parsedUser.tipoUsuario.length)
-          console.log('🔤 Char codes:', Array.from(parsedUser.tipoUsuario).map(c => c.charCodeAt(0)))
+          console.log('🔤 Char codes:', Array.from(parsedUser.tipoUsuario).map((c: string) => c.charCodeAt(0)))
           
           // Testar todas as comparações possíveis
           const isEscola = parsedUser.tipoUsuario === 'ESCOLA'
