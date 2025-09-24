@@ -13,6 +13,17 @@ import { AdvancedChat } from '@/components/chat/AdvancedChat'
 import { CustomerSupportWidget } from '@/components/chat/CustomerSupportWidget'
 import { EmailTemplateManager } from '@/components/email/EmailTemplates'
 
+// Tipo local para as notificações
+interface NotificationToastProps {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info' | 'VENDA' | 'MENSAGEM' | 'ESTOQUE' | 'PEDIDO' | 'AVALIACAO'
+  title: string
+  message: string
+  duration?: number
+  onClose: (id: string) => void
+  actionUrl?: string
+}
+
 export default function NotificacoesEChatPage() {
   const [activeDemo, setActiveDemo] = useState<'notifications' | 'chat' | 'email'>('notifications')
   const [notifications, setNotifications] = useState<NotificationToastProps[]>([])
