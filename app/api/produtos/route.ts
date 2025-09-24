@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,15 +9,9 @@ export async function POST(request: NextRequest) {
       categoria,
       condicao,
       preco,
-      precoOriginal,
       tamanho,
       cor,
-      material,
-      marca,
-      peso,
-      dimensoes,
       images,
-      mainImage,
       vendedorId
     } = await request.json()
 
@@ -31,7 +23,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar o produto com status PENDENTE_APROVACAO
+    // Criar o produto - usando apenas campos que existem no schema
     const produto = await prisma.produto.create({
       data: {
         nome,
@@ -39,55 +31,23 @@ export async function POST(request: NextRequest) {
         categoria,
         condicao,
         preco: parseFloat(preco),
-        precoOriginal: precoOriginal ? parseFloat(precoOriginal) : null,
         tamanho,
         cor,
-        material,
-        marca,
-        peso: peso ? parseFloat(peso) : null,
-        dimensoes,
-        imagemPrincipal: mainImage || images?.[0] || '',
-        imagens: images || [],
-        status: 'PENDENTE_APROVACAO', // Status inicial para aprovação pelo admin
-        statusAprovacao: 'PENDENTE',
-        vendedorId: parseInt(vendedorId),
-        dataSubmissao: new Date(),
-        ativo: false, // Produto inativo até ser aprovado
-        estoque: 1, // Padrão para produtos usados/seminovos
-        visualizacoes: 0,
-        vendas: 0,
-        avaliacaoMedia: 0
+        imagens: JSON.stringify(images || []), // JSON string conforme schema
+        vendedorId: vendedorId, // String ID, não parseInt
+        ativo: false // Produto inativo até ser aprovado
       }
     })
 
-    // Criar notificação para os admins sobre novo produto pendente
-    const admins = await prisma.usuario.findMany({
-      where: { tipoUsuario: 'ESCOLA' }
-    })
-
-    // Criar notificações para admins (em uma implementação real, isso seria feito via WebSocket/Push)
-    for (const admin of admins) {
-      await prisma.notificacao.create({
-        data: {
-          usuarioId: admin.id,
-          titulo: 'Novo produto para aprovação',
-          mensagem: `Produto "${nome}" submetido por vendedor para aprovação`,
-          tipo: 'PRODUTO_PENDENTE',
-          prioridade: 'MEDIA',
-          lida: false
-        }
-      }).catch(() => {
-        // Ignore error se tabela não existir ainda
-      })
-    }
+    // Log para auditoria
+    console.log(`Novo produto criado: ${produto.id} por vendedor: ${vendedorId}`)
 
     return NextResponse.json({
       success: true,
       produto: {
         id: produto.id,
         nome: produto.nome,
-        status: produto.status,
-        statusAprovacao: produto.statusAprovacao
+        ativo: produto.ativo
       }
     })
 
@@ -97,8 +57,6 @@ export async function POST(request: NextRequest) {
       { error: 'Erro interno do servidor' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -106,21 +64,16 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const vendedorId = searchParams.get('vendedorId')
-    const status = searchParams.get('status')
-    const statusAprovacao = searchParams.get('statusAprovacao')
+    const ativo = searchParams.get('ativo')
 
     const whereCondition: any = {}
 
     if (vendedorId) {
-      whereCondition.vendedorId = parseInt(vendedorId)
+      whereCondition.vendedorId = vendedorId // String ID, não parseInt
     }
 
-    if (status) {
-      whereCondition.status = status
-    }
-
-    if (statusAprovacao) {
-      whereCondition.statusAprovacao = statusAprovacao
+    if (ativo !== null) {
+      whereCondition.ativo = ativo === 'true'
     }
 
     const produtos = await prisma.produto.findMany({
@@ -135,7 +88,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: {
-        dataSubmissao: 'desc'
+        createdAt: 'desc'
       }
     })
 
@@ -147,7 +100,5 @@ export async function GET(request: NextRequest) {
       { error: 'Erro interno do servidor' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
