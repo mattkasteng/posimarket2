@@ -111,7 +111,7 @@ export function LoginForm() {
       console.log('Tipo do usuário:', result.user.tipoUsuario)
       console.log('Tipo como string:', `"${result.user.tipoUsuario}"`)
       console.log('Tipo length:', result.user.tipoUsuario.length)
-      console.log('Tipo char codes:', Array.from(result.user.tipoUsuario).map(c => c.charCodeAt(0)))
+      console.log('Tipo char codes:', Array.from(result.user.tipoUsuario as string).map((c: string) => c.charCodeAt(0)))
       
       // Forçar redirecionamento baseado no tipo
       const userType = result.user.tipoUsuario
