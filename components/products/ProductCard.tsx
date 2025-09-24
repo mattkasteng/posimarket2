@@ -115,16 +115,12 @@ export function ProductCard({
               >
                 <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-8 h-8 p-0 bg-white/80 backdrop-blur-sm hover:bg-white"
-                asChild
+              <Link 
+                href={`/produtos/${id}`}
+                className="inline-flex items-center justify-center w-8 h-8 p-0 rounded-xl bg-white/80 backdrop-blur-sm hover:bg-white transition-all duration-300"
               >
-                <Link href={`/produtos/${id}`}>
-                  <Eye className="h-4 w-4 text-gray-600" />
-                </Link>
-              </Button>
+                <Eye className="h-4 w-4 text-gray-600" />
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
