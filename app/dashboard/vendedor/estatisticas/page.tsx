@@ -222,8 +222,8 @@ export default function EstatisticasVendedor() {
               {dadosAtuais.vendas.map((item, index) => {
                 const maxValor = Math.max(...dadosAtuais.vendas.map(v => v.valor))
                 const porcentagem = (item.valor / maxValor) * 100
-                const label = selectedPeriod === '7dias' ? item.dia : 
-                             selectedPeriod === '30dias' ? item.semana : item.mes
+                const label = selectedPeriod === '7dias' ? (item as any).dia : 
+                             selectedPeriod === '30dias' ? (item as any).semana : (item as any).mes
                 
                 return (
                   <div key={index} className="space-y-2">
