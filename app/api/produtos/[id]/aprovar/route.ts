@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export async function POST(
   request: NextRequest,
@@ -9,11 +7,11 @@ export async function POST(
 ) {
   try {
     const { adminId, observacoes, aprovado } = await request.json()
-    const produtoId = parseInt(params.id)
+    const produtoId = params.id // String ID, não parseInt
 
     // Verificar se o usuário é admin
     const admin = await prisma.usuario.findUnique({
-      where: { id: parseInt(adminId) }
+      where: { id: adminId } // String ID, não parseInt
     })
 
     if (!admin || admin.tipoUsuario !== 'ESCOLA') {
@@ -38,34 +36,20 @@ export async function POST(
       )
     }
 
-    // Atualizar o produto
+    // Atualizar o produto - usando apenas campos que existem no schema
     const produtoAtualizado = await prisma.produto.update({
       where: { id: produtoId },
       data: {
-        statusAprovacao: aprovado ? 'APROVADO' : 'REJEITADO',
-        status: aprovado ? 'ATIVO' : 'REJEITADO',
         ativo: aprovado,
-        dataAprovacao: new Date(),
-        observacoesAprovacao: observacoes,
-        adminAprovadorId: parseInt(adminId)
+        updatedAt: new Date()
       }
     })
 
-    // Criar notificação para o vendedor
-    await prisma.notificacao.create({
-      data: {
-        usuarioId: produto.vendedorId,
-        titulo: aprovado ? 'Produto aprovado!' : 'Produto rejeitado',
-        mensagem: aprovado 
-          ? `Seu produto "${produto.nome}" foi aprovado e já está disponível para venda!`
-          : `Seu produto "${produto.nome}" foi rejeitado. ${observacoes ? `Motivo: ${observacoes}` : ''}`,
-        tipo: aprovado ? 'PRODUTO_APROVADO' : 'PRODUTO_REJEITADO',
-        prioridade: aprovado ? 'ALTA' : 'MEDIA',
-        lida: false
-      }
-    }).catch(() => {
-      // Ignore error se tabela não existir ainda
-    })
+    // Log da aprovação para auditoria
+    console.log(`Produto ${produtoId} ${aprovado ? 'aprovado' : 'rejeitado'} por admin ${adminId}`)
+    if (observacoes) {
+      console.log(`Observações: ${observacoes}`)
+    }
 
     return NextResponse.json({
       success: true,
@@ -79,7 +63,5 @@ export async function POST(
       { error: 'Erro interno do servidor' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
