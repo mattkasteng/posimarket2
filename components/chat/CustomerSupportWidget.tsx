@@ -136,7 +136,7 @@ export function CustomerSupportWidget() {
     faq.category.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const categories = [...new Set(mockFAQs.map(faq => faq.category))]
+  const categories = Array.from(new Set(mockFAQs.map(faq => faq.category)))
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return
