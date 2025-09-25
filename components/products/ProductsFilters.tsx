@@ -2,8 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Slider } from '@/components/ui/Slider'
-import { Checkbox } from '@/components/ui/Checkbox'
 
 const categories = [
   { id: 'programming', name: 'Programação', count: 120 },
