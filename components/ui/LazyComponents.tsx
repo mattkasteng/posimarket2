@@ -1,6 +1,6 @@
 'use client'
 
-import { lazy, Suspense, ComponentType } from 'react'
+import { lazy, Suspense, ComponentType, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 
 // Loading component para suspense

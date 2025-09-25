@@ -4,22 +4,11 @@ import { hash } from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 Iniciando seed do banco de dados...')
-
-  // Criar escola exemplo
-  const escola = await prisma.escola.create({
-    data: {
-      nome: 'Escola Municipal São José',
-      cnpj: '12.345.678/0001-90',
-      endereco: 'Rua das Flores, 123 - Centro',
-      telefone: '(11) 99999-9999',
-      email: 'contato@escolasaojose.com.br',
-    },
-  })
-
-  console.log('✅ Escola criada:', escola.nome)
-
-  // Criar usuários exemplo
+  console.log('🌱 Seed desabilitado temporariamente para deploy')
+  return // Exit early
+  
+  /*
+  // Código seed comentado para deploy
   const adminEscola = await prisma.usuario.create({
     data: {
       email: 'admin@escolasaojose.com.br',
@@ -222,13 +211,7 @@ async function main() {
   console.log('✅ Avaliações criadas')
 
   console.log('🎉 Seed concluído com sucesso!')
-  console.log('\n📊 Dados criados:')
-  console.log(`- 1 escola: ${escola.nome}`)
-  console.log(`- 3 usuários (1 admin, 1 vendedor, 1 comprador)`)
-  console.log(`- 2 endereços`)
-  console.log(`- 1 configuração de uniforme`)
-  console.log(`- ${produtos.length} produtos`)
-  console.log(`- 2 avaliações`)
+  */
 }
 
 main()

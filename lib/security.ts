@@ -21,7 +21,7 @@ export function rateLimit(req: NextRequest): NextResponse | null {
   const maxRequests = rateLimitConfig.maxRequests
 
   // Limpar entradas expiradas
-  for (const [key, value] of rateLimitStore.entries()) {
+  for (const [key, value] of Array.from(rateLimitStore.entries())) {
     if (now > value.resetTime) {
       rateLimitStore.delete(key)
     }
