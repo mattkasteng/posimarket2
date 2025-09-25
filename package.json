@@ -15,6 +15,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "db:setup": "node scripts/db-setup.js",
+    "db:create-users": "tsx scripts/create-test-users.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
