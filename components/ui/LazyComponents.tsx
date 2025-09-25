@@ -84,11 +84,11 @@ export function withLazyLoading<P extends object>(
 
 // Lazy components para páginas pesadas
 export const LazyAdminDashboard = lazy(() => 
-  import('@/app/(dashboard)/admin/page').then(module => ({ default: module.default }))
+  import('@/app/dashboard/admin/page').then(module => ({ default: module.default }))
 )
 
 export const LazySellerDashboard = lazy(() => 
-  import('@/app/(dashboard)/vendedor/page').then(module => ({ default: module.default }))
+  import('@/app/dashboard/vendedor/page').then(module => ({ default: module.default }))
 )
 
 export const LazyProductsPage = lazy(() => 
@@ -100,7 +100,7 @@ export const LazyCheckoutPage = lazy(() =>
 )
 
 export const LazyReportsPage = lazy(() => 
-  import('@/app/(dashboard)/admin/relatorios/page').then(module => ({ default: module.default }))
+  import('@/app/dashboard/admin/relatorios/page').then(module => ({ default: module.default }))
 )
 
 // Lazy components para componentes pesados
