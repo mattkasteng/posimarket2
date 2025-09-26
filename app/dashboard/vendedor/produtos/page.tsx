@@ -11,6 +11,7 @@ import {
   Copy, Eye, MoreVertical, Package, Grid, List
 } from 'lucide-react'
 import Image from 'next/image'
+import EditProductModal from '@/components/products/EditProductModal'
 
 // Mock data para produtos do vendedor (incluindo produtos com status de aprovação)
 const mockProducts = [
@@ -106,12 +107,33 @@ export default function ProductsManagementPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'ATIVO' | 'PAUSADO'>('all')
+  const [products, setProducts] = useState(mockProducts)
+  const [editingProduct, setEditingProduct] = useState<typeof mockProducts[0] | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
-  const filteredProducts = mockProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.nome.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = selectedStatus === 'all' || product.status === selectedStatus
     return matchesSearch && matchesStatus
   })
+
+  const handleEditProduct = (product: typeof mockProducts[0]) => {
+    setEditingProduct(product)
+    setIsEditModalOpen(true)
+  }
+
+  const handleSaveProduct = (updatedProduct: typeof mockProducts[0]) => {
+    setProducts(prev => 
+      prev.map(p => p.id === updatedProduct.id ? updatedProduct : p)
+    )
+    setIsEditModalOpen(false)
+    setEditingProduct(null)
+  }
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false)
+    setEditingProduct(null)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -311,7 +333,12 @@ export default function ProductsManagementPage() {
 
                       {/* Ações */}
                       <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" className="flex-1 glass-button">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 glass-button"
+                          onClick={() => handleEditProduct(product)}
+                        >
                           <Edit className="h-4 w-4 mr-1" />
                           Editar
                         </Button>
@@ -382,7 +409,12 @@ export default function ProductsManagementPage() {
                         <Button variant="outline" size="sm" className="glass-button">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" className="glass-button">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="glass-button"
+                          onClick={() => handleEditProduct(product)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -429,16 +461,24 @@ export default function ProductsManagementPage() {
                   </h3>
                 </div>
                 <div className="flex items-center space-x-6 text-sm text-gray-600">
-                  <span>Total: {mockProducts.length} produtos</span>
-                  <span>Ativos: {mockProducts.filter(p => p.status === 'ATIVO').length}</span>
-                  <span>Pausados: {mockProducts.filter(p => p.status === 'PAUSADO').length}</span>
-                  <span>Vendas: {mockProducts.reduce((acc, p) => acc + p.vendas, 0)}</span>
+                  <span>Total: {products.length} produtos</span>
+                  <span>Ativos: {products.filter(p => p.status === 'ATIVO').length}</span>
+                  <span>Pausados: {products.filter(p => p.status === 'PAUSADO').length}</span>
+                  <span>Vendas: {products.reduce((acc, p) => acc + p.vendas, 0)}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
+
+      {/* Modal de Edição */}
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseModal}
+        product={editingProduct}
+        onSave={handleSaveProduct}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-// File: C:\Users\108723\OneDrive - Positivo\Documentos\09.2025\sc 09.22.2025\Marketplace\app\(marketplace)\produtos\page.tsx
+// File: C:\Users\108723\OneDrive - Positivo\Área de Trabalho\Marketplace\app\(marketplace)\produtos\page.tsx
 import * as entry from '../../../../../app/(marketplace)/produtos/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

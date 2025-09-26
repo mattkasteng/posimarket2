@@ -1,4 +1,4 @@
-// File: C:\Users\108723\OneDrive - Positivo\Documentos\09.2025\sc 09.22.2025\Marketplace\app\layout.tsx
+// File: C:\Users\108723\OneDrive - Positivo\Área de Trabalho\Marketplace\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

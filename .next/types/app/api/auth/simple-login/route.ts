@@ -1,4 +1,4 @@
-// File: C:\Users\108723\OneDrive - Positivo\Documentos\09.2025\sc 09.22.2025\Marketplace\app\api\auth\simple-login\route.ts
+// File: C:\Users\108723\OneDrive - Positivo\Área de Trabalho\Marketplace\app\api\auth\simple-login\route.ts
 import * as entry from '../../../../../../app/api/auth/simple-login/route.js'
 import type { NextRequest } from 'next/server.js'
 
