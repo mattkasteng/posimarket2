@@ -25,36 +25,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/vendedor/produtos/page.js"
-    ],
-    "/dashboard/vendedor/financeiro/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/vendedor/financeiro/page.js"
-    ],
-    "/(marketplace)/carrinho/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(marketplace)/carrinho/page.js"
-    ],
-    "/(marketplace)/produtos/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(marketplace)/produtos/page.js"
-    ],
-    "/dashboard/admin/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/admin/page.js"
-    ],
-    "/dashboard/admin/uniformes/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/admin/uniformes/page.js"
-    ],
-    "/dashboard/admin/vendedores/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/admin/vendedores/page.js"
     ]
   }
 }

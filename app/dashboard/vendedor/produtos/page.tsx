@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import EditProductModal from '@/components/products/EditProductModal'
+import ProductActionsMenu from '@/components/products/ProductActionsMenu'
 
 // Mock data para produtos do vendedor (incluindo produtos com status de aprovação)
 const mockProducts = [
@@ -133,6 +134,10 @@ export default function ProductsManagementPage() {
   const handleCloseModal = () => {
     setIsEditModalOpen(false)
     setEditingProduct(null)
+  }
+
+  const handleDeleteProduct = (productId: string) => {
+    setProducts(prev => prev.filter(p => p.id !== productId))
   }
 
   const getStatusColor = (status: string) => {
@@ -292,9 +297,11 @@ export default function ProductsManagementPage() {
                         )}
                       </div>
                       <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" className="glass-button">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        <ProductActionsMenu
+                          product={product}
+                          onEdit={handleEditProduct}
+                          onDelete={handleDeleteProduct}
+                        />
                       </div>
                     </div>
 

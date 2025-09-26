@@ -42,12 +42,6 @@ const categorias = [
   'ELETRONICO'
 ]
 
-const statusOptions = [
-  'ATIVO',
-  'PAUSADO',
-  'PENDENTE_APROVACAO',
-  'REJEITADO'
-]
 
 export default function EditProductModal({ 
   isOpen, 
@@ -60,7 +54,6 @@ export default function EditProductModal({
     preco: '',
     precoOriginal: '',
     categoria: '',
-    status: '',
     estoque: '',
     descricao: '',
     tamanho: '',
@@ -78,7 +71,6 @@ export default function EditProductModal({
         preco: product.preco.toString(),
         precoOriginal: product.precoOriginal?.toString() || '',
         categoria: product.categoria,
-        status: product.status,
         estoque: product.estoque.toString(),
         descricao: '',
         tamanho: '',
@@ -120,7 +112,6 @@ export default function EditProductModal({
         preco: parseFloat(formData.preco),
         precoOriginal: formData.precoOriginal ? parseFloat(formData.precoOriginal) : undefined,
         categoria: formData.categoria,
-        status: formData.status,
         estoque: parseInt(formData.estoque),
         imagem: images[0] || product.imagem
       }
@@ -340,29 +331,6 @@ export default function EditProductModal({
                   </div>
                 </div>
 
-                {/* Status */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Status do Produto
-                  </h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status Atual
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => handleInputChange('status', e.target.value)}
-                      className="glass-input w-full"
-                    >
-                      {statusOptions.map(status => (
-                        <option key={status} value={status}>
-                          {status.replace('_', ' ')}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
 
                 {/* Imagens */}
                 <div className="space-y-4">
