@@ -1,5 +1,5 @@
 {
-  "/dashboard/vendedor/produtos/page": "app/dashboard/vendedor/produtos/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/dashboard/vendedor/produtos/novo/page": "app/dashboard/vendedor/produtos/novo/page.js"
+  "/dashboard/vendedor/produtos/novo/page": "app/dashboard/vendedor/produtos/novo/page.js",
+  "/dashboard/vendedor/produtos/page": "app/dashboard/vendedor/produtos/page.js"
 }

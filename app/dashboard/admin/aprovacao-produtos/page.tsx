@@ -4,15 +4,15 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import Image from 'next/image'
+import { Input } from '@/components/ui/Input'
 import { 
-  Clock, CheckCircle, XCircle, Eye, MessageSquare, 
-  Calendar, User, Package, Tag, DollarSign, Filter,
-  ArrowLeft, AlertTriangle, ThumbsUp, ThumbsDown
+  CheckCircle, XCircle, Eye, Clock, Package, 
+  Search, Filter, AlertCircle, User, Calendar
 } from 'lucide-react'
+import Image from 'next/image'
 
-interface Produto {
-  id: number
+interface ProdutoPendente {
+  id: string
   nome: string
   descricao: string
   categoria: string
@@ -23,94 +23,94 @@ interface Produto {
   cor?: string
   material?: string
   marca?: string
-  imagemPrincipal: string
   imagens: string[]
-  status: string
+  vendedorId: string
   statusAprovacao: string
-  dataSubmissao: string
-  vendedor: {
-    id: number
-    nome: string
-    email: string
-  }
+  createdAt: string
 }
 
 export default function AprovacaoProdutosPage() {
-  const [produtos, setProdutos] = useState<Produto[]>([])
-  const [filtroStatus, setFiltroStatus] = useState<'PENDENTE' | 'APROVADO' | 'REJEITADO' | 'TODOS'>('PENDENTE')
-  const [produtoSelecionado, setProdutoSelecionado] = useState<Produto | null>(null)
+  const [produtos, setProdutos] = useState<ProdutoPendente[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategoria, setSelectedCategoria] = useState('all')
+  const [selectedProduto, setSelectedProduto] = useState<ProdutoPendente | null>(null)
+  const [showModal, setShowModal] = useState(false)
   const [observacoes, setObservacoes] = useState('')
-  const [carregando, setCarregando] = useState(true)
-  const [user, setUser] = useState<any>(null)
+  const [processando, setProcessando] = useState<string | null>(null)
+
+  const categorias = [
+    'UNIFORME',
+    'MATERIAL_ESCOLAR',
+    'MOCHILA_ACESSORIO',
+    'CALÇADO',
+    'LIVRO_DIDATICO',
+    'ELETRONICO'
+  ]
 
   useEffect(() => {
-    // Verificar autenticação
-    const userData = localStorage.getItem('user')
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
-      
-      if (parsedUser.tipoUsuario !== 'ESCOLA') {
-        window.location.href = '/dashboard/vendedor'
-        return
-      }
-    } else {
-      window.location.href = '/login'
-      return
-    }
+    fetchProdutosPendentes()
+  }, [])
 
-    carregarProdutos()
-  }, [filtroStatus])
-
-  const carregarProdutos = async () => {
+  const fetchProdutosPendentes = async () => {
     try {
-      const params = new URLSearchParams()
-      if (filtroStatus !== 'TODOS') {
-        params.append('statusAprovacao', filtroStatus)
-      }
-      
-      const response = await fetch(`/api/produtos?${params.toString()}`)
+      setLoading(true)
+      const response = await fetch('/api/produtos?statusAprovacao=PENDENTE')
       const data = await response.json()
       
-      if (response.ok) {
+      if (data.success) {
         setProdutos(data.produtos)
       }
     } catch (error) {
-      console.error('Erro ao carregar produtos:', error)
+      console.error('Erro ao buscar produtos pendentes:', error)
     } finally {
-      setCarregando(false)
+      setLoading(false)
     }
   }
 
-  const aprovarRejeitar = async (produtoId: number, aprovado: boolean) => {
+  const handleAprovar = async (produtoId: string, aprovado: boolean) => {
     try {
+      setProcessando(produtoId)
+      
       const response = await fetch(`/api/produtos/${produtoId}/aprovar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          adminId: user?.id,
+          adminId: 'admin-123', // ID do admin mock
           aprovado,
-          observacoes
+          observacoes: observacoes || undefined
         })
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
-      if (response.ok) {
-        alert(result.message)
-        setProdutoSelecionado(null)
+      if (data.success) {
+        // Remover produto da lista
+        setProdutos(prev => prev.filter(p => p.id !== produtoId))
+        setShowModal(false)
+        setSelectedProduto(null)
         setObservacoes('')
-        carregarProdutos()
+        
+        alert(aprovado ? '✅ Produto aprovado com sucesso!' : '❌ Produto rejeitado')
       } else {
-        alert(result.error || 'Erro ao processar solicitação')
+        alert('Erro ao processar aprovação: ' + data.error)
       }
     } catch (error) {
-      console.error('Erro ao aprovar/rejeitar:', error)
-      alert('Erro ao processar solicitação')
+      console.error('Erro ao aprovar produto:', error)
+      alert('Erro ao processar aprovação')
+    } finally {
+      setProcessando(null)
     }
   }
+
+  const filteredProdutos = produtos.filter(produto => {
+    const matchesSearch = produto.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         produto.descricao.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategoria = selectedCategoria === 'all' || produto.categoria === selectedCategoria
+    return matchesSearch && matchesCategoria
+  })
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -125,29 +125,19 @@ export default function AprovacaoProdutosPage() {
     }
   }
 
-  const getCondicaoColor = (condicao: string) => {
-    switch (condicao) {
-      case 'NOVO':
-        return 'text-green-600 bg-green-50'
-      case 'SEMINOVO':
-        return 'text-blue-600 bg-blue-50'
-      case 'USADO':
-        return 'text-orange-600 bg-orange-50'
-      default:
-        return 'text-gray-600 bg-gray-50'
-    }
+  const getCategoriaLabel = (categoria: string) => {
+    return categoria.replace('_', ' ').toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
   }
 
-  const produtosPendentes = produtos.filter(p => p.statusAprovacao === 'PENDENTE').length
-  const produtosAprovados = produtos.filter(p => p.statusAprovacao === 'APROVADO').length
-  const produtosRejeitados = produtos.filter(p => p.statusAprovacao === 'REJEITADO').length
-
-  if (carregando) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando produtos...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando produtos pendentes...</p>
         </div>
       </div>
     )
@@ -162,75 +152,22 @@ export default function AprovacaoProdutosPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">
                 Aprovação de Produtos
               </h1>
               <p className="text-gray-600 text-lg">
-                Gerencie produtos submetidos pelos vendedores
+                Gerencie produtos pendentes de aprovação
               </p>
             </div>
-            
-            <Button
-              onClick={() => window.history.back()}
-              variant="outline"
-              className="glass-button"
-            >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Voltar
-            </Button>
-          </div>
-
-          {/* Cards de Resumo */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="glass-card-strong">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Pendentes</p>
-                    <p className="text-2xl font-bold text-yellow-600">{produtosPendentes}</p>
-                  </div>
-                  <Clock className="h-8 w-8 text-yellow-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card-strong">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Aprovados</p>
-                    <p className="text-2xl font-bold text-green-600">{produtosAprovados}</p>
-                  </div>
-                  <CheckCircle className="h-8 w-8 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card-strong">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Rejeitados</p>
-                    <p className="text-2xl font-bold text-red-600">{produtosRejeitados}</p>
-                  </div>
-                  <XCircle className="h-8 w-8 text-red-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card-strong">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total</p>
-                    <p className="text-2xl font-bold text-gray-900">{produtos.length}</p>
-                  </div>
-                  <Package className="h-8 w-8 text-gray-500" />
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex items-center space-x-2">
+              <Package className="h-8 w-8 text-primary-600" />
+              <span className="text-2xl font-bold text-primary-600">
+                {produtos.length}
+              </span>
+              <span className="text-gray-600">pendentes</span>
+            </div>
           </div>
         </motion.div>
 
@@ -243,25 +180,33 @@ export default function AprovacaoProdutosPage() {
         >
           <Card className="glass-card-strong">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <Filter className="h-5 w-5 text-gray-400" />
-                <div className="flex space-x-2">
-                  {[
-                    { value: 'PENDENTE', label: 'Pendentes', color: 'yellow' },
-                    { value: 'APROVADO', label: 'Aprovados', color: 'green' },
-                    { value: 'REJEITADO', label: 'Rejeitados', color: 'red' },
-                    { value: 'TODOS', label: 'Todos', color: 'gray' }
-                  ].map((filtro) => (
-                    <Button
-                      key={filtro.value}
-                      variant={filtroStatus === filtro.value ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setFiltroStatus(filtro.value as any)}
-                      className={filtroStatus === filtro.value ? 'glass-button-primary' : 'glass-button'}
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="flex flex-1 gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Input
+                      placeholder="Buscar produtos..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  
+                  <div className="relative">
+                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <select
+                      value={selectedCategoria}
+                      onChange={(e) => setSelectedCategoria(e.target.value)}
+                      className="glass-input pl-10 pr-10 appearance-none"
                     >
-                      {filtro.label}
-                    </Button>
-                  ))}
+                      <option value="all">Todas as categorias</option>
+                      {categorias.map(cat => (
+                        <option key={cat} value={cat}>
+                          {getCategoriaLabel(cat)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -275,20 +220,20 @@ export default function AprovacaoProdutosPage() {
           transition={{ delay: 0.2 }}
           className="space-y-6"
         >
-          {produtos.length === 0 ? (
+          {filteredProdutos.length === 0 ? (
             <Card className="glass-card-strong">
               <CardContent className="p-12 text-center">
-                <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Nenhum produto encontrado
+                <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Nenhum produto pendente
                 </h3>
                 <p className="text-gray-600">
-                  {filtroStatus === 'PENDENTE' ? 'Não há produtos aguardando aprovação.' : `Não há produtos ${filtroStatus.toLowerCase()}.`}
+                  Todos os produtos foram processados ou não há produtos aguardando aprovação.
                 </p>
               </CardContent>
             </Card>
           ) : (
-            produtos.map((produto, index) => (
+            filteredProdutos.map((produto, index) => (
               <motion.div
                 key={produto.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -297,106 +242,80 @@ export default function AprovacaoProdutosPage() {
               >
                 <Card className="glass-card-strong hover:glass-card-strong transition-all duration-300">
                   <CardContent className="p-6">
-                    <div className="flex space-x-6">
+                    <div className="flex items-start space-x-6">
                       {/* Imagem do Produto */}
-                      <div className="flex-shrink-0">
-                        <div className="w-32 h-32 rounded-lg overflow-hidden relative">
-                          {produto.imagemPrincipal ? (
-                            <Image
-                              src={produto.imagemPrincipal}
-                              alt={produto.nome}
-                              fill
-                              style={{ objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                              <Package className="h-8 w-8 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
+                      <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                        {produto.imagens && produto.imagens.length > 0 ? (
+                          <Image
+                            src={produto.imagens[0]}
+                            alt={produto.nome}
+                            fill
+                            style={{ objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <Package className="h-8 w-8 text-gray-400" />
+                          </div>
+                        )}
                       </div>
 
                       {/* Informações do Produto */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">
                               {produto.nome}
                             </h3>
                             <p className="text-gray-600 mb-3 line-clamp-2">
                               {produto.descricao}
                             </p>
                             
-                            <div className="flex items-center space-x-4 mb-3">
-                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(produto.statusAprovacao)}`}>
-                                {produto.statusAprovacao}
-                              </span>
-                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getCondicaoColor(produto.condicao)}`}>
-                                {produto.condicao}
-                              </span>
-                              <span className="text-sm text-gray-500">{produto.categoria.replace('_', ' ')}</span>
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+                              <span><strong>Categoria:</strong> {getCategoriaLabel(produto.categoria)}</span>
+                              <span><strong>Condição:</strong> {produto.condicao}</span>
+                              {produto.tamanho && <span><strong>Tamanho:</strong> {produto.tamanho}</span>}
+                              {produto.cor && <span><strong>Cor:</strong> {produto.cor}</span>}
                             </div>
 
-                            <div className="flex items-center space-x-6 text-sm text-gray-600">
-                              <div className="flex items-center space-x-1">
-                                <User className="h-4 w-4" />
-                                <span>{produto.vendedor.nome}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-4 w-4" />
-                                <span>{new Date(produto.dataSubmissao).toLocaleDateString('pt-BR')}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <DollarSign className="h-4 w-4" />
-                                <span className="font-semibold text-green-600">R$ {produto.preco.toFixed(2)}</span>
-                                {produto.precoOriginal && (
-                                  <span className="line-through text-gray-500">R$ {produto.precoOriginal.toFixed(2)}</span>
-                                )}
-                              </div>
+                            <div className="flex items-center space-x-4 mb-3">
+                              <span className="text-2xl font-bold text-primary-600">
+                                R$ {produto.preco.toFixed(2)}
+                              </span>
+                              {produto.precoOriginal && (
+                                <span className="text-lg text-gray-500 line-through">
+                                  R$ {produto.precoOriginal.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                Criado em {new Date(produto.createdAt).toLocaleDateString('pt-BR')}
+                              </span>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Ações */}
-                        <div className="flex items-center space-x-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setProdutoSelecionado(produto)}
-                            className="glass-button"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Detalhes
-                          </Button>
-
-                          {produto.statusAprovacao === 'PENDENTE' && (
-                            <>
+                          
+                          <div className="flex flex-col items-end space-y-3">
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(produto.statusAprovacao)}`}>
+                              {produto.statusAprovacao}
+                            </span>
+                            
+                            <div className="flex space-x-2">
                               <Button
-                                size="sm"
-                                onClick={() => aprovarRejeitar(produto.id, true)}
-                                className="bg-green-500 text-white hover:bg-green-600"
-                              >
-                                <ThumbsUp className="h-4 w-4 mr-2" />
-                                Aprovar
-                              </Button>
-                              <Button
-                                size="sm"
                                 variant="outline"
+                                size="sm"
                                 onClick={() => {
-                                  setProdutoSelecionado(produto)
-                                  // Focar no textarea de observações
-                                  setTimeout(() => {
-                                    const textarea = document.querySelector('textarea[placeholder*="observações"]') as HTMLTextAreaElement
-                                    if (textarea) textarea.focus()
-                                  }, 100)
+                                  setSelectedProduto(produto)
+                                  setShowModal(true)
                                 }}
-                                className="border-red-500 text-red-600 hover:bg-red-50"
+                                className="glass-button"
                               >
-                                <ThumbsDown className="h-4 w-4 mr-2" />
-                                Rejeitar
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver Detalhes
                               </Button>
-                            </>
-                          )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -407,158 +326,86 @@ export default function AprovacaoProdutosPage() {
           )}
         </motion.div>
 
-        {/* Modal de Detalhes do Produto */}
-        {produtoSelecionado && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Detalhes do Produto</h2>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setProdutoSelecionado(null)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <XCircle className="h-6 w-6" />
-                  </Button>
-                </div>
+        {/* Modal de Aprovação */}
+        {showModal && selectedProduto && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-full max-w-2xl bg-white rounded-xl shadow-xl"
+            >
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Aprovar Produto
+                </h2>
+                <p className="text-gray-600 mt-1">
+                  {selectedProduto.nome}
+                </p>
+              </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Imagens */}
-                  <div className="space-y-4">
-                    <div className="w-full h-64 rounded-lg overflow-hidden relative">
-                      {produtoSelecionado.imagemPrincipal ? (
-                        <Image
-                          src={produtoSelecionado.imagemPrincipal}
-                          alt={produtoSelecionado.nome}
-                          fill
-                          style={{ objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                          <Package className="h-16 w-16 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    {produtoSelecionado.imagens && produtoSelecionado.imagens.length > 1 && (
-                      <div className="grid grid-cols-4 gap-2">
-                        {produtoSelecionado.imagens.slice(0, 4).map((imagem, index) => (
-                          <div key={index} className="w-full h-16 rounded-lg overflow-hidden relative">
-                            <Image
-                              src={imagem}
-                              alt={`${produtoSelecionado.nome} ${index + 1}`}
-                              fill
-                              style={{ objectFit: 'cover' }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Informações */}
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        {produtoSelecionado.nome}
-                      </h3>
-                      <p className="text-gray-600">
-                        {produtoSelecionado.descricao}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-500">Categoria:</span>
-                        <p className="font-semibold">{produtoSelecionado.categoria.replace('_', ' ')}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Condição:</span>
-                        <p className="font-semibold">{produtoSelecionado.condicao}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Preço:</span>
-                        <p className="font-semibold text-green-600">R$ {produtoSelecionado.preco.toFixed(2)}</p>
-                      </div>
-                      {produtoSelecionado.precoOriginal && (
-                        <div>
-                          <span className="text-gray-500">Preço Original:</span>
-                          <p className="font-semibold line-through">R$ {produtoSelecionado.precoOriginal.toFixed(2)}</p>
-                        </div>
-                      )}
-                      {produtoSelecionado.tamanho && (
-                        <div>
-                          <span className="text-gray-500">Tamanho:</span>
-                          <p className="font-semibold">{produtoSelecionado.tamanho}</p>
-                        </div>
-                      )}
-                      {produtoSelecionado.cor && (
-                        <div>
-                          <span className="text-gray-500">Cor:</span>
-                          <p className="font-semibold">{produtoSelecionado.cor}</p>
-                        </div>
-                      )}
-                      {produtoSelecionado.material && (
-                        <div>
-                          <span className="text-gray-500">Material:</span>
-                          <p className="font-semibold">{produtoSelecionado.material}</p>
-                        </div>
-                      )}
-                      {produtoSelecionado.marca && (
-                        <div>
-                          <span className="text-gray-500">Marca:</span>
-                          <p className="font-semibold">{produtoSelecionado.marca}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">Vendedor</h4>
-                      <p className="text-gray-600">{produtoSelecionado.vendedor.nome}</p>
-                      <p className="text-gray-500 text-sm">{produtoSelecionado.vendedor.email}</p>
-                    </div>
-
-                    {/* Observações para Rejeição */}
-                    {produtoSelecionado.statusAprovacao === 'PENDENTE' && (
-                      <div className="border-t pt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Observações (opcionais)
-                        </label>
-                        <textarea
-                          value={observacoes}
-                          onChange={(e) => setObservacoes(e.target.value)}
-                          placeholder="Adicione observações sobre a aprovação ou motivos da rejeição..."
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                          rows={3}
-                        />
-                      </div>
-                    )}
-
-                    {/* Botões de Ação */}
-                    {produtoSelecionado.statusAprovacao === 'PENDENTE' && (
-                      <div className="flex space-x-4 pt-4 border-t">
-                        <Button
-                          onClick={() => aprovarRejeitar(produtoSelecionado.id, true)}
-                          className="flex-1 bg-green-500 text-white hover:bg-green-600"
-                        >
-                          <ThumbsUp className="h-4 w-4 mr-2" />
-                          Aprovar Produto
-                        </Button>
-                        <Button
-                          onClick={() => aprovarRejeitar(produtoSelecionado.id, false)}
-                          variant="outline"
-                          className="flex-1 border-red-500 text-red-600 hover:bg-red-50"
-                        >
-                          <ThumbsDown className="h-4 w-4 mr-2" />
-                          Rejeitar Produto
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Observações (opcional)
+                  </label>
+                  <textarea
+                    value={observacoes}
+                    onChange={(e) => setObservacoes(e.target.value)}
+                    placeholder="Adicione observações sobre a aprovação..."
+                    rows={3}
+                    className="glass-input w-full resize-none"
+                  />
                 </div>
               </div>
-            </div>
+
+              <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowModal(false)
+                    setSelectedProduto(null)
+                    setObservacoes('')
+                  }}
+                  className="glass-button"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => handleAprovar(selectedProduto.id, false)}
+                  disabled={processando === selectedProduto.id}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                >
+                  {processando === selectedProduto.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Rejeitando...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Rejeitar
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={() => handleAprovar(selectedProduto.id, true)}
+                  disabled={processando === selectedProduto.id}
+                  className="glass-button-primary"
+                >
+                  {processando === selectedProduto.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Aprovando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Aprovar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
           </div>
         )}
       </div>

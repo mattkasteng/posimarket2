@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+
+// Mock de produtos para demonstração (em produção, usar banco de dados)
+let mockProducts: any[] = []
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,8 +11,11 @@ export async function POST(request: NextRequest) {
       categoria,
       condicao,
       preco,
+      precoOriginal,
       tamanho,
       cor,
+      material,
+      marca,
       images,
       vendedorId
     } = await request.json()
@@ -23,36 +28,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar o produto - usando apenas campos que existem no schema
-    const produto = await prisma.produto.create({
-      data: {
-        nome,
-        descricao,
-        categoria,
-        condicao,
-        preco: parseFloat(preco),
-        tamanho,
-        cor,
-        imagens: JSON.stringify(images || []), // JSON string conforme schema
-        vendedorId: vendedorId, // String ID, não parseInt
-        ativo: false // Produto inativo até ser aprovado
-      }
-    })
+    // Criar ID único para o produto
+    const produtoId = `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    // Criar o produto mock
+    const produto = {
+      id: produtoId,
+      nome,
+      descricao,
+      categoria,
+      condicao,
+      preco: parseFloat(preco),
+      precoOriginal: precoOriginal ? parseFloat(precoOriginal) : null,
+      tamanho,
+      cor,
+      material,
+      marca,
+      imagens: images || [],
+      vendedorId,
+      ativo: false, // Produto inativo até ser aprovado
+      statusAprovacao: 'PENDENTE',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    // Adicionar à lista mock
+    mockProducts.push(produto)
 
     // Log para auditoria
-    console.log(`Novo produto criado: ${produto.id} por vendedor: ${vendedorId}`)
+    console.log(`✅ Novo produto criado: ${produto.id} por vendedor: ${vendedorId}`)
+    console.log(`📋 Status: PENDENTE APROVAÇÃO`)
 
     return NextResponse.json({
       success: true,
       produto: {
         id: produto.id,
         nome: produto.nome,
-        ativo: produto.ativo
+        ativo: produto.ativo,
+        statusAprovacao: produto.statusAprovacao
       }
     })
 
   } catch (error) {
-    console.error('Erro ao criar produto:', error)
+    console.error('❌ Erro ao criar produto:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
@@ -65,37 +83,33 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const vendedorId = searchParams.get('vendedorId')
     const ativo = searchParams.get('ativo')
+    const statusAprovacao = searchParams.get('statusAprovacao')
 
-    const whereCondition: any = {}
+    let filteredProducts = [...mockProducts]
 
+    // Filtrar por vendedor
     if (vendedorId) {
-      whereCondition.vendedorId = vendedorId // String ID, não parseInt
+      filteredProducts = filteredProducts.filter(p => p.vendedorId === vendedorId)
     }
 
+    // Filtrar por status ativo
     if (ativo !== null) {
-      whereCondition.ativo = ativo === 'true'
+      const isActive = ativo === 'true'
+      filteredProducts = filteredProducts.filter(p => p.ativo === isActive)
     }
 
-    const produtos = await prisma.produto.findMany({
-      where: whereCondition,
-      include: {
-        vendedor: {
-          select: {
-            id: true,
-            nome: true,
-            email: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
+    // Filtrar por status de aprovação
+    if (statusAprovacao) {
+      filteredProducts = filteredProducts.filter(p => p.statusAprovacao === statusAprovacao)
+    }
 
-    return NextResponse.json({ produtos })
+    // Ordenar por data de criação (mais recentes primeiro)
+    filteredProducts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    return NextResponse.json({ produtos: filteredProducts })
 
   } catch (error) {
-    console.error('Erro ao buscar produtos:', error)
+    console.error('❌ Erro ao buscar produtos:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }

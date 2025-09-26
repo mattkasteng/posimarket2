@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+
+// Mock de produtos (mesmo array da API principal)
+// Em produção, isso seria compartilhado via banco de dados
+let mockProducts: any[] = []
 
 export async function POST(
   request: NextRequest,
@@ -7,58 +10,73 @@ export async function POST(
 ) {
   try {
     const { adminId, observacoes, aprovado } = await request.json()
-    const produtoId = params.id // String ID, não parseInt
+    const produtoId = params.id
 
-    // Verificar se o usuário é admin
-    const admin = await prisma.usuario.findUnique({
-      where: { id: adminId } // String ID, não parseInt
-    })
+    // Verificar se o usuário é admin (mock)
+    const isAdmin = adminId === 'admin-123' // ID do admin mock
 
-    if (!admin || admin.tipoUsuario !== 'ESCOLA') {
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Acesso negado' },
+        { error: 'Acesso negado. Apenas administradores podem aprovar produtos.' },
         { status: 403 }
       )
     }
 
-    // Buscar o produto
-    const produto = await prisma.produto.findUnique({
-      where: { id: produtoId },
-      include: {
-        vendedor: true
-      }
-    })
+    // Buscar o produto (em produção, usar banco de dados)
+    const produtoIndex = mockProducts.findIndex(p => p.id === produtoId)
 
-    if (!produto) {
+    if (produtoIndex === -1) {
       return NextResponse.json(
         { error: 'Produto não encontrado' },
         { status: 404 }
       )
     }
 
-    // Atualizar o produto - usando apenas campos que existem no schema
-    const produtoAtualizado = await prisma.produto.update({
-      where: { id: produtoId },
-      data: {
-        ativo: aprovado,
-        updatedAt: new Date()
-      }
-    })
+    // Atualizar o produto
+    mockProducts[produtoIndex] = {
+      ...mockProducts[produtoIndex],
+      ativo: aprovado,
+      statusAprovacao: aprovado ? 'APROVADO' : 'REJEITADO',
+      observacoesAprovacao: observacoes,
+      adminAprovadorId: adminId,
+      dataAprovacao: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
 
-    // Log da aprovação para auditoria
-    console.log(`Produto ${produtoId} ${aprovado ? 'aprovado' : 'rejeitado'} por admin ${adminId}`)
+    // Log para auditoria
+    console.log(`✅ Produto ${produtoId} ${aprovado ? 'APROVADO' : 'REJEITADO'} por admin ${adminId}`)
     if (observacoes) {
-      console.log(`Observações: ${observacoes}`)
+      console.log(`📝 Observações: ${observacoes}`)
     }
 
     return NextResponse.json({
       success: true,
-      produto: produtoAtualizado,
+      produto: mockProducts[produtoIndex],
       message: aprovado ? 'Produto aprovado com sucesso!' : 'Produto rejeitado'
     })
 
   } catch (error) {
-    console.error('Erro ao aprovar/rejeitar produto:', error)
+    console.error('❌ Erro ao aprovar/rejeitar produto:', error)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+// Função para obter produtos pendentes (para o dashboard admin)
+export async function GET() {
+  try {
+    const produtosPendentes = mockProducts.filter(p => p.statusAprovacao === 'PENDENTE')
+    
+    return NextResponse.json({
+      success: true,
+      produtos: produtosPendentes,
+      total: produtosPendentes.length
+    })
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar produtos pendentes:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
