@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-// Mock de produtos (mesmo array da API principal)
-// Em produção, isso seria compartilhado via banco de dados
-let mockProducts: any[] = []
+import { mockProducts, updateProduct, getProductsByStatus } from '@/lib/mock-data'
 
 export async function POST(
   request: NextRequest,
@@ -33,15 +30,14 @@ export async function POST(
     }
 
     // Atualizar o produto
-    mockProducts[produtoIndex] = {
-      ...mockProducts[produtoIndex],
+    updateProduct(produtoId, {
       ativo: aprovado,
       statusAprovacao: aprovado ? 'APROVADO' : 'REJEITADO',
       observacoesAprovacao: observacoes,
       adminAprovadorId: adminId,
       dataAprovacao: new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    }
+    })
 
     // Log para auditoria
     console.log(`✅ Produto ${produtoId} ${aprovado ? 'APROVADO' : 'REJEITADO'} por admin ${adminId}`)
@@ -49,9 +45,12 @@ export async function POST(
       console.log(`📝 Observações: ${observacoes}`)
     }
 
+    // Buscar o produto atualizado
+    const produtoAtualizado = mockProducts.find(p => p.id === produtoId)
+
     return NextResponse.json({
       success: true,
-      produto: mockProducts[produtoIndex],
+      produto: produtoAtualizado,
       message: aprovado ? 'Produto aprovado com sucesso!' : 'Produto rejeitado'
     })
 
@@ -67,7 +66,7 @@ export async function POST(
 // Função para obter produtos pendentes (para o dashboard admin)
 export async function GET() {
   try {
-    const produtosPendentes = mockProducts.filter(p => p.statusAprovacao === 'PENDENTE')
+    const produtosPendentes = getProductsByStatus('PENDENTE')
     
     return NextResponse.json({
       success: true,

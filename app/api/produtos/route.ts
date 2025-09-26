@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-// Mock de produtos para demonstração (em produção, usar banco de dados)
-let mockProducts: any[] = []
+import { mockProducts, addProduct, getProductsByVendor, getProductsByStatus } from '@/lib/mock-data'
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Adicionar à lista mock
-    mockProducts.push(produto)
+    addProduct(produto)
 
     // Log para auditoria
     console.log(`✅ Novo produto criado: ${produto.id} por vendedor: ${vendedorId}`)
@@ -89,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrar por vendedor
     if (vendedorId) {
-      filteredProducts = filteredProducts.filter(p => p.vendedorId === vendedorId)
+      filteredProducts = getProductsByVendor(vendedorId)
     }
 
     // Filtrar por status ativo
@@ -100,7 +98,7 @@ export async function GET(request: NextRequest) {
 
     // Filtrar por status de aprovação
     if (statusAprovacao) {
-      filteredProducts = filteredProducts.filter(p => p.statusAprovacao === statusAprovacao)
+      filteredProducts = getProductsByStatus(statusAprovacao)
     }
 
     // Ordenar por data de criação (mais recentes primeiro)

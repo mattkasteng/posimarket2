@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -108,9 +108,54 @@ export default function ProductsManagementPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'ATIVO' | 'PAUSADO'>('all')
-  const [products, setProducts] = useState(mockProducts)
-  const [editingProduct, setEditingProduct] = useState<typeof mockProducts[0] | null>(null)
+  const [products, setProducts] = useState<any[]>([])
+  const [editingProduct, setEditingProduct] = useState<any>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+
+  // Buscar produtos do vendedor
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+        
+        // Obter dados do usuário logado
+        const userData = localStorage.getItem('user')
+        if (!userData) {
+          console.error('Usuário não autenticado')
+          return
+        }
+
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+
+        // Buscar produtos do vendedor
+        const response = await fetch(`/api/produtos?vendedorId=${parsedUser.id}`)
+        const data = await response.json()
+
+        if (data.produtos) {
+          // Adicionar dados mock para compatibilidade com a interface
+          const produtosComDadosMock = data.produtos.map((produto: any) => ({
+            ...produto,
+            imagem: produto.imagens && produto.imagens.length > 0 ? produto.imagens[0] : 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
+            vendas: Math.floor(Math.random() * 100),
+            visualizacoes: Math.floor(Math.random() * 2000),
+            avaliacao: 4.0 + Math.random() * 1.0,
+            status: produto.ativo ? 'ATIVO' : 'PENDENTE_APROVACAO'
+          }))
+          
+          setProducts(produtosComDadosMock)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar produtos:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.nome.toLowerCase().includes(searchQuery.toLowerCase())
@@ -118,12 +163,12 @@ export default function ProductsManagementPage() {
     return matchesSearch && matchesStatus
   })
 
-  const handleEditProduct = (product: typeof mockProducts[0]) => {
+  const handleEditProduct = (product: any) => {
     setEditingProduct(product)
     setIsEditModalOpen(true)
   }
 
-  const handleSaveProduct = (updatedProduct: typeof mockProducts[0]) => {
+  const handleSaveProduct = (updatedProduct: any) => {
     setProducts(prev => 
       prev.map(p => p.id === updatedProduct.id ? updatedProduct : p)
     )
@@ -166,6 +211,17 @@ export default function ProductsManagementPage() {
       default:
         return 'text-gray-600 bg-gray-50'
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando produtos...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
