@@ -59,6 +59,7 @@ export default function AddProductPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
@@ -317,7 +318,7 @@ export default function AddProductPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => {
-                                // Definir o preço sugerido
+                                setValue('preco', suggestedPrice)
                               }}
                               className="glass-button"
                             >

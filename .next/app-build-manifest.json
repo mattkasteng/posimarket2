@@ -25,6 +25,16 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/vendedor/produtos/page.js"
+    ],
+    "/dashboard/vendedor/vendas/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/vendedor/vendas/page.js"
+    ],
+    "/dashboard/vendedor/produtos/novo/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/vendedor/produtos/novo/page.js"
     ]
   }
 }
