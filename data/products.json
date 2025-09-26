@@ -1,0 +1,59 @@
+[
+  {
+    "id": "prod_example_1",
+    "nome": "Uniforme Escolar Masculino - Camisa Polo",
+    "descricao": "Uniforme escolar masculino em camisa polo de algodão",
+    "categoria": "UNIFORME",
+    "condicao": "NOVO",
+    "preco": 89.9,
+    "precoOriginal": 120,
+    "tamanho": "M",
+    "cor": "Azul",
+    "material": "Algodão",
+    "marca": "Escolar",
+    "imagens": [
+      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop"
+    ],
+    "vendedorId": "vendor-456",
+    "ativo": true,
+    "statusAprovacao": "APROVADO",
+    "createdAt": "2023-11-15T10:00:00Z",
+    "updatedAt": "2023-11-15T10:00:00Z"
+  },
+  {
+    "id": "prod_example_2",
+    "nome": "Caderno Universitário 200 folhas",
+    "descricao": "Caderno universitário com 200 folhas pautadas",
+    "categoria": "MATERIAL_ESCOLAR",
+    "condicao": "NOVO",
+    "preco": 25.5,
+    "precoOriginal": null,
+    "tamanho": "A4",
+    "cor": "Branco",
+    "material": "Papel",
+    "marca": "Tilibra",
+    "imagens": [
+      "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop"
+    ],
+    "vendedorId": "vendor-456",
+    "ativo": true,
+    "statusAprovacao": "APROVADO",
+    "createdAt": "2023-11-20T10:00:00Z",
+    "updatedAt": "2023-11-20T10:00:00Z"
+  },
+  {
+    "id": "prod_1758898123138_vfjle4hcp",
+    "nome": "Produto Teste Persistente",
+    "descricao": "Descri��o do produto teste que deve persistir",
+    "categoria": "UNIFORME",
+    "condicao": "NOVO",
+    "preco": 75,
+    "precoOriginal": null,
+    "imagens": [],
+    "vendedorId": "vendor-456",
+    "ativo": false,
+    "statusAprovacao": "PENDENTE",
+    "createdAt": "2025-09-26T14:48:43.138Z",
+    "updatedAt": "2025-09-26T14:48:43.138Z"
+  }
+]
