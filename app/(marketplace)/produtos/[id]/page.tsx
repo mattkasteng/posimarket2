@@ -288,7 +288,7 @@ export default function ProductDetailsPage() {
             </div>
             
             <div className="grid grid-cols-3 gap-4">
-              {mockProduct.imagens.map((imagem, index) => (
+              {mockProduct.imagens.map((imagem: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
@@ -367,7 +367,7 @@ export default function ProductDetailsPage() {
                         Tamanho: {selectedSize}
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {mockProduct.medidas.map((medida) => (
+                        {mockProduct.medidas.map((medida: string) => (
                           <button
                             key={medida.tamanho}
                             onClick={() => setSelectedSize(medida.tamanho)}
@@ -504,7 +504,7 @@ export default function ProductDetailsPage() {
               
               <h3 className="text-lg font-semibold text-gray-900 mb-3">Detalhes do Produto</h3>
               <ul className="space-y-2">
-                {mockProduct.detalhes.map((detalhe, index) => (
+                {mockProduct.detalhes.map((detalhe: string, index: number) => (
                   <li key={index} className="flex items-start space-x-2">
                     <span className="text-primary-500 mt-1">•</span>
                     <span className="text-gray-700">{detalhe}</span>
@@ -529,7 +529,7 @@ export default function ProductDetailsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockProduct.medidas.map((medida, index) => (
+                      {mockProduct.medidas.map((medida: string, index: number) => (
                         <tr key={index} className="border-b border-gray-100">
                           <td className="py-3 px-4 font-medium text-gray-900">{medida.tamanho}</td>
                           <td className="py-3 px-4 text-gray-700">{medida.peito}</td>
@@ -551,7 +551,7 @@ export default function ProductDetailsPage() {
               </h2>
               
               <div className="space-y-4">
-                {mockReviews.map((review) => (
+                {mockReviews.map((review: any) => (
                   <div key={review.id} className="border-b border-gray-200 pb-4 last:border-b-0">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
@@ -587,7 +587,7 @@ export default function ProductDetailsPage() {
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Produtos Relacionados</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockRelatedProducts.map((product) => (
+              {mockRelatedProducts.map((product: any) => (
                 <ProductCard
                   key={product.id}
                   {...product}
