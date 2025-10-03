@@ -162,7 +162,7 @@ export default function ProductsManagementPage() {
           }
         })
         
-        console.log('📋 Produtos mapeados:', produtosComDadosMock.map(p => ({ id: p.id, status: p.status, ativo: p.ativo })))
+        console.log('📋 Produtos mapeados:', produtosComDadosMock.map((p: any) => ({ id: p.id, status: p.status, ativo: p.ativo })))
         setProducts(produtosComDadosMock)
       }
     } catch (error) {
