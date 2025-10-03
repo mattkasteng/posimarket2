@@ -37,7 +37,7 @@ export function useAuth() {
       const userData = {
         id: session.user.id || '',
         email: session.user.email || '',
-        nome: session.user.name || '',
+        nome: (session.user as any).nome || '',
         tipoUsuario: (session.user as any).tipoUsuario || '',
         emailVerificado: true
       }
