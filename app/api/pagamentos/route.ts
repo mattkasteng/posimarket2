@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      const vendedoresIds = [...new Set(itensPedido.map(item => item.produto.vendedorId))]
+      const vendedoresIds = Array.from(new Set(itensPedido.map(item => item.produto.vendedorId)))
       for (const vendedorId of vendedoresIds) {
         await prisma.notificacao.create({
           data: {
