@@ -367,7 +367,7 @@ export default function ProductDetailsPage() {
                         Tamanho: {selectedSize}
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {mockProduct.medidas.map((medida: string) => (
+                        {mockProduct.medidas.map((medida: {tamanho: string, peito: string, comprimento: string}) => (
                           <button
                             key={medida.tamanho}
                             onClick={() => setSelectedSize(medida.tamanho)}
@@ -529,7 +529,7 @@ export default function ProductDetailsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockProduct.medidas.map((medida: string, index: number) => (
+                      {mockProduct.medidas.map((medida: {tamanho: string, peito: string, comprimento: string}, index: number) => (
                         <tr key={index} className="border-b border-gray-100">
                           <td className="py-3 px-4 font-medium text-gray-900">{medida.tamanho}</td>
                           <td className="py-3 px-4 text-gray-700">{medida.peito}</td>
