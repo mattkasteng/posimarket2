@@ -40,28 +40,42 @@ export async function POST(request: NextRequest) {
     const statusPagamento = metodo === 'PIX' ? 'APROVADO' : 'PROCESSANDO'
     const dataPagamento = statusPagamento === 'APROVADO' ? new Date() : null
 
-    // Criar ou atualizar pagamento
-    const pagamento = await prisma.pagamento.upsert({
+    // Verificar se já existe pagamento para este pedido
+    const pagamentoExistente = await prisma.pagamento.findFirst({
       where: {
         pedidoId: pedidoId
-      },
-      update: {
-        valor: pedido.total,
-        metodo,
-        status: statusPagamento,
-        transacaoId,
-        dataPagamento,
-        updatedAt: new Date()
-      },
-      create: {
-        pedidoId,
-        valor: pedido.total,
-        metodo,
-        status: statusPagamento,
-        transacaoId,
-        dataPagamento
       }
     })
+
+    let pagamento
+    if (pagamentoExistente) {
+      // Atualizar pagamento existente
+      pagamento = await prisma.pagamento.update({
+        where: {
+          id: pagamentoExistente.id
+        },
+        data: {
+          valor: pedido.total,
+          metodo,
+          status: statusPagamento,
+          transacaoId,
+          dataPagamento,
+          updatedAt: new Date()
+        }
+      })
+    } else {
+      // Criar novo pagamento
+      pagamento = await prisma.pagamento.create({
+        data: {
+          pedidoId,
+          valor: pedido.total,
+          metodo,
+          status: statusPagamento,
+          transacaoId,
+          dataPagamento
+        }
+      })
+    }
 
     // Se pagamento aprovado, atualizar status do pedido
     if (statusPagamento === 'APROVADO') {
