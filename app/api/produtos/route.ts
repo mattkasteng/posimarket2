@@ -40,12 +40,21 @@ export async function POST(request: NextRequest) {
 
     // Buscar escola do vendedor (se for pai/responsável)
     let escolaId = null
+    let escolaNome = 'Escola Positivo'
+    
     if (vendedor.escolaId) {
       escolaId = vendedor.escolaId
+      // Buscar nome da escola
+      const escola = await prisma.escola.findUnique({
+        where: { id: vendedor.escolaId },
+        select: { nome: true }
+      })
+      escolaNome = escola?.nome || 'Escola Positivo'
     } else {
       // Se não tem escola associada, buscar a primeira escola disponível
       const escola = await prisma.escola.findFirst()
       escolaId = escola?.id || null
+      escolaNome = escola?.nome || 'Escola Positivo'
     }
 
     // Criar o produto no banco
@@ -65,7 +74,7 @@ export async function POST(request: NextRequest) {
         vendedorId,
         vendedorNome: vendedor.nome,
         escolaId,
-        escolaNome: vendedor.escola?.nome || 'Escola Positivo',
+        escolaNome: escolaNome,
         ativo: false, // Produto inativo até ser aprovado
         statusAprovacao: 'PENDENTE'
       },
