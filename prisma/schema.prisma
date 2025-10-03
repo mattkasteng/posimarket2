@@ -1,11 +1,11 @@
-// Schema para produção com MySQL (PlanetScale)
+// Schema para desenvolvimento local com SQLite
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model Usuario {
@@ -30,6 +30,11 @@ model Usuario {
   produtos        Produto[]   @relation("Vendedor")
   pedidos         Pedido[]    @relation("Comprador")
   avaliacoes      Avaliacao[] @relation("Avaliador")
+  notificacoes    Notificacao[] @relation("Usuario")
+  conversas1      Conversa[]  @relation("Usuario1")
+  conversas2      Conversa[]  @relation("Usuario2")
+  mensagensEnviadas    Mensagem[] @relation("Remetente")
+  mensagensRecebidas   Mensagem[] @relation("Destinatario")
 
   @@map("usuarios")
 }
@@ -73,14 +78,20 @@ model Produto {
   nome            String
   descricao       String
   preco           Float
+  precoOriginal   Float?
   categoria       String    // UNIFORME_NOVO, UNIFORME_USADO, MATERIAL_ESCOLAR, LIVRO
   condicao        String    // NOVO, SEMINOVO, USADO
   tamanho         String?
   cor             String?
+  material        String?
+  marca           String?
   imagens         String    // JSON string com array de URLs
   vendedorId      String
+  vendedorNome    String?
   escolaId        String?
+  escolaNome      String?
   ativo           Boolean   @default(true)
+  statusAprovacao String    @default("PENDENTE") // PENDENTE, APROVADO, REJEITADO
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -159,4 +170,55 @@ model Avaliacao {
   avaliador   Usuario   @relation("Avaliador", fields: [avaliadorId], references: [id])
 
   @@map("avaliacoes")
+}
+
+model Notificacao {
+  id        String    @id @default(cuid())
+  usuarioId String
+  titulo    String
+  mensagem  String
+  tipo      String    // INFO, SUCESSO, AVISO, ERRO
+  lida      Boolean   @default(false)
+  link      String?   // Link opcional para ação
+  data      DateTime  @default(now())
+  createdAt DateTime  @default(now())
+
+  usuario   Usuario   @relation("Usuario", fields: [usuarioId], references: [id])
+
+  @@map("notificacoes")
+}
+
+model Conversa {
+  id          String    @id @default(cuid())
+  produtoId   String
+  usuario1Id  String
+  usuario2Id  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  usuario1    Usuario   @relation("Usuario1", fields: [usuario1Id], references: [id])
+  usuario2    Usuario   @relation("Usuario2", fields: [usuario2Id], references: [id])
+  mensagens   Mensagem[]
+
+  @@unique([produtoId, usuario1Id, usuario2Id])
+  @@map("conversas")
+}
+
+model Mensagem {
+  id              String    @id @default(cuid())
+  conversaId      String
+  remetenteId     String
+  destinatarioId  String
+  texto           String
+  lida            Boolean   @default(false)
+  dataLeitura     DateTime?
+  deletadoPorRemetente      Boolean   @default(false)
+  deletadoPorDestinatario   Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  conversa        Conversa  @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  remetente       Usuario   @relation("Remetente", fields: [remetenteId], references: [id])
+  destinatario    Usuario   @relation("Destinatario", fields: [destinatarioId], references: [id])
+
+  @@map("mensagens")
 }

@@ -38,6 +38,7 @@ export default function AprovacaoProdutosPage() {
   const [showModal, setShowModal] = useState(false)
   const [observacoes, setObservacoes] = useState('')
   const [processando, setProcessando] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const categorias = [
     'UNIFORME',
@@ -48,21 +49,70 @@ export default function AprovacaoProdutosPage() {
     'ELETRONICO'
   ]
 
+  // Verificar autenticação primeiro
   useEffect(() => {
-    fetchProdutosPendentes()
+    const checkAuth = () => {
+      try {
+        const isLoggedIn = localStorage.getItem('isLoggedIn')
+        const userData = localStorage.getItem('user')
+
+        if (isLoggedIn === 'true' && userData) {
+          const parsedUser = JSON.parse(userData)
+          
+          // Verificar se o usuário é admin (tipo ESCOLA)
+          if (parsedUser.tipoUsuario !== 'ESCOLA') {
+            console.log('⛔ Acesso negado: Usuário não é admin')
+            if (parsedUser.tipoUsuario === 'PAI_RESPONSAVEL') {
+              window.location.href = '/dashboard/vendedor'
+            } else {
+              window.location.href = '/login'
+            }
+            return
+          }
+          
+          setIsAuthenticated(true)
+        } else {
+          window.location.href = '/login'
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error)
+        window.location.href = '/login'
+      }
+    }
+
+    checkAuth()
   }, [])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProdutosPendentes()
+    }
+  }, [isAuthenticated])
 
   const fetchProdutosPendentes = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/produtos?statusAprovacao=PENDENTE')
-      const data = await response.json()
+      console.log('🔄 Buscando produtos pendentes...')
       
-      if (data.success) {
+      const response = await fetch('/api/produtos?statusAprovacao=PENDENTE')
+      console.log('📡 Status da resposta:', response.status)
+      
+      const data = await response.json()
+      console.log('📦 Resposta da API:', data)
+      console.log('📦 Tipo de data.produtos:', typeof data.produtos, Array.isArray(data.produtos))
+      
+      // A API retorna { produtos: [] } e não { success: true, produtos: [] }
+      if (data.produtos && Array.isArray(data.produtos)) {
+        console.log('✅ Produtos pendentes carregados:', data.produtos.length)
+        console.log('📋 Produtos:', data.produtos)
         setProdutos(data.produtos)
+      } else {
+        console.warn('⚠️ Nenhum produto encontrado ou formato inválido')
+        setProdutos([])
       }
     } catch (error) {
-      console.error('Erro ao buscar produtos pendentes:', error)
+      console.error('❌ Erro ao buscar produtos pendentes:', error)
+      setProdutos([])
     } finally {
       setLoading(false)
     }
@@ -72,13 +122,25 @@ export default function AprovacaoProdutosPage() {
     try {
       setProcessando(produtoId)
       
+      // Obter ID do usuário logado
+      const userData = localStorage.getItem('user')
+      if (!userData) {
+        alert('Erro: Usuário não autenticado. Faça login novamente.')
+        window.location.href = '/login'
+        return
+      }
+
+      const user = JSON.parse(userData)
+      console.log('👤 Admin ID:', user.id)
+      console.log('👤 Tipo de usuário:', user.tipoUsuario)
+      
       const response = await fetch(`/api/produtos/${produtoId}/aprovar`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          adminId: 'admin-123', // ID do admin mock
+          adminId: user.id, // ID real do admin logado
           aprovado,
           observacoes: observacoes || undefined
         })
@@ -161,12 +223,24 @@ export default function AprovacaoProdutosPage() {
                 Gerencie produtos pendentes de aprovação
               </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <Package className="h-8 w-8 text-primary-600" />
-              <span className="text-2xl font-bold text-primary-600">
-                {produtos.length}
-              </span>
-              <span className="text-gray-600">pendentes</span>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={fetchProdutosPendentes}
+                disabled={loading}
+                className="glass-button-secondary px-4 py-2 rounded-lg flex items-center space-x-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                </svg>
+                <span>Recarregar</span>
+              </button>
+              <div className="flex items-center space-x-2">
+                <Package className="h-8 w-8 text-primary-600" />
+                <span className="text-2xl font-bold text-primary-600">
+                  {produtos.length}
+                </span>
+                <span className="text-gray-600">pendentes</span>
+              </div>
             </div>
           </div>
         </motion.div>

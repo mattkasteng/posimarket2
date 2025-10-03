@@ -1,5 +1,6 @@
 'use client'
 
+import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 
 interface User {
@@ -11,42 +12,49 @@ interface User {
 }
 
 export function useAuth() {
+  const { data: session, status } = useSession()
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const isLoggedIn = localStorage.getItem('isLoggedIn')
-        const userData = localStorage.getItem('user')
-
-        if (isLoggedIn === 'true' && userData) {
-          setUser(JSON.parse(userData))
-        } else {
-          setUser(null)
-        }
-      } catch (error) {
-        console.error('Erro ao verificar autenticação:', error)
-        setUser(null)
-      } finally {
-        setIsLoading(false)
-      }
+    console.log('🔍 useAuth - Status:', status)
+    console.log('🔍 useAuth - Session:', session)
+    
+    if (status === 'loading') {
+      setIsLoading(true)
+      return
     }
 
-    checkAuth()
-  }, [])
+    if (status === 'unauthenticated') {
+      console.log('❌ useAuth - Usuário não autenticado')
+      setUser(null)
+      setIsLoading(false)
+      return
+    }
+
+    if (session?.user) {
+      console.log('✅ useAuth - Usuário autenticado:', session.user)
+      const userData = {
+        id: session.user.id || '',
+        email: session.user.email || '',
+        nome: session.user.name || '',
+        tipoUsuario: (session.user as any).tipoUsuario || '',
+        emailVerificado: true
+      }
+      console.log('👤 useAuth - Dados do usuário mapeados:', userData)
+      setUser(userData)
+    }
+
+    setIsLoading(false)
+  }, [session, status])
 
   const login = (userData: User) => {
-    localStorage.setItem('user', JSON.stringify(userData))
-    localStorage.setItem('isLoggedIn', 'true')
-    setUser(userData)
+    // Login agora é feito via NextAuth, não precisamos mais desta função
+    console.log('Use signIn() do NextAuth para fazer login')
   }
 
   const logout = () => {
-    localStorage.removeItem('user')
-    localStorage.removeItem('isLoggedIn')
-    setUser(null)
-    window.location.href = '/login'
+    signOut({ callbackUrl: '/login' })
   }
 
   return {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { sendEmail, EmailTemplates } from '@/lib/email-service'
 
 const registerSchema = z.object({
   tipoUsuario: z.enum(['PAI_RESPONSAVEL', 'ESCOLA']),
@@ -54,6 +55,9 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Gerar token de verificação
+    const tokenVerificacao = generateVerificationToken()
+
     // Criar usuário
     const user = await prisma.usuario.create({
       data: {
@@ -65,18 +69,40 @@ export async function POST(request: NextRequest) {
         tipoUsuario: validatedData.tipoUsuario,
         enderecoId: endereco.id,
         escolaId: validatedData.escolaId,
-        emailVerificado: true, // Marcar como verificado automaticamente para desenvolvimento
-        tokenVerificacao: generateVerificationToken()
+        emailVerificado: false, // Será verificado via email
+        tokenVerificacao
       }
     })
 
-    // TODO: Enviar email de verificação
-    // await sendVerificationEmail(user.email, user.tokenVerificacao)
+    // Enviar email de verificação
+    try {
+      const emailTemplate = EmailTemplates.verificarEmail(user.nome, tokenVerificacao)
+      const resultado = await sendEmail({
+        to: user.email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        text: emailTemplate.text
+      })
 
-    return NextResponse.json({
-      message: 'Conta criada com sucesso. Verifique seu email.',
-      userId: user.id
-    })
+      console.log(`✅ Email de verificação enviado para: ${user.email}`)
+      console.log(`📤 Provider usado: ${resultado.provider}`)
+
+      return NextResponse.json({
+        message: 'Conta criada com sucesso! Verifique seu email para ativar sua conta.',
+        userId: user.id,
+        emailSent: true,
+        emailProvider: resultado.provider
+      })
+    } catch (emailError) {
+      console.error('⚠️ Erro ao enviar email de verificação:', emailError)
+      
+      // Mesmo com erro no email, conta foi criada
+      return NextResponse.json({
+        message: 'Conta criada com sucesso! Porém houve um erro ao enviar o email de verificação. Entre em contato com o suporte.',
+        userId: user.id,
+        emailSent: false
+      })
+    }
 
   } catch (error) {
     console.error('Erro no cadastro:', error)

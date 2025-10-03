@@ -9,13 +9,16 @@ import {
   X, Save, Upload, Image as ImageIcon, 
   Package, DollarSign, Tag, Ruler, Palette
 } from 'lucide-react'
+import { ImageUpload } from '@/components/ui/ImageUpload'
 
 interface Product {
   id: string
   nome: string
+  descricao?: string
   preco: number
   precoOriginal?: number
   imagem: string
+  imagens?: string[]
   categoria: string
   status: string
   statusAprovacao: string
@@ -24,6 +27,15 @@ interface Product {
   avaliacao: number
   visualizacoes: number
   dataCriacao: string
+  tamanho?: string
+  cor?: string
+  condicao?: string
+  material?: string
+  marca?: string
+  vendedorId?: string
+  ativo?: boolean
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface EditProductModalProps {
@@ -71,13 +83,13 @@ export default function EditProductModal({
         preco: product.preco.toString(),
         precoOriginal: product.precoOriginal?.toString() || '',
         categoria: product.categoria,
-        estoque: product.estoque.toString(),
-        descricao: '',
-        tamanho: '',
-        cor: '',
-        condicao: 'NOVO'
+        estoque: product.estoque?.toString() || '0',
+        descricao: product.descricao || '',
+        tamanho: product.tamanho || '',
+        cor: product.cor || '',
+        condicao: product.condicao || 'NOVO'
       })
-      setImages([product.imagem])
+      setImages(product.imagens || [product.imagem] || [])
     }
   }, [product])
 
@@ -88,16 +100,8 @@ export default function EditProductModal({
     }))
   }
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (files) {
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file))
-      setImages(prev => [...prev, ...newImages])
-    }
-  }
-
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index))
+  const handleImagesChange = (newImages: string[]) => {
+    setImages(newImages)
   }
 
   const handleSave = async () => {
@@ -112,9 +116,16 @@ export default function EditProductModal({
         preco: parseFloat(formData.preco),
         precoOriginal: formData.precoOriginal ? parseFloat(formData.precoOriginal) : undefined,
         categoria: formData.categoria,
-        estoque: parseInt(formData.estoque),
-        imagem: images[0] || product.imagem
+        estoque: parseInt(formData.estoque) || 0,
+        descricao: formData.descricao,
+        tamanho: formData.tamanho,
+        cor: formData.cor,
+        condicao: formData.condicao,
+        imagem: images[0] || product.imagem,
+        imagens: images.length > 0 ? images : (product.imagens || [product.imagem])
       }
+
+      console.log('💾 Salvando produto atualizado:', updatedProduct)
 
       // Simular delay de salvamento
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -227,42 +238,42 @@ export default function EditProductModal({
                     Preços e Estoque
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                    <div className="w-full">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Preço Atual *
                       </label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
                         <Input
                           type="number"
                           step="0.01"
                           value={formData.preco}
                           onChange={(e) => handleInputChange('preco', e.target.value)}
                           placeholder="0.00"
-                          className="glass-input pl-10"
+                          className="glass-input pl-10 w-full"
                         />
                       </div>
                     </div>
 
-                    <div>
+                    <div className="w-full">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Preço Original
                       </label>
                       <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
                         <Input
                           type="number"
                           step="0.01"
                           value={formData.precoOriginal}
                           onChange={(e) => handleInputChange('precoOriginal', e.target.value)}
                           placeholder="0.00"
-                          className="glass-input pl-10"
+                          className="glass-input pl-10 w-full"
                         />
                       </div>
                     </div>
 
-                    <div>
+                    <div className="w-full">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Estoque *
                       </label>
@@ -271,7 +282,7 @@ export default function EditProductModal({
                         value={formData.estoque}
                         onChange={(e) => handleInputChange('estoque', e.target.value)}
                         placeholder="0"
-                        className="glass-input"
+                        className="glass-input w-full"
                       />
                     </div>
                   </div>
@@ -283,38 +294,38 @@ export default function EditProductModal({
                     Detalhes do Produto
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                    <div className="w-full">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Tamanho
                       </label>
                       <div className="relative">
-                        <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
                         <Input
                           value={formData.tamanho}
                           onChange={(e) => handleInputChange('tamanho', e.target.value)}
                           placeholder="Ex: P, M, G, 38, 40..."
-                          className="glass-input pl-10"
+                          className="glass-input pl-10 w-full"
                         />
                       </div>
                     </div>
 
-                    <div>
+                    <div className="w-full">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Cor
                       </label>
                       <div className="relative">
-                        <Palette className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Palette className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
                         <Input
                           value={formData.cor}
                           onChange={(e) => handleInputChange('cor', e.target.value)}
                           placeholder="Ex: Azul, Vermelho..."
-                          className="glass-input pl-10"
+                          className="glass-input pl-10 w-full"
                         />
                       </div>
                     </div>
 
-                    <div>
+                    <div className="w-full">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Condição
                       </label>
@@ -338,37 +349,12 @@ export default function EditProductModal({
                     Imagens do Produto
                   </h3>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image}
-                          alt={`Produto ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeImage(index)}
-                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 text-white hover:bg-red-600 p-1"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    
-                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 transition-colors">
-                      <Upload className="h-6 w-6 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-500">Adicionar</span>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
+                  <ImageUpload
+                    images={images}
+                    onImagesChange={handleImagesChange}
+                    maxImages={5}
+                    tipo="produto"
+                  />
                 </div>
               </div>
 

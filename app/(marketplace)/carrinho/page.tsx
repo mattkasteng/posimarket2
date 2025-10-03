@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { CartItems } from '@/components/cart/CartItems'
@@ -8,21 +7,17 @@ import { CartSummary } from '@/components/cart/CartSummary'
 import { ArrowLeft, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
+import { useCart } from '@/hooks/useCart'
 
 export default function CartPage() {
   const router = useRouter()
-
-  const handleQuantityChange = (itemId: string, quantity: number) => {
-    // Implementar lógica de atualização de quantidade
-    console.log(`Atualizar item ${itemId} para quantidade ${quantity}`)
-  }
-
-  const handleRemoveItem = (itemId: string) => {
-    // Implementar lógica de remoção de item
-    console.log(`Remover item ${itemId}`)
-  }
+  const { items, updateQuantity, removeItem, subtotal, serviceFee, cleaningFee } = useCart()
 
   const handleCheckout = () => {
+    if (items.length === 0) {
+      alert('Seu carrinho está vazio!')
+      return
+    }
     router.push('/checkout')
   }
 
@@ -64,8 +59,9 @@ export default function CartPage() {
               transition={{ delay: 0.2 }}
             >
               <CartItems
-                onQuantityChange={handleQuantityChange}
-                onRemoveItem={handleRemoveItem}
+                items={items}
+                onQuantityChange={updateQuantity}
+                onRemoveItem={removeItem}
               />
             </motion.div>
           </div>
@@ -77,7 +73,12 @@ export default function CartPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <CartSummary onCheckout={handleCheckout} />
+              <CartSummary
+                subtotal={subtotal}
+                serviceFee={serviceFee}
+                cleaningFee={cleaningFee}
+                onCheckout={handleCheckout}
+              />
             </motion.div>
           </div>
         </div>

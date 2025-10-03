@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
-import { ShoppingCart, User, BookOpen, Home, LogOut, LayoutDashboard, Bell } from 'lucide-react'
+import { ShoppingCart, User, BookOpen, Home, LogOut, LayoutDashboard, Bell, Mail, Heart } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 
@@ -20,6 +20,114 @@ export function Navigation() {
   const [isLoading, setIsLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
+  const [favoritesCount, setFavoritesCount] = useState(0)
+  const [cartItemsCount, setCartItemsCount] = useState(0)
+
+  // Carregar contador de notificações ao montar e quando usuário mudar
+  useEffect(() => {
+    const loadUnreadCount = () => {
+      if (typeof window !== 'undefined') {
+        const userData = localStorage.getItem('user')
+        if (userData) {
+          try {
+            const user = JSON.parse(userData)
+            // Usar email como identificador (mesmo padrão do NotificationCenter)
+            const notificationKey = `notifications_${user.email.replace('@', '_').replace('.', '_')}`
+            const saved = localStorage.getItem(notificationKey)
+            console.log('🔍 Procurando notificações em:', notificationKey)
+            if (saved) {
+              const notifications = JSON.parse(saved)
+              const count = notifications.filter((n: any) => !n.read).length
+              setUnreadCount(count)
+              console.log('🔔 Contador de notificações carregado:', count)
+            } else {
+              console.log('📭 Nenhuma notificação encontrada para este usuário')
+              setUnreadCount(0)
+            }
+          } catch (e) {
+            console.error('Erro ao carregar contador de notificações:', e)
+            setUnreadCount(0)
+          }
+        }
+      }
+    }
+    
+    loadUnreadCount()
+  }, [user])
+
+  // Carregar contador de favoritos
+  useEffect(() => {
+    const loadFavoritesCount = () => {
+      if (typeof window !== 'undefined') {
+        const savedFavorites = localStorage.getItem('posimarket-favorites')
+        if (savedFavorites) {
+          try {
+            const favorites = JSON.parse(savedFavorites)
+            setFavoritesCount(favorites.length)
+          } catch (e) {
+            console.error('Erro ao carregar favoritos:', e)
+            setFavoritesCount(0)
+          }
+        } else {
+          setFavoritesCount(0)
+        }
+      }
+    }
+
+    loadFavoritesCount()
+
+    // Atualizar quando localStorage mudar
+    const handleStorageChange = () => {
+      loadFavoritesCount()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    // Também escutar evento customizado para mudanças locais
+    window.addEventListener('favoritesChanged', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('favoritesChanged', handleStorageChange)
+    }
+  }, [])
+
+  // Carregar contador de carrinho
+  useEffect(() => {
+    const loadCartCount = () => {
+      if (typeof window !== 'undefined') {
+        const savedCart = localStorage.getItem('posimarket_cart')
+        if (savedCart) {
+          try {
+            const cartData = JSON.parse(savedCart)
+            const totalItems = cartData.items?.reduce((sum: number, item: any) => sum + item.quantidade, 0) || 0
+            setCartItemsCount(totalItems)
+          } catch (e) {
+            console.error('Erro ao carregar carrinho:', e)
+            setCartItemsCount(0)
+          }
+        } else {
+          setCartItemsCount(0)
+        }
+      }
+    }
+
+    loadCartCount()
+
+    // Atualizar quando carrinho mudar
+    const handleCartUpdate = () => {
+      loadCartCount()
+    }
+
+    window.addEventListener('storage', handleCartUpdate)
+    window.addEventListener('cartUpdated', handleCartUpdate)
+
+    return () => {
+      window.removeEventListener('storage', handleCartUpdate)
+      window.removeEventListener('cartUpdated', handleCartUpdate)
+    }
+  }, [])
 
   useEffect(() => {
     // Verificar se o usuário está logado
@@ -78,12 +186,13 @@ export function Navigation() {
             <div className="hidden md:flex space-x-6">
               {navigation.map((item) => {
                 const Icon = item.icon
+                const isCartPage = item.href === '/carrinho'
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200',
+                      'flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 relative',
                       pathname === item.href
                         ? 'bg-primary-100 text-primary-700'
                         : 'text-gray-600 hover:text-primary-600 hover:bg-primary-50'
@@ -91,6 +200,11 @@ export function Navigation() {
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.name}</span>
+                    {isCartPage && cartItemsCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                        {cartItemsCount}
+                      </span>
+                    )}
                   </Link>
                 )
               })}
@@ -105,6 +219,33 @@ export function Navigation() {
               </div>
             ) : user ? (
               <>
+                {/* Favorites Icon */}
+                <Link href="/favoritos">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="relative"
+                  >
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                </Link>
+
+                {/* Messages Icon */}
+                <Link href="/mensagens">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="relative"
+                  >
+                    <Mail className="h-4 w-4" />
+                    {unreadMessagesCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {unreadMessagesCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+
                 {/* Notification Bell */}
                 <div className="relative">
                   <Button
@@ -114,15 +255,18 @@ export function Navigation() {
                     className="relative"
                   >
                     <Bell className="h-4 w-4" />
-                    {/* Notification Badge */}
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      3
-                    </span>
+                    {/* Notification Badge - só mostra se houver notificações não lidas */}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {unreadCount}
+                      </span>
+                    )}
                   </Button>
                   
                   <NotificationCenter
                     isOpen={showNotifications}
                     onClose={() => setShowNotifications(false)}
+                    onUnreadCountChange={setUnreadCount}
                   />
                 </div>
 

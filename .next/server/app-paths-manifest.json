@@ -1,4 +1,6 @@
 {
-  "/api/produtos/[id]/aprovar/route": "app/api/produtos/[id]/aprovar/route.js",
-  "/api/produtos/route": "app/api/produtos/route.js"
+  "/dashboard/vendedor/page": "app/dashboard/vendedor/page.js",
+  "/notificacoes/page": "app/notificacoes/page.js",
+  "/dashboard/vendedor/vendas/page": "app/dashboard/vendedor/vendas/page.js",
+  "/dashboard/vendedor/compras/page": "app/dashboard/vendedor/compras/page.js"
 }

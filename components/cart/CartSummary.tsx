@@ -1,50 +1,84 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { ShoppingCart, Truck, Shield, Percent, Calculator, ArrowRight } from 'lucide-react'
 
-// Mock data - será substituído por dados reais do Prisma
-const mockCartData = {
-  subtotal: 275.30,
-  serviceFee: 27.53, // 10% da plataforma
-  cleaningFee: 13.77, // 5% para higienização (se aplicável)
-  shipping: 15.00, // Frete calculado
-  total: 331.60
-}
-
 interface CartSummaryProps {
-  onCheckout?: () => void
+  subtotal: number
+  serviceFee: number
+  cleaningFee: number
+  onCheckout: () => void
 }
 
-export function CartSummary({ onCheckout }: CartSummaryProps) {
+export function CartSummary({ subtotal, serviceFee, cleaningFee, onCheckout }: CartSummaryProps) {
   const [cep, setCep] = useState('')
-  const [shipping, setShipping] = useState(15.00)
+  const [shipping, setShipping] = useState(0)
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false)
+  const [freteOpcoes, setFreteOpcoes] = useState<any[]>([])
+  const [opcaoSelecionada, setOpcaoSelecionada] = useState<number>(0)
+  const [freteCalculado, setFreteCalculado] = useState(false)
 
-  // Calcular total baseado no mock data
-  const subtotal = mockCartData.subtotal
-  const serviceFee = subtotal * 0.10 // 10% para plataforma
-  const cleaningFee = subtotal * 0.05 // 5% para higienização
   const total = subtotal + serviceFee + cleaningFee + shipping
 
   const calculateShipping = async () => {
-    if (!cep || cep.length < 8) return
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (!cepLimpo || cepLimpo.length !== 8) {
+      alert('Por favor, digite um CEP válido')
+      return
+    }
     
     setIsCalculatingShipping(true)
+    setFreteCalculado(false)
+    
     try {
-      // Simular cálculo de frete (em produção seria integração com Correios API)
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      const randomShipping = Math.random() * 20 + 10 // R$ 10-30
-      setShipping(randomShipping)
-    } catch (error) {
-      console.error('Erro ao calcular frete:', error)
+      console.log('📦 Calculando frete para CEP:', cepLimpo)
+      
+      const response = await fetch('/api/calcular-frete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cep: cepLimpo,
+          peso: 0.5, // peso padrão em kg
+          valor: subtotal
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao calcular frete')
+      }
+
+      const data = await response.json()
+      console.log('✅ Opções de frete recebidas:', data)
+
+      if (data.success && data.opcoes && data.opcoes.length > 0) {
+        setFreteOpcoes(data.opcoes)
+        setOpcaoSelecionada(0)
+        setShipping(data.opcoes[0].preco)
+        setFreteCalculado(true)
+        
+        if (data.simulado) {
+          console.log('⚠️ Usando cálculo simulado:', data.mensagem)
+        }
+      } else {
+        throw new Error('Nenhuma opção de frete disponível')
+      }
+    } catch (error: any) {
+      console.error('❌ Erro ao calcular frete:', error)
+      alert('Erro ao calcular frete. Tente novamente.')
     } finally {
       setIsCalculatingShipping(false)
     }
+  }
+
+  const handleOpcaoFreteChange = (index: number) => {
+    setOpcaoSelecionada(index)
+    setShipping(freteOpcoes[index].preco)
   }
 
   return (
@@ -62,7 +96,7 @@ export function CartSummary({ onCheckout }: CartSummaryProps) {
               <Truck className="h-5 w-5 text-primary-600" />
               <h3 className="font-semibold text-gray-900">Calcular Frete</h3>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 mb-3">
               <Input
                 placeholder="Digite seu CEP"
                 value={cep}
@@ -88,10 +122,45 @@ export function CartSummary({ onCheckout }: CartSummaryProps) {
                 )}
               </Button>
             </div>
-            {shipping > 0 && (
-              <p className="text-sm text-gray-600 mt-2">
-                Frete: R$ {shipping.toFixed(2)}
-              </p>
+            
+            {/* Opções de Frete */}
+            {freteCalculado && freteOpcoes.length > 0 && (
+              <div className="space-y-2 mt-3">
+                <p className="text-xs text-gray-600 mb-2">
+                  Origem: Uberaba - MG → Destino: CEP {cep}
+                </p>
+                {freteOpcoes.map((opcao, index) => (
+                  <label
+                    key={index}
+                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border-2 ${
+                      opcaoSelecionada === index
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <input
+                        type="radio"
+                        name="frete"
+                        checked={opcaoSelecionada === index}
+                        onChange={() => handleOpcaoFreteChange(index)}
+                        className="w-4 h-4 text-primary-600"
+                      />
+                      <div>
+                        <p className="font-semibold text-sm text-gray-900">
+                          {opcao.nome}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {opcao.empresa} • {opcao.prazo} dias úteis
+                        </p>
+                      </div>
+                    </div>
+                    <p className="font-bold text-primary-600">
+                      R$ {opcao.preco.toFixed(2)}
+                    </p>
+                  </label>
+                ))}
+              </div>
             )}
           </div>
 

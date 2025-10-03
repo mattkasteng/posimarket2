@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { 
-  Bell, Check, X, Filter, Settings, 
-  ShoppingCart, MessageCircle, Package, AlertTriangle,
-  TrendingUp, User, Clock, Star
+  Bell, Check, X, Filter,
+  ShoppingCart, Package,
+  Clock, Star
 } from 'lucide-react'
 
-// Mock data para notificações
+// Mock data para notificações (compras, vendas, rastreio, avaliações)
 const mockNotifications = [
   {
     id: '1',
@@ -23,38 +24,28 @@ const mockNotifications = [
   },
   {
     id: '2',
-    type: 'MENSAGEM',
-    title: 'Nova mensagem',
-    message: 'Maria Silva enviou uma mensagem sobre o pedido ORD-001',
+    type: 'PEDIDO',
+    title: 'Pedido enviado',
+    message: 'Seu pedido #ORD-001 foi enviado e está em trânsito',
     timestamp: new Date('2023-12-20T14:25:00Z'),
     read: false,
     priority: 'medium',
-    actionUrl: '/dashboard/vendedor/vendas'
+    actionUrl: '/pedidos'
   },
   {
     id: '3',
-    type: 'ESTOQUE',
-    title: 'Estoque baixo',
-    message: 'Kit Completo 6º Ano está com apenas 5 unidades em estoque',
+    type: 'PEDIDO',
+    title: 'Pedido entregue',
+    message: 'Seu pedido #ORD-002 foi entregue com sucesso',
     timestamp: new Date('2023-12-20T14:20:00Z'),
     read: true,
     priority: 'high',
-    actionUrl: '/dashboard/vendedor/produtos'
+    actionUrl: '/pedidos'
   },
   {
     id: '4',
-    type: 'PEDIDO',
-    title: 'Status alterado',
-    message: 'Pedido ORD-002 foi enviado e está em trânsito',
-    timestamp: new Date('2023-12-20T14:15:00Z'),
-    read: true,
-    priority: 'medium',
-    actionUrl: '/dashboard/vendedor/vendas'
-  },
-  {
-    id: '5',
     type: 'AVALIACAO',
-    title: 'Nova avaliação',
+    title: 'Nova avaliação recebida',
     message: 'Ana Costa avaliou seu produto "Caderno Universitário" com 5 estrelas',
     timestamp: new Date('2023-12-20T14:10:00Z'),
     read: false,
@@ -65,9 +56,7 @@ const mockNotifications = [
 
 const notificationTypes = {
   VENDA: { icon: ShoppingCart, color: 'text-green-600 bg-green-50' },
-  MENSAGEM: { icon: MessageCircle, color: 'text-blue-600 bg-blue-50' },
-  ESTOQUE: { icon: Package, color: 'text-orange-600 bg-orange-50' },
-  PEDIDO: { icon: TrendingUp, color: 'text-purple-600 bg-purple-50' },
+  PEDIDO: { icon: Package, color: 'text-purple-600 bg-purple-50' },
   AVALIACAO: { icon: Star, color: 'text-yellow-600 bg-yellow-50' }
 }
 
@@ -80,13 +69,122 @@ const priorityColors = {
 interface NotificationCenterProps {
   isOpen: boolean
   onClose: () => void
+  onUnreadCountChange?: (count: number) => void
 }
 
-export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps) {
-  const [notifications, setNotifications] = useState(mockNotifications)
-  const [filter, setFilter] = useState<'all' | 'unread' | 'VENDA' | 'MENSAGEM' | 'ESTOQUE' | 'PEDIDO' | 'AVALIACAO'>('all')
-  const [showSettings, setShowSettings] = useState(false)
+// Função para obter a chave de notificações do usuário atual
+const getNotificationsKey = () => {
+  if (typeof window !== 'undefined') {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        // Usar email como identificador pois é único e não muda
+        const key = `notifications_${user.email.replace('@', '_').replace('.', '_')}`
+        console.log('🔑 Chave de notificações:', key, 'para usuário:', user.email)
+        return key
+      } catch (e) {
+        console.error('❌ Erro ao obter email do usuário:', e)
+      }
+    }
+  }
+  console.warn('⚠️ Usando chave genérica de notificações (usuário não identificado)')
+  return 'notifications' // Fallback para a chave genérica
+}
+
+export function NotificationCenter({ isOpen, onClose, onUnreadCountChange }: NotificationCenterProps) {
+  // Estado para controlar se já inicializamos as notificações
+  const [initialized, setInitialized] = useState(false)
+  
+  // Carregar notificações SEMPRE do localStorage (nunca do mock)
+  const [notifications, setNotifications] = useState<any[]>([])
+
+  // Inicializar notificações apenas uma vez
+  useEffect(() => {
+    if (initialized || typeof window === 'undefined') return
+    
+    const notificationKey = getNotificationsKey()
+    console.log('🔑 Inicializando notificações com chave:', notificationKey)
+    
+    // Tentar migrar de chave antiga (baseada em ID) se existir
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        const oldKey = `notifications_${user.id}` // Chave antiga
+        const oldKey2 = 'notifications' // Chave genérica antiga
+        
+        // Tentar migrar de chave antiga baseada em ID
+        const oldSaved = localStorage.getItem(oldKey)
+        if (oldSaved && !localStorage.getItem(notificationKey)) {
+          console.log('🔄 Migrando de:', oldKey, '→', notificationKey)
+          localStorage.setItem(notificationKey, oldSaved)
+          localStorage.removeItem(oldKey)
+          console.log('✅ Migração ID concluída!')
+        }
+        
+        // Tentar migrar de chave genérica antiga
+        const oldSaved2 = localStorage.getItem(oldKey2)
+        if (oldSaved2 && !localStorage.getItem(notificationKey) && oldKey2 !== notificationKey) {
+          console.log('🔄 Migrando de:', oldKey2, '→', notificationKey)
+          localStorage.setItem(notificationKey, oldSaved2)
+          localStorage.removeItem(oldKey2)
+          console.log('✅ Migração genérica concluída!')
+        }
+      } catch (e) {
+        console.error('❌ Erro na migração:', e)
+      }
+    }
+    
+    const saved = localStorage.getItem(notificationKey)
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        console.log('📬 Notificações carregadas:', parsed.length)
+        console.log('📊 Não lidas:', parsed.filter((n: any) => !n.read).length)
+        
+        // Converter timestamps de string para Date
+        const loaded = parsed.map((n: any) => ({
+          ...n,
+          timestamp: new Date(n.timestamp)
+        }))
+        setNotifications(loaded)
+      } catch (e) {
+        console.error('❌ Erro ao parsear:', e)
+        // Em caso de erro, inicializar vazio
+        setNotifications([])
+      }
+    } else {
+      // PRIMEIRA VEZ: Criar notificações mock
+      console.log('📭 Primeira vez - criando notificações de exemplo')
+      setNotifications(mockNotifications)
+      // Salvar imediatamente
+      localStorage.setItem(notificationKey, JSON.stringify(mockNotifications))
+    }
+    
+    setInitialized(true)
+  }, [initialized])
+  
+  const [filter, setFilter] = useState<'all' | 'unread'>('all')
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Salvar notificações no localStorage sempre que mudarem
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const notificationKey = getNotificationsKey()
+      localStorage.setItem(notificationKey, JSON.stringify(notifications))
+      const unreadCount = notifications.filter(n => !n.read).length
+      console.log('💾 Notificações salvas em', notificationKey)
+      console.log('📊 Total:', notifications.length, '| Não lidas:', unreadCount)
+      
+      // Limpar chave antiga se existir
+      if (localStorage.getItem('notifications') && notificationKey !== 'notifications') {
+        console.log('🧹 Limpando chave antiga de notificações')
+        localStorage.removeItem('notifications')
+      }
+    }
+  }, [notifications])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -112,20 +210,34 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
 
   const unreadCount = notifications.filter(n => !n.read).length
 
+  // Notificar mudanças no contador de não lidas
+  useEffect(() => {
+    if (onUnreadCountChange) {
+      onUnreadCountChange(unreadCount)
+    }
+  }, [unreadCount, onUnreadCountChange])
+
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
+    console.log('✅ Marcando notificação como lida:', id)
+    setNotifications(prev => {
+      const updated = prev.map(notification => 
         notification.id === id 
           ? { ...notification, read: true }
           : notification
       )
-    )
+      const unread = updated.filter(n => !n.read).length
+      console.log('📊 Após marcar - Total:', updated.length, '| Não lidas:', unread)
+      return updated
+    })
   }
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    )
+    console.log('✅✅ Marcando TODAS como lidas')
+    setNotifications(prev => {
+      const updated = prev.map(notification => ({ ...notification, read: true }))
+      console.log('📊 Todas marcadas como lidas - Total:', updated.length)
+      return updated
+    })
   }
 
   const deleteNotification = (id: string) => {
@@ -169,14 +281,16 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
               )}
             </div>
             <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowSettings(!showSettings)}
-                className="h-8 w-8 p-0 bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="text-xs text-primary-600 hover:text-primary-700 hover:bg-primary-50"
+                >
+                  Marcar todas como lidas
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -188,72 +302,21 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
             </div>
           </div>
 
-          {/* Settings Panel */}
-          <AnimatePresence>
-            {showSettings && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="p-4 border-b border-gray-200 bg-gray-50"
-              >
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900">Preferências</h4>
-                  <div className="space-y-2">
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked className="form-checkbox h-4 w-4 text-primary-600" />
-                      <span className="text-sm text-gray-700">Notificações de vendas</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked className="form-checkbox h-4 w-4 text-primary-600" />
-                      <span className="text-sm text-gray-700">Mensagens</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked className="form-checkbox h-4 w-4 text-primary-600" />
-                      <span className="text-sm text-gray-700">Alertas de estoque</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input type="checkbox" defaultChecked className="form-checkbox h-4 w-4 text-primary-600" />
-                      <span className="text-sm text-gray-700">Atualizações de pedidos</span>
-                    </label>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* Filters */}
           <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">Filtrar</span>
-              </div>
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={markAllAsRead}
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  Marcar todas como lidas
-                </Button>
-              )}
+            <div className="flex items-center space-x-2 mb-3">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">Filtrar</span>
             </div>
-            <div className="flex space-x-2 overflow-x-auto">
+            <div className="flex space-x-2">
               {[
                 { value: 'all', label: 'Todas' },
-                { value: 'unread', label: 'Não lidas' },
-                { value: 'VENDA', label: 'Vendas' },
-                { value: 'MENSAGEM', label: 'Mensagens' },
-                { value: 'ESTOQUE', label: 'Estoque' },
-                { value: 'PEDIDO', label: 'Pedidos' },
-                { value: 'AVALIACAO', label: 'Avaliações' }
+                { value: 'unread', label: 'Não lidas' }
               ].map((filterOption) => (
                 <button
                   key={filterOption.value}
                   onClick={() => setFilter(filterOption.value as any)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     filter === filterOption.value
                       ? 'bg-primary-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -349,9 +412,11 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
 
           {/* Footer */}
           <div className="p-4 border-t border-gray-200 bg-gray-50">
-            <Button variant="outline" className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50">
-              Ver todas as notificações
-            </Button>
+            <Link href="/notificacoes">
+              <Button variant="outline" className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-50">
+                Ver todas as notificações
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

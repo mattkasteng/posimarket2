@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -18,11 +19,13 @@ import {
   RotateCcw,
   MessageCircle,
   Plus,
-  Minus
+  Minus,
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
 
-// Mock data - em produção viria da API
-const mockProduct = {
+// Produto padrão para fallback (caso API falhe)
+const mockProductFallback = {
   id: '1',
   nome: 'Uniforme Escolar Masculino - Camisa Polo',
   preco: 89.90,
@@ -102,14 +105,117 @@ const mockReviews = [
 ]
 
 export default function ProductDetailsPage() {
+  const params = useParams()
+  const router = useRouter()
+  const productId = params.id as string
+
+  const [product, setProduct] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSize, setSelectedSize] = useState('M')
   const [quantity, setQuantity] = useState(1)
   const [isFavorite, setIsFavorite] = useState(false)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
-  const discount = mockProduct.precoOriginal ? 
-    Math.round(((mockProduct.precoOriginal - mockProduct.preco) / mockProduct.precoOriginal) * 100) : 0
+  // Buscar usuário logado
+  useEffect(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        setCurrentUser(user)
+      } catch (error) {
+        console.error('Erro ao parsear usuário:', error)
+      }
+    }
+  }, [])
+
+  // Buscar produto da API
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        console.log(`🔄 Buscando produto com ID: ${productId}`)
+        
+        const response = await fetch(`/api/produtos/${productId}`)
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setError('Produto não encontrado')
+          } else {
+            setError('Erro ao carregar produto')
+          }
+          return
+        }
+        
+        const data = await response.json()
+        console.log('📦 Produto recebido:', data)
+        
+        if (data.produto) {
+          // Verificar se o vendedor é uma escola (ESCOLA) ou vendedor individual (PAI_RESPONSAVEL)
+          const isEscola = data.produto.vendedorTipo === 'ESCOLA'
+          
+          console.log(`📋 Tipo de vendedor: ${data.produto.vendedorTipo}`)
+          console.log(`🏫 É escola? ${isEscola}`)
+          
+          // Mapear para formato esperado pela UI
+          const produtoMapeado = {
+            id: data.produto.id,
+            nome: data.produto.nome,
+            preco: data.produto.preco,
+            precoOriginal: data.produto.precoOriginal,
+            imagens: data.produto.imagens && data.produto.imagens.length > 0 
+              ? data.produto.imagens 
+              : ['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&h=600&fit=crop'],
+            condicao: data.produto.condicao || 'USADO',
+            vendedor: data.produto.vendedorNome || 'Vendedor',
+            vendedorId: data.produto.vendedorId,
+            escola: data.produto.escolaNome || 'Escola Positivo',
+            avaliacao: 4.5, // Mock por enquanto
+            totalAvaliacoes: Math.floor(Math.random() * 100) + 10,
+            descricao: data.produto.descricao || 'Produto de qualidade',
+            detalhes: [
+              `Condição: ${data.produto.condicao}`,
+              `Categoria: ${data.produto.categoria}`,
+              data.produto.tamanho ? `Tamanho: ${data.produto.tamanho}` : null,
+              data.produto.cor ? `Cor: ${data.produto.cor}` : null
+            ].filter(Boolean),
+            // Só mostrar tabela de medidas se for escola (permite escolher tamanho)
+            medidas: isEscola && data.produto.tamanho ? [
+              { tamanho: 'PP', peito: '44cm', comprimento: '62cm' },
+              { tamanho: 'P', peito: '46cm', comprimento: '64cm' },
+              { tamanho: 'M', peito: '48cm', comprimento: '66cm' },
+              { tamanho: 'G', peito: '50cm', comprimento: '68cm' },
+              { tamanho: 'GG', peito: '52cm', comprimento: '70cm' }
+            ] : null,
+            categoria: data.produto.categoria,
+            tamanhoFixo: data.produto.tamanho, // Tamanho fixo indicado pelo vendedor
+            isEscola: isEscola // Flag para saber se pode escolher tamanho
+          }
+          
+          setProduct(produtoMapeado)
+          console.log('✅ Produto carregado com sucesso')
+        } else {
+          setError('Produto não encontrado')
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar produto:', error)
+        setError('Erro ao carregar produto')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (productId) {
+      fetchProduct()
+    }
+  }, [productId])
+
+  const discount = product?.precoOriginal ? 
+    Math.round(((product.precoOriginal - product.preco) / product.precoOriginal) * 100) : 0
 
   const handleAddToCart = async () => {
     setIsAddingToCart(true)
@@ -121,6 +227,41 @@ export default function ProductDetailsPage() {
   const handleToggleFavorite = () => {
     setIsFavorite(!isFavorite)
   }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-4" />
+          <p className="text-gray-600">Carregando produto...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !product) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto px-4">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {error || 'Produto não encontrado'}
+          </h1>
+          <p className="text-gray-600 mb-6">
+            O produto que você está procurando não existe ou foi removido.
+          </p>
+          <Button onClick={() => router.push('/produtos')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar aos produtos
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const mockProduct = product
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50">
@@ -215,27 +356,47 @@ export default function ProductDetailsPage() {
               </div>
             </div>
 
-            {/* Seleção de tamanho */}
-            {mockProduct.medidas && (
+            {/* Tamanho - Escolha (Escola) ou Fixo (Vendedor) */}
+            {mockProduct.tamanhoFixo && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  Tamanho: {selectedSize}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {mockProduct.medidas.map((medida) => (
-                    <button
-                      key={medida.tamanho}
-                      onClick={() => setSelectedSize(medida.tamanho)}
-                      className={`px-4 py-2 border rounded-lg transition-all ${
-                        selectedSize === medida.tamanho
-                          ? 'border-primary-500 bg-primary-50 text-primary-700'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      {medida.tamanho}
-                    </button>
-                  ))}
-                </div>
+                {mockProduct.isEscola ? (
+                  // ESCOLA: Permite escolher entre vários tamanhos
+                  mockProduct.medidas && (
+                    <>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                        Tamanho: {selectedSize}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {mockProduct.medidas.map((medida) => (
+                          <button
+                            key={medida.tamanho}
+                            onClick={() => setSelectedSize(medida.tamanho)}
+                            className={`px-4 py-2 border rounded-lg transition-all ${
+                              selectedSize === medida.tamanho
+                                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                : 'border-gray-300 hover:border-gray-400'
+                            }`}
+                          >
+                            {medida.tamanho}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )
+                ) : (
+                  // VENDEDOR: Mostra apenas o tamanho fixo
+                  <div className="glass-card-weak p-4 rounded-xl">
+                    <h3 className="text-sm font-medium text-gray-600 mb-1">
+                      Tamanho
+                    </h3>
+                    <p className="text-xl font-bold text-gray-900">
+                      {mockProduct.tamanhoFixo}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Tamanho fixo indicado pelo vendedor
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -292,10 +453,15 @@ export default function ProductDetailsPage() {
                 <h3 className="font-semibold text-gray-900 mb-2">Vendedor</h3>
                 <p className="text-gray-700 mb-1">{mockProduct.vendedor}</p>
                 <p className="text-sm text-gray-600">{mockProduct.escola}</p>
-                <Button variant="outline" size="sm" className="mt-3">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Chat com vendedor
-                </Button>
+                {/* Botão para enviar mensagem */}
+                <Link 
+                  href={currentUser ? `/mensagens/enviar?vendedorId=${product.vendedorId}&produtoId=${mockProduct.id}` : '/login'}
+                >
+                  <Button variant="outline" size="sm" className="w-full mt-3">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Chat com vendedor
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 

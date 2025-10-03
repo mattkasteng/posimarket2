@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { mockProducts, addProduct, getProductsByVendor, getProductsByStatus } from '@/lib/mock-data'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,32 +26,63 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar ID único para o produto
-    const produtoId = `prod_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    // Verificar se o vendedor existe
+    const vendedor = await prisma.usuario.findUnique({
+      where: { id: vendedorId }
+    })
 
-    // Criar o produto mock
-    const produto = {
-      id: produtoId,
-      nome,
-      descricao,
-      categoria,
-      condicao,
-      preco: parseFloat(preco),
-      precoOriginal: precoOriginal ? parseFloat(precoOriginal) : null,
-      tamanho,
-      cor,
-      material,
-      marca,
-      imagens: images || [],
-      vendedorId,
-      ativo: false, // Produto inativo até ser aprovado
-      statusAprovacao: 'PENDENTE',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    if (!vendedor) {
+      return NextResponse.json(
+        { error: 'Vendedor não encontrado' },
+        { status: 404 }
+      )
     }
 
-    // Adicionar à lista mock
-    addProduct(produto)
+    // Buscar escola do vendedor (se for pai/responsável)
+    let escolaId = null
+    if (vendedor.escolaId) {
+      escolaId = vendedor.escolaId
+    } else {
+      // Se não tem escola associada, buscar a primeira escola disponível
+      const escola = await prisma.escola.findFirst()
+      escolaId = escola?.id || null
+    }
+
+    // Criar o produto no banco
+    const produto = await prisma.produto.create({
+      data: {
+        nome,
+        descricao,
+        categoria,
+        condicao,
+        preco: parseFloat(preco),
+        precoOriginal: precoOriginal ? parseFloat(precoOriginal) : null,
+        tamanho,
+        cor,
+        material,
+        marca,
+        imagens: JSON.stringify(images || []),
+        vendedorId,
+        vendedorNome: vendedor.nome,
+        escolaId,
+        escolaNome: vendedor.escola?.nome || 'Escola Positivo',
+        ativo: false, // Produto inativo até ser aprovado
+        statusAprovacao: 'PENDENTE'
+      },
+      include: {
+        vendedor: {
+          select: {
+            nome: true,
+            email: true
+          }
+        },
+        escola: {
+          select: {
+            nome: true
+          }
+        }
+      }
+    })
 
     // Log para auditoria
     console.log(`✅ Novo produto criado: ${produto.id} por vendedor: ${vendedorId}`)
@@ -83,28 +114,73 @@ export async function GET(request: NextRequest) {
     const ativo = searchParams.get('ativo')
     const statusAprovacao = searchParams.get('statusAprovacao')
 
-    let filteredProducts = [...mockProducts]
+    console.log('🔍 Parâmetros de busca:', { vendedorId, ativo, statusAprovacao })
 
-    // Filtrar por vendedor
+    // Construir filtros para o Prisma
+    const where: any = {}
+
     if (vendedorId) {
-      filteredProducts = getProductsByVendor(vendedorId)
+      where.vendedorId = vendedorId
     }
 
-    // Filtrar por status ativo
-    if (ativo !== null) {
-      const isActive = ativo === 'true'
-      filteredProducts = filteredProducts.filter(p => p.ativo === isActive)
-    }
-
-    // Filtrar por status de aprovação
     if (statusAprovacao) {
-      filteredProducts = getProductsByStatus(statusAprovacao)
+      where.statusAprovacao = statusAprovacao
     }
 
-    // Ordenar por data de criação (mais recentes primeiro)
-    filteredProducts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    if (ativo !== null) {
+      where.ativo = ativo === 'true'
+    }
 
-    return NextResponse.json({ produtos: filteredProducts })
+    console.log('🔍 Filtros aplicados:', where)
+
+    // Buscar produtos no banco
+    const produtos = await prisma.produto.findMany({
+      where,
+      include: {
+        vendedor: {
+          select: {
+            nome: true,
+            email: true
+          }
+        },
+        escola: {
+          select: {
+            nome: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    console.log(`📦 Encontrados ${produtos.length} produtos no banco`)
+
+    // Mapear produtos para o formato esperado pela UI
+    const produtosMapeados = produtos.map(produto => ({
+      id: produto.id,
+      nome: produto.nome,
+      descricao: produto.descricao,
+      preco: produto.preco,
+      precoOriginal: produto.precoOriginal,
+      categoria: produto.categoria,
+      condicao: produto.condicao,
+      tamanho: produto.tamanho,
+      cor: produto.cor,
+      material: produto.material,
+      marca: produto.marca,
+      imagens: produto.imagens ? JSON.parse(produto.imagens) : [],
+      vendedorId: produto.vendedorId,
+      vendedorNome: produto.vendedorNome || produto.vendedor?.nome,
+      escolaId: produto.escolaId,
+      escolaNome: produto.escolaNome || produto.escola?.nome,
+      ativo: produto.ativo,
+      statusAprovacao: produto.statusAprovacao,
+      createdAt: produto.createdAt.toISOString(),
+      updatedAt: produto.updatedAt.toISOString()
+    }))
+
+    return NextResponse.json({ produtos: produtosMapeados })
 
   } catch (error) {
     console.error('❌ Erro ao buscar produtos:', error)

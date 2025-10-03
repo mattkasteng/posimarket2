@@ -14,14 +14,29 @@ export default function AdminDashboard() {
 
         if (isLoggedIn === 'true' && userData) {
           const parsedUser = JSON.parse(userData)
+          
+          // Verificar se o usuário é admin (tipo ESCOLA)
+          if (parsedUser.tipoUsuario !== 'ESCOLA') {
+            console.log('⛔ Acesso negado: Usuário não é admin')
+            console.log('Tipo de usuário:', parsedUser.tipoUsuario)
+            console.log('Redirecionando para dashboard apropriado...')
+            
+            if (parsedUser.tipoUsuario === 'PAI_RESPONSAVEL') {
+              window.location.href = '/dashboard/vendedor'
+            } else {
+              window.location.href = '/login'
+            }
+            return
+          }
+          
           setUser(parsedUser)
-          console.log('Usuário admin logado:', parsedUser)
+          console.log('✅ Usuário admin logado:', parsedUser)
         } else {
-          console.log('Usuário não logado, redirecionando...')
+          console.log('❌ Usuário não logado, redirecionando para login')
           window.location.href = '/login'
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error)
+        console.error('❌ Erro ao verificar autenticação:', error)
         window.location.href = '/login'
       } finally {
         setIsLoading(false)

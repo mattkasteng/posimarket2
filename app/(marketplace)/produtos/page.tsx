@@ -7,97 +7,20 @@ import { FiltersSidebar } from '@/components/products/FiltersSidebar'
 import { ProductCard } from '@/components/products/ProductCard'
 import { SortAndViewToggle } from '@/components/products/SortAndViewToggle'
 import { Button } from '@/components/ui/Button'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
-
-// Mock data - em produção viria da API
-const mockProducts = [
-  {
-    id: '1',
-    nome: 'Uniforme Escolar Masculino - Camisa Polo',
-    preco: 89.90,
-    precoOriginal: 120.00,
-    imagem: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-    condicao: 'NOVO' as const,
-    vendedor: 'Escola Positivo',
-    escola: 'Colégio Positivo - Centro',
-    avaliacao: 4.8,
-    totalAvaliacoes: 124,
-    categoria: 'UNIFORME',
-    tamanho: 'M'
-  },
-  {
-    id: '2',
-    nome: 'Caderno Universitário 200 folhas',
-    preco: 25.50,
-    imagem: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop',
-    condicao: 'SEMINOVO' as const,
-    vendedor: 'Ana Silva',
-    escola: 'Colégio Positivo - Batel',
-    avaliacao: 4.5,
-    totalAvaliacoes: 67,
-    categoria: 'MATERIAL_ESCOLAR'
-  },
-  {
-    id: '3',
-    nome: 'Livro de História do Brasil',
-    preco: 45.00,
-    precoOriginal: 60.00,
-    imagem: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=400&fit=crop',
-    condicao: 'USADO' as const,
-    vendedor: 'João Santos',
-    escola: 'Colégio Positivo - Jardim Ambiental',
-    avaliacao: 4.2,
-    totalAvaliacoes: 23,
-    categoria: 'LIVRO_PARADIDATICO'
-  },
-  {
-    id: '4',
-    nome: 'Mochila Escolar com Rodinhas',
-    preco: 159.90,
-    imagem: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-    condicao: 'NOVO' as const,
-    vendedor: 'Maria Oliveira',
-    escola: 'Colégio Positivo - Centro',
-    avaliacao: 4.9,
-    totalAvaliacoes: 89,
-    categoria: 'MOCHILA_ACESSORIO'
-  },
-  {
-    id: '5',
-    nome: 'Uniforme Escolar Feminino - Saia',
-    preco: 75.00,
-    imagem: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-    condicao: 'SEMINOVO' as const,
-    vendedor: 'Escola Positivo',
-    escola: 'Colégio Positivo - Batel',
-    avaliacao: 4.6,
-    totalAvaliacoes: 156,
-    categoria: 'UNIFORME',
-    tamanho: 'G'
-  },
-  {
-    id: '6',
-    nome: 'Kit de Lápis de Cor 24 cores',
-    preco: 35.90,
-    precoOriginal: 45.00,
-    imagem: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop',
-    condicao: 'NOVO' as const,
-    vendedor: 'Carlos Lima',
-    escola: 'Colégio Positivo - Jardim Ambiental',
-    avaliacao: 4.7,
-    totalAvaliacoes: 78,
-    categoria: 'MATERIAL_ESCOLAR'
-  }
-]
+import { useCart } from '@/hooks/useCart'
 
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('relevance')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [products, setProducts] = useState<any[]>([])
   const { favorites, toggleFavorite, isFavorite } = useFavorites()
+  const { addItem } = useCart()
+  const [addedProductId, setAddedProductId] = useState<string | null>(null)
   
   const [filters, setFilters] = useState({
     categoria: [] as string[],
@@ -108,8 +31,59 @@ export default function ProductsPage() {
     avaliacaoMinima: 0
   })
 
+  // Buscar produtos aprovados da API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true)
+        console.log('🔄 Buscando produtos públicos aprovados...')
+        
+        const response = await fetch('/api/produtos?statusAprovacao=APROVADO&ativo=true')
+        const data = await response.json()
+        
+        console.log('📦 Produtos aprovados recebidos:', data.produtos?.length || 0)
+        
+        if (data.produtos) {
+          // Mapear produtos para o formato esperado pela UI
+          const produtosMapeados = data.produtos.map((produto: any) => ({
+            id: produto.id,
+            nome: produto.nome,
+            preco: produto.preco,
+            precoOriginal: produto.precoOriginal,
+            imagem: produto.imagens && produto.imagens.length > 0 
+              ? produto.imagens[0] 
+              : 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
+            condicao: produto.condicao || 'USADO',
+            vendedor: produto.vendedorNome || 'Vendedor',
+            escola: produto.escolaNome || 'Escola Positivo',
+            avaliacao: 4.5, // Mock por enquanto
+            totalAvaliacoes: Math.floor(Math.random() * 100) + 10, // Mock por enquanto
+            categoria: produto.categoria,
+            tamanho: produto.tamanho
+          }))
+          
+          // Usar APENAS produtos reais da API (sem mock)
+          setProducts(produtosMapeados)
+          console.log('✅ Total de produtos carregados:', produtosMapeados.length)
+        } else {
+          // Se não houver produtos na API, mostrar array vazio
+          setProducts([])
+          console.log('⚠️ Nenhum produto encontrado na API')
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar produtos:', error)
+        // Em caso de erro, mostrar array vazio para evitar confusão de IDs
+        setProducts([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
+
   const filteredProducts = useMemo(() => {
-    let filtered = mockProducts
+    let filtered = products
 
     // Filtro de busca
     if (searchQuery) {
@@ -181,18 +155,44 @@ export default function ProductsPage() {
     }
 
     return filtered
-  }, [searchQuery, filters, sortBy])
+  }, [products, searchQuery, filters, sortBy])
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
   }
 
   const handleAddToCart = async (productId: string) => {
-    setIsLoading(true)
-    // Simular adição ao carrinho
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsLoading(false)
-    // Aqui você implementaria a lógica real de adicionar ao carrinho
+    try {
+      // Encontrar o produto
+      const product = products.find(p => p.id === productId)
+      if (!product) {
+        console.error('Produto não encontrado')
+        return
+      }
+
+      // Adicionar ao carrinho
+      addItem({
+        id: product.id,
+        nome: product.nome,
+        preco: product.preco,
+        precoOriginal: product.precoOriginal,
+        imagem: product.imagem,
+        vendedor: product.vendedor,
+        vendedorId: product.vendedorId,
+        escola: product.escola,
+        categoria: product.categoria,
+        tamanho: product.tamanho
+      })
+
+      // Mostrar feedback visual
+      setAddedProductId(productId)
+      setTimeout(() => setAddedProductId(null), 2000)
+      
+      console.log('✅ Produto adicionado ao carrinho:', product.nome)
+    } catch (error) {
+      console.error('Erro ao adicionar ao carrinho:', error)
+      alert('Erro ao adicionar produto ao carrinho')
+    }
   }
 
   const gridCols = viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'
@@ -229,6 +229,16 @@ export default function ProductsPage() {
               totalProducts={filteredProducts.length}
             />
 
+            {/* Loader */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary-600 mx-auto mb-4" />
+                  <p className="text-gray-600">Carregando produtos...</p>
+                </div>
+              </div>
+            ) : (
+              <>
             {/* Grid de produtos */}
             {filteredProducts.length > 0 ? (
               <motion.div
@@ -299,6 +309,8 @@ export default function ProductsPage() {
                   </Button>
                 </div>
               </div>
+            )}
+              </>
             )}
           </div>
         </div>

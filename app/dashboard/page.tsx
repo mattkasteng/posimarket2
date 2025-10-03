@@ -15,48 +15,27 @@ export default function DashboardPage() {
         if (isLoggedIn === 'true' && userData) {
           const parsedUser = JSON.parse(userData)
           setUser(parsedUser)
-          console.log('Usuário logado:', parsedUser)
+          console.log('👤 Usuário logado:', parsedUser)
           
-          // Redirecionar baseado no tipo de usuário IMEDIATAMENTE
-          console.log('🔄 INICIANDO REDIRECIONAMENTO...')
-          console.log('👤 Usuário:', parsedUser.nome)
-          console.log('📧 Email:', parsedUser.email)
-          console.log('🏷️ Tipo:', parsedUser.tipoUsuario)
-          console.log('🔍 Tipo como string:', `"${parsedUser.tipoUsuario}"`)
-          console.log('📏 Length:', parsedUser.tipoUsuario.length)
-          console.log('🔤 Char codes:', Array.from(parsedUser.tipoUsuario as string).map((c: string) => c.charCodeAt(0)))
+          // Redirecionar baseado no tipo de usuário
+          console.log('🔄 Redirecionando baseado no tipo:', parsedUser.tipoUsuario)
           
-          // Testar todas as comparações possíveis
-          const isEscola = parsedUser.tipoUsuario === 'ESCOLA'
-          const isPaiResponsavel = parsedUser.tipoUsuario === 'PAI_RESPONSAVEL'
-          const isEscolaTrimmed = parsedUser.tipoUsuario.trim() === 'ESCOLA'
-          const isPaiTrimmed = parsedUser.tipoUsuario.trim() === 'PAI_RESPONSAVEL'
-          
-          console.log('✅ Comparações:')
-          console.log('  - === "ESCOLA":', isEscola)
-          console.log('  - === "PAI_RESPONSAVEL":', isPaiResponsavel)
-          console.log('  - trim() === "ESCOLA":', isEscolaTrimmed)
-          console.log('  - trim() === "PAI_RESPONSAVEL":', isPaiTrimmed)
-          
-          if (isEscola || isEscolaTrimmed) {
-            console.log('🚨 REDIRECIONANDO PARA ADMIN!')
-            console.log('❌ PROBLEMA: Vendedor sendo redirecionado para admin!')
+          if (parsedUser.tipoUsuario === 'ESCOLA') {
+            console.log('👑 Redirecionando para admin')
             window.location.href = '/dashboard/admin'
-          } else if (isPaiResponsavel || isPaiTrimmed) {
-            console.log('✅ REDIRECIONANDO PARA VENDEDOR!')
-            console.log('✅ CORRETO: Vendedor sendo redirecionado para vendedor!')
+          } else if (parsedUser.tipoUsuario === 'PAI_RESPONSAVEL') {
+            console.log('👤 Redirecionando para vendedor')
             window.location.href = '/dashboard/vendedor'
           } else {
-            console.log('❌ TIPO DESCONHECIDO!')
-            console.log('Tipo exato:', JSON.stringify(parsedUser.tipoUsuario))
-            console.log('Tipo raw:', parsedUser.tipoUsuario)
+            console.log('❌ Tipo desconhecido:', parsedUser.tipoUsuario)
+            window.location.href = '/login'
           }
         } else {
-          console.log('Usuário não logado, redirecionando...')
+          console.log('❌ Usuário não logado, redirecionando para login')
           window.location.href = '/login'
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error)
+        console.error('❌ Erro ao verificar autenticação:', error)
         window.location.href = '/login'
       } finally {
         setIsLoading(false)

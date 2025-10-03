@@ -73,8 +73,17 @@ const loadProducts = (): any[] => {
 const saveProducts = (products: any[]) => {
   try {
     ensureDataDir()
+    console.log('💾 Salvando produtos no arquivo:', products.length)
+    console.log('📋 Produtos a serem salvos:', JSON.stringify(products.map(p => ({
+      id: p.id,
+      nome: p.nome,
+      descricao: p.descricao?.substring(0, 50),
+      preco: p.preco,
+      tamanho: p.tamanho,
+      cor: p.cor
+    })), null, 2))
     fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2))
-    console.log('💾 Produtos salvos no arquivo:', products.length)
+    console.log('✅ Arquivo salvo com sucesso!')
   } catch (error) {
     console.error('❌ Erro ao salvar produtos:', error)
   }
@@ -83,8 +92,16 @@ const saveProducts = (products: any[]) => {
 // Array de produtos (carregado do arquivo)
 let mockProducts: any[] = loadProducts()
 
+// Função para recarregar produtos do arquivo
+export const reloadProducts = () => {
+  mockProducts = loadProducts()
+  return mockProducts
+}
+
 export const addProduct = (product: any) => {
   console.log('➕ Adicionando produto:', product.nome, 'Status:', product.statusAprovacao)
+  // Recarregar produtos antes de adicionar
+  mockProducts = loadProducts()
   mockProducts.push(product)
   saveProducts(mockProducts)
   console.log('📊 Total de produtos após adição:', mockProducts.length)
@@ -92,6 +109,8 @@ export const addProduct = (product: any) => {
 
 export const updateProduct = (id: string, updates: any) => {
   console.log('🔄 Atualizando produto:', id, 'Updates:', updates)
+  // Recarregar produtos antes de atualizar
+  mockProducts = loadProducts()
   const index = mockProducts.findIndex(p => p.id === id)
   if (index !== -1) {
     mockProducts[index] = { ...mockProducts[index], ...updates }
@@ -104,25 +123,32 @@ export const updateProduct = (id: string, updates: any) => {
 
 export const deleteProduct = (id: string) => {
   console.log('🗑️ Removendo produto:', id)
+  // Recarregar produtos antes de deletar
+  mockProducts = loadProducts()
   const initialLength = mockProducts.length
   mockProducts = mockProducts.filter(p => p.id !== id)
   saveProducts(mockProducts)
   console.log('📊 Produtos removidos:', initialLength - mockProducts.length)
+  console.log('📦 Total de produtos restantes:', mockProducts.length)
 }
 
 export const getProductsByVendor = (vendedorId: string) => {
   console.log('👤 Buscando produtos do vendedor:', vendedorId)
-  const filtered = mockProducts.filter(p => p.vendedorId === vendedorId)
+  // Recarregar produtos antes de filtrar
+  const products = loadProducts()
+  const filtered = products.filter(p => p.vendedorId === vendedorId)
   console.log('📦 Produtos encontrados:', filtered.length)
   return filtered
 }
 
 export const getProductsByStatus = (status: string) => {
   console.log('🔍 Buscando produtos com status:', status)
-  console.log('📊 Total de produtos:', mockProducts.length)
-  console.log('📋 Status dos produtos:', mockProducts.map(p => ({ id: p.id, nome: p.nome, status: p.statusAprovacao })))
+  // Recarregar produtos antes de filtrar
+  const products = loadProducts()
+  console.log('📊 Total de produtos:', products.length)
+  console.log('📋 Status dos produtos:', products.map(p => ({ id: p.id, nome: p.nome, status: p.statusAprovacao })))
   
-  const filtered = mockProducts.filter(p => p.statusAprovacao === status)
+  const filtered = products.filter(p => p.statusAprovacao === status)
   console.log('✅ Produtos filtrados encontrados:', filtered.length)
   
   return filtered

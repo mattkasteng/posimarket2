@@ -118,6 +118,7 @@ export function ProductCard({
               <Link 
                 href={`/produtos/${id}`}
                 className="inline-flex items-center justify-center w-8 h-8 p-0 rounded-xl bg-white/80 backdrop-blur-sm hover:bg-white transition-all duration-300"
+                onClick={() => console.log(`👁️ Clicou no produto ID: ${id}, Nome: ${nome}`)}
               >
                 <Eye className="h-4 w-4 text-gray-600" />
               </Link>

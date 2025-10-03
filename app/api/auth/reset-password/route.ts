@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { sendEmail, EmailTemplates } from '@/lib/email-service'
 
 const resetPasswordSchema = z.object({
   email: z.string().email(),
@@ -49,28 +50,60 @@ async function requestPasswordReset(email: string) {
   })
 
   if (!user) {
-    return NextResponse.json(
-      { message: 'Email não encontrado' },
-      { status: 404 }
-    )
+    // Por segurança, retornar sucesso mesmo se email não existir
+    // Isso evita que atacantes descubram quais emails estão cadastrados
+    return NextResponse.json({
+      message: 'Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.'
+    })
   }
 
   const resetToken = generateResetToken()
+  const expiracao = new Date(Date.now() + 3600000) // 1 hora
 
   await prisma.usuario.update({
     where: { id: user.id },
     data: {
       tokenResetSenha: resetToken,
-      tokenResetExpiracao: new Date(Date.now() + 3600000) // 1 hora
+      tokenResetExpiracao: expiracao
     }
   })
 
-  // TODO: Enviar email com token de reset
-  // await sendPasswordResetEmail(email, resetToken)
+  // Enviar email com token de reset
+  try {
+    const emailTemplate = EmailTemplates.resetSenha(user.nome, resetToken)
+    const resultado = await sendEmail({
+      to: user.email,
+      subject: emailTemplate.subject,
+      html: emailTemplate.html,
+      text: emailTemplate.text
+    })
 
-  return NextResponse.json({
-    message: 'Email de recuperação enviado'
-  })
+    console.log(`✅ Email de recuperação de senha enviado para: ${email}`)
+    console.log(`📤 Provider usado: ${resultado.provider}`)
+    console.log(`⏰ Token expira em: ${expiracao.toISOString()}`)
+
+    return NextResponse.json({
+      message: 'Email de recuperação enviado com sucesso. Verifique sua caixa de entrada.',
+      emailSent: true,
+      emailProvider: resultado.provider
+    })
+  } catch (emailError) {
+    console.error('⚠️ Erro ao enviar email de recuperação:', emailError)
+    
+    // Remover token já que o email não foi enviado
+    await prisma.usuario.update({
+      where: { id: user.id },
+      data: {
+        tokenResetSenha: null,
+        tokenResetExpiracao: null
+      }
+    })
+
+    return NextResponse.json({
+      message: 'Erro ao enviar email de recuperação. Tente novamente mais tarde.',
+      emailSent: false
+    }, { status: 500 })
+  }
 }
 
 async function confirmPasswordReset(email: string, token: string, newPassword: string) {

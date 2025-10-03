@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
@@ -10,6 +12,7 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,7 +20,7 @@ export function LoginForm() {
     setError(null)
     
     try {
-      console.log('Tentando fazer login com:', email)
+      console.log('🔍 Tentando login simples com:', email)
       
       const response = await fetch('/api/auth/simple-login', {
         method: 'POST',
@@ -25,44 +28,41 @@ export function LoginForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email,
-          password: password,
+          email,
+          password,
         }),
       })
 
       const result = await response.json()
+      console.log('🔍 Resultado do login simples:', result)
 
       if (!response.ok) {
-        setError(result.message || 'Erro no login')
+        setError(result.error || 'Email ou senha incorretos')
         return
       }
 
+      console.log('✅ Login bem-sucedido!')
+      console.log('👤 Usuário:', result.user)
+      console.log('🔄 Redirecionando...')
+      
       // Salvar dados do usuário no localStorage
       localStorage.setItem('user', JSON.stringify(result.user))
       localStorage.setItem('isLoggedIn', 'true')
 
-      console.log('✅ Login bem-sucedido!')
-      console.log('👤 Usuário salvo no localStorage:', result.user)
-      console.log('🏷️ Tipo de usuário:', result.user.tipoUsuario)
-      console.log('🔄 Redirecionando...')
-      
-      // Redirecionar DIRETAMENTE baseado no tipo de usuário
-      console.log('🚀 REDIRECIONAMENTO DIRETO...')
-      console.log('Tipo do usuário:', result.user.tipoUsuario)
-      
+      // Redirecionar baseado no tipo de usuário
       if (result.user.tipoUsuario === 'ESCOLA') {
-        console.log('📍 Redirecionando para ADMIN')
+        console.log('👑 Redirecionando para admin')
         window.location.href = '/dashboard/admin'
       } else if (result.user.tipoUsuario === 'PAI_RESPONSAVEL') {
-        console.log('📍 Redirecionando para VENDEDOR')
+        console.log('👤 Redirecionando para vendedor')
         window.location.href = '/dashboard/vendedor'
       } else {
-        console.log('❌ Tipo desconhecido, redirecionando para dashboard geral')
+        console.log('❌ Tipo desconhecido, redirecionando para dashboard')
         window.location.href = '/dashboard'
       }
 
     } catch (error) {
-      console.error('Erro no login:', error)
+      console.error('❌ Erro no login:', error)
       setError('Erro no login. Tente novamente.')
     } finally {
       setIsLoading(false)

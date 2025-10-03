@@ -142,9 +142,6 @@ export default function AddProductPage() {
     }
   }
 
-  // Simular preço sugerido baseado em similares
-  const suggestedPrice = 85.50
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50">
       <div className="container mx-auto px-4 py-8">
@@ -299,32 +296,6 @@ export default function AddProductPage() {
                             placeholder="120.00"
                             {...register('precoOriginal', { valueAsNumber: true })}
                           />
-                        </div>
-                      </div>
-
-                      {/* Preço Sugerido */}
-                      <div className="p-4 glass-card-weak rounded-xl">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-gray-900">Preço Sugerido</p>
-                            <p className="text-sm text-gray-600">Baseado em produtos similares</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-primary-600">
-                              R$ {suggestedPrice.toFixed(2)}
-                            </p>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setValue('preco', suggestedPrice)
-                              }}
-                              className="glass-button"
-                            >
-                              Usar Sugestão
-                            </Button>
-                          </div>
                         </div>
                       </div>
                     </div>

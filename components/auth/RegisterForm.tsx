@@ -14,7 +14,6 @@ const registerSchema = z.object({
   email: z.string().email('Email inválido'),
   senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   confirmarSenha: z.string(),
-  tipoUsuario: z.enum(['PAI_RESPONSAVEL', 'ESCOLA']),
 }).refine((data) => data.senha === data.confirmarSenha, {
   message: 'Senhas não coincidem',
   path: ['confirmarSenha'],
@@ -44,6 +43,7 @@ export function RegisterForm() {
       // Dados padrão para campos obrigatórios não presentes no formulário
       const fullData = {
         ...data,
+        tipoUsuario: 'PAI_RESPONSAVEL', // Todos os novos usuários são vendedores
         cpf: Math.random().toString().substring(2, 13), // CPF único gerado
         telefone: '11999999999', // Telefone padrão
         cep: '01234567',
@@ -168,34 +168,6 @@ export function RegisterForm() {
         )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Tipo de Conta
-        </label>
-        <div className="space-y-2">
-          <label className="flex items-center">
-            <input
-              type="radio"
-              value="PAI_RESPONSAVEL"
-              {...register('tipoUsuario')}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700">Estudante</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="radio"
-              value="ESCOLA"
-              {...register('tipoUsuario')}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700">Professor/Instrutor</span>
-          </label>
-        </div>
-        {errors.tipoUsuario && (
-          <p className="text-red-500 text-sm mt-1">{errors.tipoUsuario.message}</p>
-        )}
-      </div>
 
       <Button
         type="submit"

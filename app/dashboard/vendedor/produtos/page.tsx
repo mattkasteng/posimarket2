@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
 import { 
-  Plus, Search, Filter, Edit, Pause, Play, BarChart3, 
+  Plus, Search, Filter, Edit, Pause, Play, 
   Copy, Eye, MoreVertical, Package, Grid, List
 } from 'lucide-react'
 import Image from 'next/image'
@@ -114,46 +114,66 @@ export default function ProductsManagementPage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
 
-  // Buscar produtos do vendedor
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true)
-        
-        // Obter dados do usuário logado
-        const userData = localStorage.getItem('user')
-        if (!userData) {
-          console.error('Usuário não autenticado')
-          return
-        }
+  // Função para buscar produtos (reutilizável)
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      
+      // Obter dados do usuário logado
+      const userData = localStorage.getItem('user')
+      if (!userData) {
+        console.error('Usuário não autenticado')
+        return
+      }
 
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
+      const parsedUser = JSON.parse(userData)
+      setUser(parsedUser)
 
-        // Buscar produtos do vendedor
-        const response = await fetch(`/api/produtos?vendedorId=${parsedUser.id}`)
-        const data = await response.json()
+      console.log('🔄 Buscando produtos do vendedor:', parsedUser.id)
 
-        if (data.produtos) {
-          // Adicionar dados mock para compatibilidade com a interface
-          const produtosComDadosMock = data.produtos.map((produto: any) => ({
+      // Buscar produtos do vendedor
+      const response = await fetch(`/api/produtos?vendedorId=${parsedUser.id}`)
+      const data = await response.json()
+
+      console.log('📦 Produtos recebidos da API:', data.produtos?.length || 0)
+
+      if (data.produtos) {
+        // Adicionar dados mock para compatibilidade com a interface
+        const produtosComDadosMock = data.produtos.map((produto: any) => {
+          // Determinar status baseado em ativo e statusAprovacao
+          let status = 'PENDENTE_APROVACAO'
+          if (produto.statusAprovacao === 'APROVADO') {
+            status = produto.ativo ? 'ATIVO' : 'PAUSADO'
+          } else if (produto.statusAprovacao === 'REJEITADO') {
+            status = 'REJEITADO'
+          }
+
+          // Tentar manter dados existentes se já temos esse produto
+          const produtoExistente = products.find(p => p.id === produto.id)
+
+          return {
             ...produto,
             imagem: produto.imagens && produto.imagens.length > 0 ? produto.imagens[0] : 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-            vendas: Math.floor(Math.random() * 100),
-            visualizacoes: Math.floor(Math.random() * 2000),
-            avaliacao: 4.0 + Math.random() * 1.0,
-            status: produto.ativo ? 'ATIVO' : 'PENDENTE_APROVACAO'
-          }))
-          
-          setProducts(produtosComDadosMock)
-        }
-      } catch (error) {
-        console.error('Erro ao buscar produtos:', error)
-      } finally {
-        setLoading(false)
+            // Preservar dados mock se já existem, senão gerar novos
+            vendas: produtoExistente?.vendas ?? Math.floor(Math.random() * 100),
+            visualizacoes: produtoExistente?.visualizacoes ?? Math.floor(Math.random() * 2000),
+            avaliacao: produtoExistente?.avaliacao ?? (4.0 + Math.random() * 1.0),
+            status
+          }
+        })
+        
+        console.log('📋 Produtos mapeados:', produtosComDadosMock.map(p => ({ id: p.id, status: p.status, ativo: p.ativo })))
+        setProducts(produtosComDadosMock)
       }
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // Buscar produtos ao carregar a página
+  useEffect(() => {
     fetchProducts()
   }, [])
 
@@ -168,12 +188,35 @@ export default function ProductsManagementPage() {
     setIsEditModalOpen(true)
   }
 
-  const handleSaveProduct = (updatedProduct: any) => {
-    setProducts(prev => 
-      prev.map(p => p.id === updatedProduct.id ? updatedProduct : p)
-    )
-    setIsEditModalOpen(false)
-    setEditingProduct(null)
+  const handleSaveProduct = async (updatedProduct: any) => {
+    try {
+      console.log('💾 Salvando produto:', updatedProduct.id, updatedProduct)
+
+      const response = await fetch(`/api/produtos/${updatedProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedProduct)
+      })
+
+      const data = await response.json()
+      console.log('📡 Resposta da API:', data)
+
+      if (data.success) {
+        alert('✅ Produto atualizado com sucesso!')
+        // Recarregar produtos da API para garantir sincronização
+        await fetchProducts()
+      } else {
+        alert('❌ Erro ao atualizar produto: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error)
+      alert('❌ Erro ao salvar produto')
+    } finally {
+      setIsEditModalOpen(false)
+      setEditingProduct(null)
+    }
   }
 
   const handleCloseModal = () => {
@@ -181,8 +224,122 @@ export default function ProductsManagementPage() {
     setEditingProduct(null)
   }
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts(prev => prev.filter(p => p.id !== productId))
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      console.log('🗑️ Excluindo produto:', productId)
+      
+      // Confirmar exclusão com o usuário
+      if (!confirm('⚠️ Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.')) {
+        return
+      }
+
+      // Atualização otimista - remover da UI imediatamente
+      setProducts(prev => prev.filter(p => p.id !== productId))
+
+      // Chamar API para exclusão persistente
+      const response = await fetch(`/api/produtos/${productId}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        console.log('✅ Produto excluído com sucesso!')
+        alert('✅ Produto excluído com sucesso!')
+      } else {
+        // Se falhou, reverter a mudança otimista
+        console.error('❌ Erro ao excluir produto:', data.error)
+        alert('❌ Erro ao excluir produto: ' + data.error)
+        // Recarregar produtos para restaurar o estado correto
+        await fetchProducts()
+      }
+    } catch (error) {
+      console.error('❌ Erro ao excluir produto:', error)
+      alert('❌ Erro ao excluir produto')
+      // Recarregar produtos para restaurar o estado correto
+      await fetchProducts()
+    }
+  }
+
+  const handleToggleStatus = async (productId: string, currentStatus: string) => {
+    console.log('🔘 BOTÃO CLICADO! Produto:', productId, 'Status atual:', currentStatus)
+    
+    try {
+      // Só permitir pausar/ativar produtos APROVADOS
+      const produto = products.find(p => p.id === productId)
+      if (produto && produto.statusAprovacao !== 'APROVADO') {
+        alert('⚠️ Apenas produtos aprovados podem ser pausados ou ativados.')
+        return
+      }
+
+      // Converter status da UI para o campo 'ativo' do banco
+      const novoAtivo = currentStatus !== 'ATIVO'
+      const newStatus = novoAtivo ? 'ATIVO' : 'PAUSADO'
+      
+      console.log('⏸️ Alterando status:', productId, currentStatus, '→', newStatus, '(ativo:', novoAtivo, ')')
+
+      // ATUALIZAÇÃO OTIMISTA: Atualizar UI imediatamente
+      setProducts(prev => 
+        prev.map(p => 
+          p.id === productId 
+            ? { ...p, status: newStatus, ativo: novoAtivo } 
+            : p
+        )
+      )
+      console.log('🎨 UI atualizada otimisticamente para:', newStatus)
+
+      const response = await fetch(`/api/produtos/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ativo: novoAtivo })
+      })
+
+      console.log('📡 Status da resposta HTTP:', response.status)
+      const data = await response.json()
+      console.log('📡 Resposta da API:', data)
+
+      if (data.success) {
+        console.log('✅ Status alterado com sucesso!')
+        // Não precisa recarregar todos os produtos, já atualizamos otimisticamente
+      } else {
+        // Se falhou, reverter a mudança otimista
+        setProducts(prev => 
+          prev.map(p => 
+            p.id === productId 
+              ? { ...p, status: currentStatus, ativo: currentStatus === 'ATIVO' } 
+              : p
+          )
+        )
+        alert('❌ Erro ao alterar status: ' + data.error)
+      }
+    } catch (error) {
+      // Se erro, reverter a mudança otimista
+      setProducts(prev => 
+        prev.map(p => 
+          p.id === productId 
+            ? { ...p, status: currentStatus, ativo: currentStatus === 'ATIVO' } 
+            : p
+        )
+      )
+      console.error('❌ Erro ao alterar status:', error)
+      alert('❌ Erro ao alterar status: ' + (error as Error).message)
+    }
+  }
+
+  const handleDuplicateProduct = (productId: string) => {
+    const productToDuplicate = products.find(p => p.id === productId)
+    if (productToDuplicate) {
+      const newProduct = {
+        ...productToDuplicate,
+        id: `prod_${Date.now()}`,
+        nome: `${productToDuplicate.nome} (Cópia)`,
+        dataCriacao: new Date().toISOString().split('T')[0]
+      }
+      setProducts(prev => [newProduct, ...prev])
+      alert('✅ Produto duplicado com sucesso!')
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -387,10 +544,10 @@ export default function ProductsManagementPage() {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-1">
                           <span className="text-yellow-400">★</span>
-                          <span className="text-sm font-medium text-gray-700">{product.avaliacao}</span>
+                          <span className="text-sm font-medium text-gray-700">{product.avaliacao?.toFixed(1) || '0.0'}</span>
                         </div>
                         <span className="text-sm text-gray-600">
-                          Estoque: {product.estoque}
+                          Estoque: {product.estoque || 0}
                         </span>
                       </div>
 
@@ -405,21 +562,21 @@ export default function ProductsManagementPage() {
                           <Edit className="h-4 w-4 mr-1" />
                           Editar
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="glass-button"
-                          title={product.status === 'ATIVO' ? 'Pausar' : 'Ativar'}
-                        >
-                          {product.status === 'ATIVO' ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button variant="outline" size="sm" className="glass-button">
-                          <BarChart3 className="h-4 w-4" />
-                        </Button>
+                        {product.statusAprovacao === 'APROVADO' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="glass-button"
+                            title={product.status === 'ATIVO' ? 'Pausar' : 'Ativar'}
+                            onClick={() => handleToggleStatus(product.id, product.status)}
+                          >
+                            {product.status === 'ATIVO' ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -452,7 +609,7 @@ export default function ProductsManagementPage() {
                             </div>
                             <div className="flex items-center space-x-1">
                               <span className="text-yellow-400">★</span>
-                              <span className="text-sm font-medium text-gray-700">{product.avaliacao}</span>
+                              <span className="text-sm font-medium text-gray-700">{product.avaliacao?.toFixed(1) || '0.0'}</span>
                             </div>
                           </div>
                           
@@ -480,22 +637,28 @@ export default function ProductsManagementPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
+                        {product.statusAprovacao === 'APROVADO' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="glass-button"
+                            title={product.status === 'ATIVO' ? 'Pausar' : 'Ativar'}
+                            onClick={() => handleToggleStatus(product.id, product.status)}
+                          >
+                            {product.status === 'ATIVO' ? (
+                              <Pause className="h-4 w-4" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
                           className="glass-button"
-                          title={product.status === 'ATIVO' ? 'Pausar' : 'Ativar'}
+                          onClick={() => handleDuplicateProduct(product.id)}
+                          title="Duplicar produto"
                         >
-                          {product.status === 'ATIVO' ? (
-                            <Pause className="h-4 w-4" />
-                          ) : (
-                            <Play className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button variant="outline" size="sm" className="glass-button">
-                          <BarChart3 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" className="glass-button">
                           <Copy className="h-4 w-4" />
                         </Button>
                       </div>

@@ -14,6 +14,18 @@ export default function RelatoriosPage() {
 
         if (isLoggedIn === 'true' && userData) {
           const parsedUser = JSON.parse(userData)
+          
+          // Verificar se o usuário é admin (tipo ESCOLA)
+          if (parsedUser.tipoUsuario !== 'ESCOLA') {
+            console.log('⛔ Acesso negado: Usuário não é admin')
+            if (parsedUser.tipoUsuario === 'PAI_RESPONSAVEL') {
+              window.location.href = '/dashboard/vendedor'
+            } else {
+              window.location.href = '/login'
+            }
+            return
+          }
+          
           setUser(parsedUser)
         } else {
           window.location.href = '/login'

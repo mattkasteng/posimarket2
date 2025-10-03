@@ -221,7 +221,19 @@ export default function VendedorDashboard() {
                 <span className="text-2xl">📊</span>
                 <div>
                   <p className="font-semibold text-gray-900">Vendas</p>
-                  <p className="text-sm text-gray-600">Ver pedidos</p>
+                  <p className="text-sm text-gray-600">Minhas vendas</p>
+                </div>
+              </div>
+            </div>
+          </a>
+
+          <a href="/dashboard/vendedor/compras" className="block">
+            <div className="bg-white hover:bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 transition-colors">
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">🛒</span>
+                <div>
+                  <p className="font-semibold text-gray-900">Compras</p>
+                  <p className="text-sm text-gray-600">Meus pedidos</p>
                 </div>
               </div>
             </div>
@@ -238,75 +250,206 @@ export default function VendedorDashboard() {
               </div>
             </div>
           </a>
-
-          <a href="/dashboard/vendedor/estatisticas" className="block">
-            <div className="bg-white hover:bg-gray-50 p-6 rounded-lg shadow-md border border-gray-200 transition-colors">
-              <div className="flex items-center space-x-3">
-                <span className="text-2xl">📈</span>
-                <div>
-                  <p className="font-semibold text-gray-900">Estatísticas</p>
-                  <p className="text-sm text-gray-600">Ver relatórios</p>
-                </div>
-              </div>
-            </div>
-          </a>
         </div>
 
-        {/* Gráfico de Vendas e Últimas Vendas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Gráfico de Vendas */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Vendas dos Últimos 7 Dias</h2>
-            
-            <div className="space-y-4">
-              {[
-                { dia: 'Seg', valor: 120, porcentagem: 60 },
-                { dia: 'Ter', valor: 200, porcentagem: 100 },
-                { dia: 'Qua', valor: 80, porcentagem: 40 },
-                { dia: 'Qui', valor: 150, porcentagem: 75 },
-                { dia: 'Sex', valor: 180, porcentagem: 90 },
-                { dia: 'Sáb', valor: 100, porcentagem: 50 },
-                { dia: 'Dom', valor: 160, porcentagem: 80 }
-              ].map((item, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-700">{item.dia}</span>
-                    <span className="font-medium">R$ {item.valor}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="h-2 rounded-full bg-blue-500"
-                      style={{ width: `${item.porcentagem}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+        {/* Últimas Transações - Expandido */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Últimas Transações</h2>
+              <p className="text-sm text-gray-600 mt-1">Visão geral das suas compras e vendas recentes</p>
             </div>
           </div>
 
-          {/* Últimas Vendas */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Últimas Vendas</h2>
-            
-            <div className="space-y-4">
-              {[
-                { produto: 'Kit Completo 6º Ano', comprador: 'Maria Silva', valor: 'R$ 450,00', data: 'Hoje' },
-                { produto: 'Uniforme Ed. Física', comprador: 'João Santos', valor: 'R$ 89,90', data: 'Ontem' },
-                { produto: 'Cadernos Universitários', comprador: 'Ana Costa', valor: 'R$ 25,50', data: '2 dias atrás' },
-                { produto: 'Mochila Escolar', comprador: 'Carlos Lima', valor: 'R$ 159,90', data: '3 dias atrás' }
-              ].map((venda, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{venda.produto}</p>
-                    <p className="text-sm text-gray-600">{venda.comprador} • {venda.data}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{venda.valor}</p>
-                  </div>
-                </div>
-              ))}
+          {/* Resumo Rápido */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Total de Vendas</p>
+              <p className="text-lg font-bold text-gray-900">R$ 725,30</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Sua Comissão (85%)</p>
+              <p className="text-lg font-bold text-green-600">R$ 616,51</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Itens Vendidos</p>
+              <p className="text-lg font-bold text-gray-900">4 produtos</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 mb-1">Ticket Médio</p>
+              <p className="text-lg font-bold text-gray-900">R$ 181,33</p>
             </div>
           </div>
+          
+          {/* Lista de Transações */}
+          <div className="space-y-3">
+            {[
+              { 
+                id: '#VND-001',
+                tipo: 'venda',
+                produto: 'Kit Completo 6º Ano', 
+                contato: 'Maria Silva', 
+                email: 'maria.silva@email.com',
+                valor: 450.00,
+                comissao: 382.50,
+                data: 'Hoje', 
+                hora: '14:30',
+                status: 'Concluída',
+                pagamento: 'Pix',
+                statusColor: 'green'
+              },
+              { 
+                id: '#CMP-001',
+                tipo: 'compra',
+                produto: 'Calculadora Científica', 
+                contato: 'TechStore', 
+                email: 'vendas@techstore.com',
+                valor: 79.90,
+                data: 'Ontem', 
+                hora: '11:20',
+                status: 'Entregue',
+                pagamento: 'Cartão',
+                statusColor: 'green'
+              },
+              { 
+                id: '#VND-002',
+                tipo: 'venda',
+                produto: 'Uniforme Ed. Física', 
+                contato: 'João Santos', 
+                email: 'joao.santos@email.com',
+                valor: 89.90,
+                comissao: 76.42,
+                data: 'Ontem', 
+                hora: '16:45',
+                status: 'Concluída',
+                pagamento: 'Cartão',
+                statusColor: 'green'
+              },
+              { 
+                id: '#VND-003',
+                tipo: 'venda',
+                produto: 'Cadernos Universitários', 
+                contato: 'Ana Costa', 
+                email: 'ana.costa@email.com',
+                valor: 25.50,
+                comissao: 21.68,
+                data: '2 dias atrás', 
+                hora: '10:15',
+                status: 'Pendente',
+                pagamento: 'Boleto',
+                statusColor: 'yellow'
+              }
+            ].map((transacao, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  {/* Informações Principais */}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-mono text-gray-500">{transacao.id}</span>
+                          <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                            transacao.tipo === 'venda'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {transacao.tipo === 'venda' ? '💰 VENDA' : '🛒 COMPRA'}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            transacao.statusColor === 'green' 
+                              ? 'bg-green-100 text-green-700' 
+                              : transacao.statusColor === 'yellow'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {transacao.status}
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
+                            {transacao.pagamento}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-gray-900 text-lg">{transacao.produto}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-sm text-gray-600">
+                            <span className="font-medium">{transacao.contato}</span>
+                          </p>
+                          <span className="text-gray-400">•</span>
+                          <p className="text-xs text-gray-500">{transacao.email}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <span>📅 {transacao.data}</span>
+                      <span>🕐 {transacao.hora}</span>
+                    </div>
+                  </div>
+                  
+                  {/* Valores e Ações */}
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <p className="text-xs text-gray-600 mb-1">Valor Total</p>
+                      <p className="text-xl font-bold text-gray-900">R$ {transacao.valor.toFixed(2)}</p>
+                      {transacao.tipo === 'venda' && transacao.comissao && (
+                        <p className="text-xs text-green-600 font-medium mt-1">
+                          Você recebe: R$ {transacao.comissao.toFixed(2)}
+                        </p>
+                      )}
+                      {transacao.tipo === 'compra' && (
+                        <p className="text-xs text-blue-600 font-medium mt-1">
+                          Você pagou
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                      <button className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
+                        Ver Detalhes
+                      </button>
+                      <button className="px-4 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors text-sm">
+                        Rastrear Entrega
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Análise de Performance */}
+        <div className="bg-white rounded-lg shadow-md p-6 mt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Análise de Performance</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Avaliação Média */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6">
+              <div className="text-center">
+                <p className="text-5xl font-bold text-green-600 mb-2">4.8</p>
+                <p className="text-sm font-semibold text-green-700 mb-1">Avaliação Média</p>
+                <p className="text-xs text-green-600">Baseada em 127 avaliações</p>
+              </div>
+            </div>
+
+            {/* Taxa de Satisfação */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6">
+              <div className="text-center">
+                <p className="text-5xl font-bold text-blue-600 mb-2">98%</p>
+                <p className="text-sm font-semibold text-blue-700 mb-1">Taxa de Satisfação</p>
+                <p className="text-xs text-blue-600">Clientes satisfeitos</p>
+              </div>
+            </div>
+
+            {/* Dias Médios de Entrega */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6">
+              <div className="text-center">
+                <p className="text-5xl font-bold text-purple-600 mb-2">2.1</p>
+                <p className="text-sm font-semibold text-purple-700 mb-1">Dias Médios de Entrega</p>
+                <p className="text-xs text-purple-600">Tempo de processamento</p>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Informações do Usuário */}

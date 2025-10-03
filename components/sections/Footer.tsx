@@ -19,22 +19,22 @@ import {
 
 const footerLinks = {
   empresa: [
-    { name: 'Sobre Nós', href: '#' },
-    { name: 'Como Funciona', href: '#' },
-    { name: 'Preços', href: '#' },
-    { name: 'Contato', href: '#' }
+    { name: 'Sobre Nós', href: '/sobre-nos' },
+    { name: 'Como Funciona', href: '/como-funciona' },
+    { name: 'Preços', href: '/precos' },
+    { name: 'Contato', href: '/contato' }
   ],
   suporte: [
-    { name: 'Central de Ajuda', href: '#' },
-    { name: 'Política de Privacidade', href: '#' },
-    { name: 'Termos de Uso', href: '#' },
-    { name: 'FAQ', href: '#' }
+    { name: 'Central de Ajuda', href: '/central-ajuda' },
+    { name: 'Política de Privacidade', href: '/politica-privacidade' },
+    { name: 'Termos de Uso', href: '/termos-uso' },
+    { name: 'FAQ', href: '/faq' }
   ],
   recursos: [
-    { name: 'Para Escolas', href: '#' },
-    { name: 'Para Pais', href: '#' },
-    { name: 'API', href: '#' },
-    { name: 'Integrações', href: '#' }
+    { name: 'Para Escolas', href: '/para-escolas' },
+    { name: 'Para Pais', href: '/para-pais' },
+    { name: 'API', href: '/api' },
+    { name: 'Integrações', href: '/integracoes' }
   ]
 }
 

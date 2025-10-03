@@ -7,59 +7,15 @@ import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Trash2, Plus, Minus, ShoppingBag, AlertTriangle } from 'lucide-react'
-import { cn } from '@/lib/utils'
-
-// Mock data - será substituído por dados reais do Prisma
-const cartItems = [
-  {
-    id: '1',
-    product: {
-      id: '1',
-      nome: 'Uniforme Escolar Masculino - Camisa Polo',
-      preco: 89.90,
-      precoOriginal: 120.00,
-      imagem: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-      vendedor: 'Escola Positivo',
-      escola: 'Colégio Positivo - Centro',
-      categoria: 'UNIFORME',
-      tamanho: 'M'
-    },
-    quantity: 1
-  },
-  {
-    id: '2',
-    product: {
-      id: '2',
-      nome: 'Caderno Universitário 200 folhas',
-      preco: 25.50,
-      imagem: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop',
-      vendedor: 'Ana Silva',
-      escola: 'Colégio Positivo - Batel',
-      categoria: 'MATERIAL_ESCOLAR'
-    },
-    quantity: 2
-  },
-  {
-    id: '3',
-    product: {
-      id: '3',
-      nome: 'Mochila Escolar com Rodinhas',
-      preco: 159.90,
-      imagem: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-      vendedor: 'Maria Oliveira',
-      escola: 'Colégio Positivo - Centro',
-      categoria: 'MOCHILA_ACESSORIO'
-    },
-    quantity: 1
-  }
-]
+import { CartItem } from '@/hooks/useCart'
 
 interface CartItemsProps {
-  onQuantityChange?: (itemId: string, quantity: number) => void
-  onRemoveItem?: (itemId: string) => void
+  items: CartItem[]
+  onQuantityChange: (itemId: string, quantity: number) => void
+  onRemoveItem: (itemId: string) => void
 }
 
-export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
+export function CartItems({ items, onQuantityChange, onRemoveItem }: CartItemsProps) {
   const [removingItem, setRemovingItem] = useState<string | null>(null)
 
   const updateQuantity = (itemId: string, newQuantity: number) => {
@@ -67,7 +23,7 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
       setRemovingItem(itemId)
       return
     }
-    onQuantityChange?.(itemId, newQuantity)
+    onQuantityChange(itemId, newQuantity)
   }
 
   const removeItem = (itemId: string) => {
@@ -76,7 +32,7 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
 
   const confirmRemove = () => {
     if (removingItem) {
-      onRemoveItem?.(removingItem)
+      onRemoveItem(removingItem)
       setRemovingItem(null)
     }
   }
@@ -87,7 +43,7 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
 
   return (
     <div className="space-y-6">
-      {cartItems.length === 0 ? (
+      {items.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -112,7 +68,7 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
         </motion.div>
       ) : (
         <>
-          {cartItems.map((item, index) => (
+          {items.map((item, index) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, y: 20 }}
@@ -125,8 +81,8 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
                     {/* Imagem do produto */}
                     <div className="relative w-full md:w-32 h-32 md:h-32 rounded-xl overflow-hidden flex-shrink-0">
                       <Image
-                        src={item.product.imagem}
-                        alt={item.product.nome}
+                        src={item.imagem}
+                        alt={item.nome}
                         fill
                         style={{ objectFit: 'cover' }}
                         className="rounded-xl"
@@ -138,13 +94,13 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div className="flex-1">
                           <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
-                            {item.product.nome}
+                            {item.nome}
                           </h3>
                           <div className="space-y-1 text-sm text-gray-600">
-                            <p>Vendedor: <span className="font-medium text-gray-800">{item.product.vendedor}</span></p>
-                            <p>Escola: <span className="font-medium text-gray-800">{item.product.escola}</span></p>
-                            {item.product.tamanho && (
-                              <p>Tamanho: <span className="font-medium text-gray-800">{item.product.tamanho}</span></p>
+                            <p>Vendedor: <span className="font-medium text-gray-800">{item.vendedor}</span></p>
+                            <p>Escola: <span className="font-medium text-gray-800">{item.escola}</span></p>
+                            {item.tamanho && (
+                              <p>Tamanho: <span className="font-medium text-gray-800">{item.tamanho}</span></p>
                             )}
                           </div>
                         </div>
@@ -152,13 +108,13 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
                         {/* Preços */}
                         <div className="text-right">
                           <div className="space-y-1">
-                            {item.product.precoOriginal && (
+                            {item.precoOriginal && (
                               <p className="text-sm text-gray-500 line-through">
-                                R$ {item.product.precoOriginal.toFixed(2)}
+                                R$ {item.precoOriginal.toFixed(2)}
                               </p>
                             )}
                             <p className="text-lg font-bold text-primary-600">
-                              R$ {item.product.preco.toFixed(2)}
+                              R$ {item.preco.toFixed(2)}
                             </p>
                             <p className="text-sm text-gray-600">
                               por unidade
@@ -175,18 +131,18 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.id, item.quantidade - 1)}
                               className="glass-button h-10 w-10 p-0"
                             >
                               <Minus className="h-4 w-4" />
                             </Button>
                             <span className="w-12 text-center font-bold text-lg text-gray-900">
-                              {item.quantity}
+                              {item.quantidade}
                             </span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.id, item.quantidade + 1)}
                               className="glass-button h-10 w-10 p-0"
                             >
                               <Plus className="h-4 w-4" />
@@ -198,7 +154,7 @@ export function CartItems({ onQuantityChange, onRemoveItem }: CartItemsProps) {
                           <div className="text-right">
                             <p className="text-sm text-gray-600">Total:</p>
                             <p className="text-xl font-bold text-primary-600">
-                              R$ {(item.product.preco * item.quantity).toFixed(2)}
+                              R$ {(item.preco * item.quantidade).toFixed(2)}
                             </p>
                           </div>
                           

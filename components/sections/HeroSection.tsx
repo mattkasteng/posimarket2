@@ -4,8 +4,34 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { ShoppingCart, Recycle, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 export function HeroSection() {
+  const router = useRouter()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    // Verificar se o usuário está logado
+    const checkLoginStatus = () => {
+      const user = localStorage.getItem('user')
+      const loggedIn = localStorage.getItem('isLoggedIn')
+      setIsLoggedIn(!!user && loggedIn === 'true')
+    }
+
+    checkLoginStatus()
+  }, [])
+
+  const handleQueroVender = () => {
+    if (isLoggedIn) {
+      // Se estiver logado, redirecionar para dashboard de vendedor
+      router.push('/dashboard/vendedor')
+    } else {
+      // Se não estiver logado, redirecionar para cadastro
+      router.push('/cadastro')
+    }
+  }
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background com gradiente e imagem desfocada */}
@@ -76,6 +102,7 @@ export function HeroSection() {
               <Button 
                 variant="outline" 
                 size="lg" 
+                onClick={handleQueroVender}
                 className="border-2 border-white text-white hover:bg-white hover:text-primary-600 hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold shadow-xl"
                 style={{
                   boxShadow: '0 8px 24px rgba(255, 255, 255, 0.2)'

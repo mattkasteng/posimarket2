@@ -1,66 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-})
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { email, password } = loginSchema.parse(body)
+    const { email, password } = await request.json()
 
-    // Autenticação mock temporária para demonstração
-    const mockUsers = [
-      {
-        id: 'admin-123',
-        email: 'funcional@teste.com',
-        password: '123456',
-        nome: 'Usuário Administrador',
-        cpf: '123.456.789-00',
-        telefone: '(11) 99999-9999',
-        tipoUsuario: 'ESCOLA',
-        emailVerificado: true,
-        endereco: null
-      },
-      {
-        id: 'vendor-456',
-        email: 'vendedor@teste.com',
-        password: '123456',
-        nome: 'Usuário Vendedor',
-        cpf: '987.654.321-00',
-        telefone: '(11) 88888-8888',
-        tipoUsuario: 'PAI_RESPONSAVEL',
-        emailVerificado: true,
-        endereco: null
+    console.log('🔍 Simple Login - Tentando login:', email)
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: 'Email e senha são obrigatórios' },
+        { status: 400 }
+      )
+    }
+
+    // Buscar usuário no banco
+    const user = await prisma.usuario.findUnique({
+      where: { email },
+      include: {
+        escola: true
       }
-    ]
-
-    // Verificar credenciais mock
-    const user = mockUsers.find(u => u.email === email && u.password === password)
+    })
 
     if (!user) {
+      console.log('❌ Simple Login - Usuário não encontrado')
       return NextResponse.json(
-        { message: 'Email ou senha incorretos' },
+        { error: 'Email ou senha incorretos' },
         { status: 401 }
       )
     }
 
-    // Retornar dados do usuário (sem senha)
-    const { password: _, ...userWithoutPassword } = user
+    if (!user.senha) {
+      console.log('❌ Simple Login - Usuário sem senha')
+      return NextResponse.json(
+        { error: 'Email ou senha incorretos' },
+        { status: 401 }
+      )
+    }
 
-    console.log('✅ Login mock bem-sucedido:', user.email, user.tipoUsuario)
+    // Verificar senha
+    const isPasswordValid = await bcrypt.compare(password, user.senha)
+    if (!isPasswordValid) {
+      console.log('❌ Simple Login - Senha inválida')
+      return NextResponse.json(
+        { error: 'Email ou senha incorretos' },
+        { status: 401 }
+      )
+    }
+
+    // Dados do usuário para retornar
+    const userData = {
+      id: user.id,
+      email: user.email,
+      nome: user.nome,
+      tipoUsuario: user.tipoUsuario,
+      escolaId: user.escolaId,
+      escola: user.escola
+    }
+
+    console.log('✅ Simple Login - Login bem-sucedido:', userData)
 
     return NextResponse.json({
-      message: 'Login realizado com sucesso',
-      user: userWithoutPassword
+      success: true,
+      user: userData,
+      message: 'Login realizado com sucesso'
     })
 
   } catch (error) {
-    console.error('Erro no login:', error)
+    console.error('❌ Simple Login - Erro:', error)
     return NextResponse.json(
-      { message: 'Erro interno do servidor' },
+      { error: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
