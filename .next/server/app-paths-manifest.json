@@ -1,6 +1,7 @@
 {
-  "/dashboard/vendedor/page": "app/dashboard/vendedor/page.js",
-  "/notificacoes/page": "app/notificacoes/page.js",
-  "/dashboard/vendedor/vendas/page": "app/dashboard/vendedor/vendas/page.js",
-  "/dashboard/vendedor/compras/page": "app/dashboard/vendedor/compras/page.js"
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/page": "app/page.js",
+  "/api/auth/simple-login/route": "app/api/auth/simple-login/route.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/dashboard/vendedor/page": "app/dashboard/vendedor/page.js"
 }
