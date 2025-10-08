@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
       material,
       marca,
       images,
-      vendedorId
+      vendedorId,
+      isAdmin
     } = await request.json()
 
     // Validações básicas
@@ -57,6 +58,12 @@ export async function POST(request: NextRequest) {
       escolaNome = escola?.nome || 'Escola Positivo'
     }
 
+    // Verificar se é admin (tipo ESCOLA)
+    const isAdminUser = vendedor.tipoUsuario === 'ESCOLA'
+    
+    // Se é admin OU foi marcado como isAdmin, aprovar automaticamente
+    const shouldAutoApprove = isAdminUser || isAdmin
+    
     // Criar o produto no banco
     const produto = await prisma.produto.create({
       data: {
@@ -75,8 +82,8 @@ export async function POST(request: NextRequest) {
         vendedorNome: vendedor.nome,
         escolaId,
         escolaNome: escolaNome,
-        ativo: false, // Produto inativo até ser aprovado
-        statusAprovacao: 'PENDENTE'
+        ativo: shouldAutoApprove, // Produto ativo se criado por admin
+        statusAprovacao: shouldAutoApprove ? 'APROVADO' : 'PENDENTE'
       },
       include: {
         vendedor: {
@@ -94,8 +101,8 @@ export async function POST(request: NextRequest) {
     })
 
     // Log para auditoria
-    console.log(`✅ Novo produto criado: ${produto.id} por vendedor: ${vendedorId}`)
-    console.log(`📋 Status: PENDENTE APROVAÇÃO`)
+    console.log(`✅ Novo produto criado: ${produto.id} por ${shouldAutoApprove ? 'ADMIN' : 'vendedor'}: ${vendedorId}`)
+    console.log(`📋 Status: ${shouldAutoApprove ? 'APROVADO AUTOMATICAMENTE' : 'PENDENTE APROVAÇÃO'}`)
 
     return NextResponse.json({
       success: true,

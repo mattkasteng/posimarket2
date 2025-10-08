@@ -30,7 +30,7 @@ const vantagens = [
 
 export function VantagensSection() {
   return (
-    <section className="py-20 bg-gradient-to-br from-primary-50 to-orange-100 relative overflow-hidden">
+    <section className="py-24 bg-gradient-to-br from-primary-50 to-orange-100 relative overflow-hidden">
       {/* Background decorativo */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary-500/10 via-transparent to-primary-600/10" />
       
@@ -42,15 +42,15 @@ export function VantagensSection() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 px-4">
             Nossas Vantagens
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto px-4">
             Tudo que você precisa para uma experiência completa e segura
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto px-4">
           {vantagens.map((vantagem, index) => {
             const Icon = vantagem.icon
             return (
@@ -68,7 +68,7 @@ export function VantagensSection() {
                 className="group"
               >
                 <Card className="h-full hover:shadow-2xl transition-all duration-500 group-hover:bg-white/95">
-                  <CardContent className="p-8">
+                  <CardContent className="p-6 md:p-8">
                     <div className="flex items-start space-x-4">
                       <motion.div
                         whileHover={{ 
@@ -109,19 +109,27 @@ export function VantagensSection() {
           className="text-center mt-16"
         >
           <Card className="max-w-4xl mx-auto bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 transition-all duration-300">
-            <CardContent className="p-12 text-center">
-              <h3 className="text-3xl font-bold mb-4 text-white" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+            <CardContent className="p-6 md:p-12 text-center">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 text-white px-4" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                 Pronto para começar?
               </h3>
-              <p className="text-xl text-white mb-8" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>
-                Junte-se a centenas de escolas que já transformaram a forma de comprar e vender itens escolares
+              <p className="text-base sm:text-lg md:text-xl text-white mb-8 px-4" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.7)' }}>
+                Junte-se aos vários outros pais que já transformaram a forma de comprar e vender itens escolares
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button className="bg-white text-primary-700 hover:bg-orange-50 hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-bold rounded-xl shadow-xl border-2 border-primary-300" style={{ textShadow: 'none' }}>
+              <div className="flex justify-center">
+                <button 
+                  onClick={() => {
+                    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true' && localStorage.getItem('user')
+                    if (isLoggedIn) {
+                      window.location.href = '/produtos'
+                    } else {
+                      window.location.href = '/cadastro'
+                    }
+                  }}
+                  className="bg-white text-primary-700 hover:bg-orange-50 hover:scale-105 transition-all duration-300 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-bold rounded-xl shadow-xl border-2 border-primary-300 w-full sm:w-auto" 
+                  style={{ textShadow: 'none' }}
+                >
                   Começar Agora
-                </button>
-                <button className="border-2 border-white text-white hover:bg-white hover:text-primary-700 hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-bold rounded-xl shadow-lg" style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)' }}>
-                  Falar com Especialista
                 </button>
               </div>
             </CardContent>

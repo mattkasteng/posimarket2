@@ -5,9 +5,11 @@ import { useState, useEffect } from 'react'
 export default function VendedoresPage() {
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [vendedores, setVendedores] = useState<any[]>([])
+  const [estatisticas, setEstatisticas] = useState<any>(null)
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
         const isLoggedIn = localStorage.getItem('isLoggedIn')
         const userData = localStorage.getItem('user')
@@ -27,6 +29,13 @@ export default function VendedoresPage() {
           }
           
           setUser(parsedUser)
+          // Carregar vendedores
+          const response = await fetch(`/api/admin/vendedores?adminId=${parsedUser.id}`)
+          const data = await response.json()
+          if (data.success) {
+            setVendedores(data.vendedores)
+            setEstatisticas(data.estatisticas)
+          }
         } else {
           window.location.href = '/login'
         }
@@ -40,6 +49,41 @@ export default function VendedoresPage() {
 
     checkAuth()
   }, [])
+
+  const handleAcaoVendedor = async (vendedorId: number, acao: string) => {
+    if (!user) return
+    
+    try {
+      const response = await fetch('/api/admin/vendedores', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adminId: user.id,
+          vendedorId,
+          acao
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        alert(data.message)
+        // Recarregar vendedores
+        const response2 = await fetch(`/api/admin/vendedores?adminId=${user.id}`)
+        const data2 = await response2.json()
+        if (data2.success) {
+          setVendedores(data2.vendedores)
+          setEstatisticas(data2.estatisticas)
+        }
+      } else {
+        alert('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao executar ação:', error)
+      alert('Erro ao executar ação')
+    }
+  }
 
   if (isLoading) {
     return (
@@ -63,7 +107,7 @@ export default function VendedoresPage() {
                 👥 Gestão de Vendedores
               </h1>
               <p className="text-gray-600 text-lg">
-                Aprove cadastros e gerencie vendedores
+                Gerencie vendedores da plataforma
               </p>
             </div>
             <button 
@@ -86,9 +130,8 @@ export default function VendedoresPage() {
               </label>
               <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Todos os status</option>
+                <option value="ativo">Ativo</option>
                 <option value="pendente">Pendente</option>
-                <option value="aprovado">Aprovado</option>
-                <option value="rejeitado">Rejeitado</option>
                 <option value="suspenso">Suspenso</option>
               </select>
             </div>
@@ -130,9 +173,9 @@ export default function VendedoresPage() {
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pendentes</p>
-                <p className="text-2xl font-bold text-gray-900">8</p>
-                <p className="text-sm text-yellow-600">Aguardando aprovação</p>
+                <p className="text-sm font-medium text-gray-600">Email Não Verificado</p>
+                <p className="text-2xl font-bold text-gray-900">{estatisticas?.emailNaoVerificado || 0}</p>
+                <p className="text-sm text-yellow-600">Dados em tempo real</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
                 <span className="text-yellow-600 text-xl">⏳</span>
@@ -143,9 +186,9 @@ export default function VendedoresPage() {
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Aprovados</p>
-                <p className="text-2xl font-bold text-gray-900">247</p>
-                <p className="text-sm text-green-600">Vendedores ativos</p>
+                <p className="text-sm font-medium text-gray-600">Email Verificado</p>
+                <p className="text-2xl font-bold text-gray-900">{estatisticas?.emailVerificado || 0}</p>
+                <p className="text-sm text-green-600">Dados em tempo real</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <span className="text-green-600 text-xl">✅</span>
@@ -156,12 +199,12 @@ export default function VendedoresPage() {
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Rejeitados</p>
-                <p className="text-2xl font-bold text-gray-900">12</p>
-                <p className="text-sm text-red-600">Este mês</p>
+                <p className="text-sm font-medium text-gray-600">Suspensos</p>
+                <p className="text-2xl font-bold text-gray-900">{estatisticas?.suspensos || 0}</p>
+                <p className="text-sm text-red-600">Dados em tempo real</p>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <span className="text-red-600 text-xl">❌</span>
+                <span className="text-red-600 text-xl">🚫</span>
               </div>
             </div>
           </div>
@@ -169,12 +212,12 @@ export default function VendedoresPage() {
           <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avaliação Média</p>
-                <p className="text-2xl font-bold text-gray-900">4.7</p>
-                <p className="text-sm text-blue-600">⭐ Estrelas</p>
+                <p className="text-sm font-medium text-gray-600">Total de Vendedores</p>
+                <p className="text-2xl font-bold text-gray-900">{estatisticas?.total || 0}</p>
+                <p className="text-sm text-blue-600">Dados em tempo real</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 text-xl">⭐</span>
+                <span className="text-blue-600 text-xl">👥</span>
               </div>
             </div>
           </div>
@@ -197,6 +240,12 @@ export default function VendedoresPage() {
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    CPF
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Telefone
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Data Cadastro
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -214,48 +263,20 @@ export default function VendedoresPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {[
-                  { 
-                    nome: 'Maria Silva', 
-                    email: 'maria.silva@email.com', 
-                    data: '15/01/2025', 
-                    status: 'Pendente', 
-                    avaliacao: 0, 
-                    vendas: 0 
-                  },
-                  { 
-                    nome: 'João Santos', 
-                    email: 'joao.santos@email.com', 
-                    data: '10/01/2025', 
-                    status: 'Aprovado', 
-                    avaliacao: 4.8, 
-                    vendas: 15 
-                  },
-                  { 
-                    nome: 'Ana Costa', 
-                    email: 'ana.costa@email.com', 
-                    data: '08/01/2025', 
-                    status: 'Aprovado', 
-                    avaliacao: 4.9, 
-                    vendas: 23 
-                  },
-                  { 
-                    nome: 'Carlos Lima', 
-                    email: 'carlos.lima@email.com', 
-                    data: '05/01/2025', 
-                    status: 'Aprovado', 
-                    avaliacao: 4.5, 
-                    vendas: 12 
-                  },
-                  { 
-                    nome: 'Pedro Oliveira', 
-                    email: 'pedro.oliveira@email.com', 
-                    data: '03/01/2025', 
-                    status: 'Rejeitado', 
-                    avaliacao: 0, 
-                    vendas: 0 
-                  }
-                ].map((vendedor, index) => (
+                {vendedores.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-12 text-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">👥</span>
+                      </div>
+                      <p className="text-gray-600 mb-2">Nenhum vendedor encontrado</p>
+                      <p className="text-sm text-gray-500">
+                        Os vendedores aparecerão aqui quando se cadastrarem na plataforma
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  vendedores.map((vendedor, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -273,92 +294,62 @@ export default function VendedoresPage() {
                       {vendedor.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {vendedor.data}
+                      {vendedor.cpf || 'Não informado'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {vendedor.telefone || 'Não informado'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(vendedor.createdAt).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        vendedor.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
-                        vendedor.status === 'Pendente' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                        vendedor.suspenso ? 'bg-red-100 text-red-800' : 
+                        vendedor.emailVerificado ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {vendedor.status}
+                        {vendedor.suspenso ? 'Suspenso' : 
+                         vendedor.emailVerificado ? 'Email Verificado' : 'Email Não Verificado'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {vendedor.avaliacao > 0 ? (
+                      {vendedor.avaliacaoMedia > 0 ? (
                         <div className="flex items-center">
-                          <span>⭐ {vendedor.avaliacao}</span>
+                          <span>⭐ {vendedor.avaliacaoMedia.toFixed(1)}</span>
                         </div>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {vendedor.vendas}
+                      {vendedor.totalVendas || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        {vendedor.status === 'Pendente' && (
-                          <>
-                            <button className="text-green-600 hover:text-green-900">Aprovar</button>
-                            <button className="text-red-600 hover:text-red-900">Rejeitar</button>
-                          </>
+                        {vendedor.suspenso ? (
+                          <button 
+                            onClick={() => handleAcaoVendedor(vendedor.id, 'reativar')}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Reativar
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleAcaoVendedor(vendedor.id, 'suspender')}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            Suspender
+                          </button>
                         )}
-                        <button className="text-blue-600 hover:text-blue-900">Ver</button>
-                        <button className="text-gray-600 hover:text-gray-900">Editar</button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* Documentação Pendente */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Documentação Pendente</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Documentos Necessários</h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm text-gray-700">CPF</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm text-gray-700">RG</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm text-gray-700">Comprovante de Residência</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-sm text-gray-700">Comprovante de Vínculo com a Escola</span>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-4">Vendedores com Documentação Incompleta</h3>
-              <div className="space-y-3">
-                {[
-                  { nome: 'Maria Silva', documentos: 'Falta: Comprovante de Residência' },
-                  { nome: 'Pedro Oliveira', documentos: 'Falta: CPF e RG' },
-                  { nome: 'Ana Beatriz', documentos: 'Falta: Comprovante de Vínculo' }
-                ].map((item, index) => (
-                  <div key={index} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <p className="font-medium text-gray-900">{item.nome}</p>
-                    <p className="text-sm text-yellow-700">{item.documentos}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

@@ -34,8 +34,8 @@ export function SortAndViewToggle({
   const currentSortLabel = sortOptions.find(option => option.value === sortBy)?.label || 'Relevância'
 
   return (
-    <div className="flex items-center justify-between mb-6">
-      <div className="flex items-center space-x-4">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
         <p className="text-sm text-gray-600">
           {totalProducts} produto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
         </p>
@@ -44,9 +44,10 @@ export function SortAndViewToggle({
           <Button
             variant="outline"
             onClick={() => setShowSortDropdown(!showSortDropdown)}
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-2 text-sm"
           >
-            <span>Ordenar por: {currentSortLabel}</span>
+            <span className="hidden sm:inline">Ordenar por: {currentSortLabel}</span>
+            <span className="sm:hidden">{currentSortLabel}</span>
             <ChevronDown className="h-4 w-4" />
           </Button>
           

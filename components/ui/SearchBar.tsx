@@ -32,7 +32,7 @@ export function SearchBar({ onSearch, onToggleFilters, showFilters, placeholder 
       animate={{ opacity: 1, y: 0 }}
       className="glass-card-strong p-6 mb-8"
     >
-      <form onSubmit={handleSubmit} className="flex gap-4 items-center">
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
@@ -53,20 +53,22 @@ export function SearchBar({ onSearch, onToggleFilters, showFilters, placeholder 
           )}
         </div>
         
-        <Button type="submit" className="px-6">
-          <Search className="h-4 w-4 mr-2" />
-          Buscar
-        </Button>
-        
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onToggleFilters}
-          className={`px-4 ${showFilters ? 'bg-primary-100 text-primary-700 border-primary-300' : ''}`}
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Filtros
-        </Button>
+        <div className="flex gap-3">
+          <Button type="submit" className="flex-1 sm:flex-none px-6">
+            <Search className="h-4 w-4 mr-2" />
+            Buscar
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onToggleFilters}
+            className={`px-4 ${showFilters ? 'bg-primary-100 text-primary-700 border-primary-300' : ''}`}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Filtros</span>
+          </Button>
+        </div>
       </form>
     </motion.div>
   )

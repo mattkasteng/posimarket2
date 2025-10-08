@@ -12,63 +12,7 @@ import {
   AlertCircle, Calendar, Download, Filter
 } from 'lucide-react'
 
-// Mock data para transações financeiras
-const mockTransactions = [
-  {
-    id: 'TXN-001',
-    tipo: 'VENDA',
-    descricao: 'Venda - Uniforme Escolar Feminino',
-    valor: 76.42,
-    data: '2023-12-20T10:30:00Z',
-    status: 'CONCLUIDO',
-    referencia: 'ORD-001'
-  },
-  {
-    id: 'TXN-002',
-    tipo: 'VENDA',
-    descricao: 'Venda - Caderno Universitário',
-    valor: 21.68,
-    data: '2023-12-19T14:20:00Z',
-    status: 'CONCLUIDO',
-    referencia: 'ORD-002'
-  },
-  {
-    id: 'TXN-003',
-    tipo: 'SAQUE',
-    descricao: 'Saque via PIX',
-    valor: -500.00,
-    data: '2023-12-18T09:15:00Z',
-    status: 'PROCESSANDO',
-    referencia: 'SAQUE-001'
-  },
-  {
-    id: 'TXN-004',
-    tipo: 'VENDA',
-    descricao: 'Venda - Mochila Escolar',
-    valor: 135.92,
-    data: '2023-12-17T16:45:00Z',
-    status: 'CONCLUIDO',
-    referencia: 'ORD-003'
-  },
-  {
-    id: 'TXN-005',
-    tipo: 'SAQUE',
-    descricao: 'Saque via PIX',
-    valor: -1000.00,
-    data: '2023-12-15T11:20:00Z',
-    status: 'CONCLUIDO',
-    referencia: 'SAQUE-002'
-  },
-  {
-    id: 'TXN-006',
-    tipo: 'VENDA',
-    descricao: 'Venda - Kit de Lápis de Cor',
-    valor: 30.52,
-    data: '2023-12-14T08:30:00Z',
-    status: 'CONCLUIDO',
-    referencia: 'ORD-004'
-  }
-]
+// Dados reais serão carregados do banco de dados
 
 const statusConfig = {
   CONCLUIDO: {
@@ -95,14 +39,47 @@ export default function FinancialDashboardPage() {
   const [showPixModal, setShowPixModal] = useState(false)
   const [pixKey, setPixKey] = useState('')
   const [pixType, setPixType] = useState('cpf')
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
 
   // Calcular totais
-  const totalBalance = 3240.00
-  const availableBalance = 2740.00 // Saldo disponível para saque
-  const pendingBalance = 500.00 // Em processamento
-  const monthlyEarnings = mockTransactions
+  const totalBalance = 0.00 // TODO: Carregar do banco de dados
+  const availableBalance = 0.00 // Saldo disponível para saque
+  const pendingBalance = 0.00 // Em processamento
+  const monthlyEarnings = transactions
     .filter(t => t.tipo === 'VENDA' && t.status === 'CONCLUIDO')
-    .reduce((acc, t) => acc + t.valor, 0)
+    .reduce((acc, t) => acc + (t.valor || 0), 0)
+
+  // Carregar dados do usuário e transações
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const isLoggedIn = localStorage.getItem('isLoggedIn')
+        const userData = localStorage.getItem('user')
+
+        if (isLoggedIn === 'true' && userData) {
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
+          // Carregar transações reais do banco de dados
+          const response = await fetch(`/api/vendedor/transacoes?vendedorId=${parsedUser.id}`)
+          const data = await response.json()
+          if (data.success) {
+            setTransactions(data.transacoes)
+          }
+        } else {
+          window.location.href = '/login'
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error)
+        window.location.href = '/login'
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -112,13 +89,40 @@ export default function FinancialDashboardPage() {
     })
   }
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const amount = parseFloat(withdrawAmount)
     if (amount > 0 && amount <= availableBalance) {
-      // Implementar lógica de saque
-      console.log(`Solicitar saque de R$ ${amount}`)
-      setShowWithdrawModal(false)
-      setWithdrawAmount('')
+      try {
+        const response = await fetch('/api/vendedor/transacoes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            vendedorId: user?.id,
+            valor: amount,
+            tipo: 'SAQUE'
+          })
+        })
+
+        const data = await response.json()
+        if (data.success) {
+          alert('Solicitação de saque criada com sucesso!')
+          setShowWithdrawModal(false)
+          setWithdrawAmount('')
+          // Recarregar transações
+          const response2 = await fetch(`/api/vendedor/transacoes?vendedorId=${user.id}`)
+          const data2 = await response2.json()
+          if (data2.success) {
+            setTransactions(data2.transacoes)
+          }
+        } else {
+          alert('Erro ao solicitar saque: ' + data.error)
+        }
+      } catch (error) {
+        console.error('Erro ao solicitar saque:', error)
+        alert('Erro ao solicitar saque')
+      }
     }
   }
 
@@ -368,7 +372,23 @@ export default function FinancialDashboardPage() {
               </div>
               
               <div className="space-y-4">
-                {mockTransactions.map((transaction, index) => {
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Carregando transações...</p>
+                  </div>
+                ) : transactions.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <span className="text-3xl">💰</span>
+                    </div>
+                    <p className="text-gray-600 mb-2">Nenhuma transação encontrada</p>
+                    <p className="text-sm text-gray-500">
+                      Suas transações financeiras aparecerão aqui quando você começar a vender
+                    </p>
+                  </div>
+                ) : (
+                  transactions.map((transaction, index) => {
                   const statusInfo = statusConfig[transaction.status as keyof typeof statusConfig]
                   const StatusIcon = statusInfo.icon
                   
@@ -420,7 +440,8 @@ export default function FinancialDashboardPage() {
                       </div>
                     </motion.div>
                   )
-                })}
+                  })
+                )}
               </div>
             </CardContent>
           </Card>

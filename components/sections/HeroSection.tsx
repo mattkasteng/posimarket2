@@ -54,7 +54,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="glass-card-strong p-12 max-w-4xl text-center"
+            className="glass-card-strong p-6 md:p-12 max-w-4xl text-center"
             style={{
               background: 'rgba(255, 255, 255, 0.25)',
               backdropFilter: 'blur(20px)',
@@ -66,7 +66,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-                  className="text-5xl lg:text-7xl font-bold text-white leading-tight mb-6 drop-shadow-lg"
+                  className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-white leading-tight mb-6 drop-shadow-lg"
                 >
                   PosiMarket
                 </motion.h1>
@@ -75,7 +75,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-xl lg:text-2xl text-orange-100 leading-relaxed mb-8 max-w-3xl mx-auto drop-shadow-md"
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-orange-100 leading-relaxed mb-8 max-w-3xl mx-auto drop-shadow-md px-4"
             >
               Compre e venda uniformes, materiais e livros escolares de forma prática e sustentável
             </motion.p>
@@ -84,12 +84,12 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-6 justify-center"
+              className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center px-4"
             >
               <Link href="/produtos">
                 <Button 
                   size="lg" 
-                  className="bg-orange-500 text-white hover:bg-orange-600 hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-bold shadow-xl border-2 border-orange-500 hover:border-orange-600"
+                  className="bg-orange-500 text-white hover:bg-orange-600 hover:scale-105 transition-all duration-300 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-bold shadow-xl border-2 border-orange-500 hover:border-orange-600 w-full sm:w-auto"
                   style={{
                     boxShadow: '0 8px 24px rgba(249, 115, 22, 0.4)',
                     textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
@@ -103,7 +103,7 @@ export function HeroSection() {
                 variant="outline" 
                 size="lg" 
                 onClick={handleQueroVender}
-                className="border-2 border-white text-white hover:bg-white hover:text-primary-600 hover:scale-105 transition-all duration-300 px-8 py-4 text-lg font-semibold shadow-xl"
+                className="border-2 border-white text-white hover:bg-white hover:text-primary-600 hover:scale-105 transition-all duration-300 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold shadow-xl w-full sm:w-auto"
                 style={{
                   boxShadow: '0 8px 24px rgba(255, 255, 255, 0.2)'
                 }}

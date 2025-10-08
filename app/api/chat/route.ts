@@ -226,12 +226,18 @@ export async function POST(request: NextRequest) {
       data: { updatedAt: new Date() }
     })
 
+    // Buscar informações do produto para a notificação
+    const produto = await prisma.produto.findUnique({
+      where: { id: produtoId },
+      select: { nome: true }
+    })
+
     // Criar notificação para o destinatário
     await prisma.notificacao.create({
       data: {
         usuarioId: destinatarioId,
-        titulo: 'Nova Mensagem',
-        mensagem: `${mensagem.remetente.nome} enviou uma mensagem: "${texto.substring(0, 50)}${texto.length > 50 ? '...' : ''}"`,
+        titulo: 'Nova Mensagem 💬',
+        mensagem: `${mensagem.remetente.nome} enviou uma mensagem sobre "${produto?.nome || 'produto'}": "${texto.substring(0, 50)}${texto.length > 50 ? '...' : ''}"`,
         tipo: 'INFO',
         link: `/notificacoes-e-chat?conversa=${conversa.id}`
       }

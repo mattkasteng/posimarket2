@@ -10,49 +10,7 @@ import {
   Clock, Star
 } from 'lucide-react'
 
-// Mock data para notificações (compras, vendas, rastreio, avaliações)
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'VENDA',
-    title: 'Nova venda realizada',
-    message: 'João Santos comprou "Uniforme Educação Física" por R$ 89,90',
-    timestamp: new Date('2023-12-20T14:30:00Z'),
-    read: false,
-    priority: 'high',
-    actionUrl: '/dashboard/vendedor/vendas'
-  },
-  {
-    id: '2',
-    type: 'PEDIDO',
-    title: 'Pedido enviado',
-    message: 'Seu pedido #ORD-001 foi enviado e está em trânsito',
-    timestamp: new Date('2023-12-20T14:25:00Z'),
-    read: false,
-    priority: 'medium',
-    actionUrl: '/pedidos'
-  },
-  {
-    id: '3',
-    type: 'PEDIDO',
-    title: 'Pedido entregue',
-    message: 'Seu pedido #ORD-002 foi entregue com sucesso',
-    timestamp: new Date('2023-12-20T14:20:00Z'),
-    read: true,
-    priority: 'high',
-    actionUrl: '/pedidos'
-  },
-  {
-    id: '4',
-    type: 'AVALIACAO',
-    title: 'Nova avaliação recebida',
-    message: 'Ana Costa avaliou seu produto "Caderno Universitário" com 5 estrelas',
-    timestamp: new Date('2023-12-20T14:10:00Z'),
-    read: false,
-    priority: 'low',
-    actionUrl: '/dashboard/vendedor/produtos'
-  }
-]
+// Sem dados mock - as notificações virão do banco de dados via API
 
 const notificationTypes = {
   VENDA: { icon: ShoppingCart, color: 'text-green-600 bg-green-50' },
@@ -156,11 +114,11 @@ export function NotificationCenter({ isOpen, onClose, onUnreadCountChange }: Not
         setNotifications([])
       }
     } else {
-      // PRIMEIRA VEZ: Criar notificações mock
-      console.log('📭 Primeira vez - criando notificações de exemplo')
-      setNotifications(mockNotifications)
-      // Salvar imediatamente
-      localStorage.setItem(notificationKey, JSON.stringify(mockNotifications))
+      // PRIMEIRA VEZ: Inicializar com array vazio - sem notificações mock
+      console.log('📭 Primeira vez - inicializando sem notificações')
+      setNotifications([])
+      // Salvar array vazio
+      localStorage.setItem(notificationKey, JSON.stringify([]))
     }
     
     setInitialized(true)

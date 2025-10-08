@@ -49,6 +49,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verificar se o usuário está suspenso
+    if (user.suspenso) {
+      console.log('🚫 Simple Login - Usuário suspenso:', email)
+      return NextResponse.json(
+        { error: 'Sua conta foi suspensa. Entre em contato com o suporte para mais informações.' },
+        { status: 403 }
+      )
+    }
+
     // Dados do usuário para retornar
     const userData = {
       id: user.id,

@@ -2,9 +2,21 @@
 
 import { useState, useEffect } from 'react'
 
+interface AdminStats {
+  totalUsuarios: number
+  produtosAtivos: number
+  totalProdutos: number
+  vendasMes: number
+  valorVendasMes: number
+  taxaConversao: string
+  produtosPendentes: number
+}
+
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
 
   useEffect(() => {
     const checkAuth = () => {
@@ -45,6 +57,31 @@ export default function AdminDashboard() {
 
     checkAuth()
   }, [])
+
+  // Buscar estatísticas do admin
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user?.id) return
+
+      try {
+        setIsLoadingStats(true)
+        const response = await fetch(`/api/dashboard/admin/stats?adminId=${user.id}`)
+        const data = await response.json()
+
+        if (data.success) {
+          setStats(data.stats)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error)
+      } finally {
+        setIsLoadingStats(false)
+      }
+    }
+
+    if (user) {
+      fetchStats()
+    }
+  }, [user])
 
   const logout = () => {
     localStorage.removeItem('user')
@@ -103,65 +140,73 @@ export default function AdminDashboard() {
         </div>
         
         {/* Métricas Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total de Vendas</p>
-                <p className="text-2xl font-bold text-gray-900">R$ 245.780,00</p>
-                <p className="text-sm text-green-600">+18% este ano</p>
+        {isLoadingStats ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total de Vendas</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    R$ {stats?.valorVendasMes.toFixed(2) || '0,00'}
+                  </p>
+                  <p className="text-sm text-gray-500">{stats?.vendasMes || 0} vendas</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 text-xl">💰</span>
+                </div>
               </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-green-600 text-xl">💰</span>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Produtos Cadastrados</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.totalProdutos || 0}</p>
+                  <p className="text-sm text-blue-600">{stats?.produtosAtivos || 0} ativos</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 text-xl">📦</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Usuários Cadastrados</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.totalUsuarios || 0}</p>
+                  <p className="text-sm text-purple-600">Total de usuários</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 text-xl">👥</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Taxa de Aprovação</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.taxaConversao || '0%'}</p>
+                  <p className="text-sm text-orange-600">{stats?.produtosPendentes || 0} pendentes</p>
+                </div>
+                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                  <span className="text-orange-600 text-xl">📈</span>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Produtos Cadastrados</p>
-                <p className="text-2xl font-bold text-gray-900">156</p>
-                <p className="text-sm text-blue-600">+12 este mês</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 text-xl">📦</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Pais Cadastrados</p>
-                <p className="text-2xl font-bold text-gray-900">1.247</p>
-                <p className="text-sm text-purple-600">+8 este mês</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-purple-600 text-xl">👥</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Taxa de Conversão</p>
-                <p className="text-2xl font-bold text-gray-900">23.5%</p>
-                <p className="text-sm text-orange-600">+5% este mês</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <span className="text-orange-600 text-xl">📈</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Ações Rápidas */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Ações Rápidas</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <a href="/dashboard/admin/produtos" className="block">
               <div className="bg-blue-50 hover:bg-blue-100 p-4 rounded-lg border border-blue-200 transition-colors">
                 <div className="flex items-center space-x-3">
@@ -224,32 +269,48 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Informações do Administrador */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">👤 Informações do Administrador</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Nome Completo</p>
+                <p className="text-lg text-gray-900">{user.nome}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Email</p>
+                <p className="text-lg text-gray-900">{user.email}</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600">CPF</p>
+                <p className="text-lg text-gray-900">{user.cpf || 'Não informado'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">Telefone</p>
+                <p className="text-lg text-gray-900">{user.telefone || 'Não informado'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Status do Sistema */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-green-800 mb-4">
-            ✅ Sistema Funcionando Perfeitamente!
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-semibold text-green-700 mb-2">Funcionalidades Ativas:</h3>
-              <ul className="text-green-700 space-y-1">
-                <li>• ✅ Login e autenticação</li>
-                <li>• ✅ Redirecionamento por tipo de usuário</li>
-                <li>• ✅ Dashboard administrativo</li>
-                <li>• ✅ Banco de dados funcionando</li>
-                <li>• ✅ Sessão persistente</li>
-              </ul>
+        {/* Inspirational Quote */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-100 border border-blue-200 rounded-xl p-8 shadow-lg">
+          <div className="text-center">
+            <div className="mb-6">
+              <svg className="w-16 h-16 text-blue-500 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
+              </svg>
             </div>
-            <div>
-              <h3 className="font-semibold text-green-700 mb-2">Próximos Passos:</h3>
-              <ul className="text-green-700 space-y-1">
-                <li>• 🚀 Acessar funcionalidades do admin</li>
-                <li>• 📊 Ver relatórios de vendas</li>
-                <li>• 👥 Gerenciar vendedores</li>
-                <li>• 📦 Administrar produtos</li>
-                <li>• ⚙️ Configurar uniformes</li>
-              </ul>
-            </div>
+            <blockquote className="text-2xl font-light text-gray-800 leading-relaxed mb-4">
+              "O segredo de vender não é vender, é ajudar o cliente a comprar."
+            </blockquote>
+            <cite className="text-lg font-medium text-blue-600">
+              — Steve Jobs
+            </cite>
           </div>
         </div>
       </div>

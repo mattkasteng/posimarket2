@@ -7,7 +7,7 @@ import { FiltersSidebar } from '@/components/products/FiltersSidebar'
 import { ProductCard } from '@/components/products/ProductCard'
 import { SortAndViewToggle } from '@/components/products/SortAndViewToggle'
 import { Button } from '@/components/ui/Button'
-import { Loader2, CheckCircle } from 'lucide-react'
+import { Loader2, CheckCircle, X } from 'lucide-react'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useCart } from '@/hooks/useCart'
 
@@ -207,7 +207,33 @@ export default function ProductsPage() {
           showFilters={showFilters}
         />
 
-        <div className="flex gap-8">
+        {/* Mobile Filters Modal */}
+        {showFilters && (
+          <div className="lg:hidden fixed inset-0 z-50 flex items-end">
+            <div className="bg-black/50 absolute inset-0" onClick={() => setShowFilters(false)} />
+            <div className="relative w-full max-h-[80vh] bg-white rounded-t-xl overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="text-lg font-semibold">Filtros</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto max-h-[60vh]">
+                <FiltersSidebar
+                  isOpen={true}
+                  onClose={() => setShowFilters(false)}
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-4 lg:gap-8">
           {/* Sidebar de filtros */}
           <div className="hidden lg:block lg:w-80 flex-shrink-0">
             <FiltersSidebar

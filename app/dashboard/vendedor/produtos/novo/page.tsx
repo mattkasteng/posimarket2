@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -29,6 +29,7 @@ const productSchema = z.object({
   marca: z.string().optional(),
   peso: z.number().optional(),
   dimensoes: z.string().optional(),
+  modeloUniformeId: z.string().optional(),
 })
 
 type ProductForm = z.infer<typeof productSchema>
@@ -53,6 +54,7 @@ export default function AddProductPage() {
   const [images, setImages] = useState<string[]>([])
   const [mainImage, setMainImage] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
+  const [modelosUniformes, setModelosUniformes] = useState<any[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
@@ -98,6 +100,23 @@ export default function AddProductPage() {
       setMainImage(newImages[0] || '')
     }
   }
+
+  // Carregar modelos de uniformes
+  useEffect(() => {
+    const fetchModelosUniformes = async () => {
+      try {
+        const response = await fetch('/api/uniformes/modelos')
+        const result = await response.json()
+        if (result.success) {
+          setModelosUniformes(result.modelos)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar modelos de uniformes:', error)
+      }
+    }
+
+    fetchModelosUniformes()
+  }, [])
 
   const setAsMainImage = (image: string) => {
     setMainImage(image)
@@ -236,6 +255,31 @@ export default function AddProductPage() {
                             <p className="mt-1 text-sm text-red-600">{errors.categoria.message}</p>
                           )}
                         </div>
+
+                        {/* Campo de Modelo de Uniforme - só aparece se categoria for UNIFORME */}
+                        {watchedFields.categoria === 'UNIFORME' && (
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Modelo de Uniforme (Opcional)
+                            </label>
+                            <select
+                              {...register('modeloUniformeId')}
+                              className="glass-input w-full"
+                            >
+                              <option value="">Selecione um modelo de uniforme</option>
+                              {modelosUniformes.map(modelo => (
+                                <option key={modelo.id} value={modelo.id}>
+                                  {modelo.serie} - {modelo.descricao}
+                                  {modelo.cor && ` (${modelo.cor})`}
+                                  {modelo.tipo && ` - ${modelo.tipo}`}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="mt-1 text-sm text-gray-500">
+                              Escolha um modelo pré-definido para uniformes escolares
+                            </p>
+                          </div>
+                        )}
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">

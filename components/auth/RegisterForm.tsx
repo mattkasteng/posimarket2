@@ -14,6 +14,15 @@ const registerSchema = z.object({
   email: z.string().email('Email inválido'),
   senha: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   confirmarSenha: z.string(),
+  cpf: z.string().min(11, 'CPF deve ter 11 dígitos').max(14, 'CPF inválido'),
+  telefone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos').max(15, 'Telefone inválido'),
+  cep: z.string().optional(),
+  logradouro: z.string().optional(),
+  numero: z.string().optional(),
+  complemento: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
 }).refine((data) => data.senha === data.confirmarSenha, {
   message: 'Senhas não coincidem',
   path: ['confirmarSenha'],
@@ -40,19 +49,10 @@ export function RegisterForm() {
     setError(null)
     
     try {
-      // Dados padrão para campos obrigatórios não presentes no formulário
+      // Dados completos para cadastro
       const fullData = {
         ...data,
         tipoUsuario: 'PAI_RESPONSAVEL', // Todos os novos usuários são vendedores
-        cpf: Math.random().toString().substring(2, 13), // CPF único gerado
-        telefone: '11999999999', // Telefone padrão
-        cep: '01234567',
-        logradouro: 'Endereço Padrão',
-        numero: '123',
-        complemento: '',
-        bairro: 'Centro',
-        cidade: 'São Paulo',
-        estado: 'SP',
         confirmarSenha: undefined, // Remove do payload
       }
 
@@ -108,65 +108,186 @@ export function RegisterForm() {
         </div>
       )}
 
-      <div>
-        <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-2">
-          Nome Completo
-        </label>
-        <Input
-          id="nome"
-          type="text"
-          placeholder="Seu nome completo"
-          {...register('nome')}
-        />
-        {errors.nome && (
-          <p className="text-red-500 text-sm mt-1">{errors.nome.message}</p>
-        )}
+      {/* Nome e CPF */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-2">
+            Nome Completo
+          </label>
+          <Input
+            id="nome"
+            type="text"
+            placeholder="Seu nome completo"
+            {...register('nome')}
+          />
+          {errors.nome && (
+            <p className="text-red-500 text-sm mt-1">{errors.nome.message}</p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="cpf" className="block text-sm font-medium text-gray-700 mb-2">
+            CPF
+          </label>
+          <Input
+            id="cpf"
+            type="text"
+            placeholder="000.000.000-00"
+            {...register('cpf')}
+          />
+          {errors.cpf && (
+            <p className="text-red-500 text-sm mt-1">{errors.cpf.message}</p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-          Email
-        </label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="seu@email.com"
-          {...register('email')}
-        />
-        {errors.email && (
-          <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-        )}
+      {/* Email e Telefone */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            Email
+          </label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="seu@email.com"
+            {...register('email')}
+          />
+          {errors.email && (
+            <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="telefone" className="block text-sm font-medium text-gray-700 mb-2">
+            Telefone
+          </label>
+          <Input
+            id="telefone"
+            type="tel"
+            placeholder="(11) 99999-9999"
+            {...register('telefone')}
+          />
+          {errors.telefone && (
+            <p className="text-red-500 text-sm mt-1">{errors.telefone.message}</p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="senha" className="block text-sm font-medium text-gray-700 mb-2">
-          Senha
-        </label>
-        <Input
-          id="senha"
-          type="password"
-          placeholder="Sua senha"
-          {...register('senha')}
-        />
-        {errors.senha && (
-          <p className="text-red-500 text-sm mt-1">{errors.senha.message}</p>
-        )}
+      {/* Senhas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="senha" className="block text-sm font-medium text-gray-700 mb-2">
+            Senha
+          </label>
+          <Input
+            id="senha"
+            type="password"
+            placeholder="Sua senha"
+            {...register('senha')}
+          />
+          {errors.senha && (
+            <p className="text-red-500 text-sm mt-1">{errors.senha.message}</p>
+          )}
+        </div>
+        <div>
+          <label htmlFor="confirmarSenha" className="block text-sm font-medium text-gray-700 mb-2">
+            Confirmar Senha
+          </label>
+          <Input
+            id="confirmarSenha"
+            type="password"
+            placeholder="Confirme sua senha"
+            {...register('confirmarSenha')}
+          />
+          {errors.confirmarSenha && (
+            <p className="text-red-500 text-sm mt-1">{errors.confirmarSenha.message}</p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="confirmarSenha" className="block text-sm font-medium text-gray-700 mb-2">
-          Confirmar Senha
-        </label>
-        <Input
-          id="confirmarSenha"
-          type="password"
-          placeholder="Confirme sua senha"
-          {...register('confirmarSenha')}
-        />
-        {errors.confirmarSenha && (
-          <p className="text-red-500 text-sm mt-1">{errors.confirmarSenha.message}</p>
-        )}
+      {/* Seção de Endereço (Opcional) */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Endereço (Opcional)</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="sm:col-span-1">
+            <label htmlFor="cep" className="block text-sm font-medium text-gray-700 mb-2">
+              CEP
+            </label>
+            <Input
+              id="cep"
+              type="text"
+              placeholder="00000-000"
+              {...register('cep')}
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label htmlFor="logradouro" className="block text-sm font-medium text-gray-700 mb-2">
+              Endereço
+            </label>
+            <Input
+              id="logradouro"
+              type="text"
+              placeholder="Rua, Avenida..."
+              {...register('logradouro')}
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label htmlFor="numero" className="block text-sm font-medium text-gray-700 mb-2">
+              Número
+            </label>
+            <Input
+              id="numero"
+              type="text"
+              placeholder="123"
+              {...register('numero')}
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label htmlFor="complemento" className="block text-sm font-medium text-gray-700 mb-2">
+              Complemento
+            </label>
+            <Input
+              id="complemento"
+              type="text"
+              placeholder="Apto, Casa..."
+              {...register('complemento')}
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label htmlFor="bairro" className="block text-sm font-medium text-gray-700 mb-2">
+              Bairro
+            </label>
+            <Input
+              id="bairro"
+              type="text"
+              placeholder="Centro"
+              {...register('bairro')}
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label htmlFor="cidade" className="block text-sm font-medium text-gray-700 mb-2">
+              Cidade
+            </label>
+            <Input
+              id="cidade"
+              type="text"
+              placeholder="São Paulo"
+              {...register('cidade')}
+            />
+          </div>
+          <div className="sm:col-span-1">
+            <label htmlFor="estado" className="block text-sm font-medium text-gray-700 mb-2">
+              Estado
+            </label>
+            <Input
+              id="estado"
+              type="text"
+              placeholder="SP"
+              {...register('estado')}
+            />
+          </div>
+        </div>
       </div>
+
 
 
       <Button

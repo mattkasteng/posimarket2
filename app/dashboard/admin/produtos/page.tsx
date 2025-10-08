@@ -5,9 +5,17 @@ import { useState, useEffect } from 'react'
 export default function ProdutosPage() {
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [produtos, setProdutos] = useState<any[]>([])
+  const [estatisticas, setEstatisticas] = useState<any>(null)
+  const [filtros, setFiltros] = useState({
+    categoria: '',
+    status: '',
+    vendedorId: ''
+  })
+  const [produtosFiltrados, setProdutosFiltrados] = useState<any[]>([])
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
         const isLoggedIn = localStorage.getItem('isLoggedIn')
         const userData = localStorage.getItem('user')
@@ -27,6 +35,13 @@ export default function ProdutosPage() {
           }
           
           setUser(parsedUser)
+          // Carregar produtos
+          const response = await fetch(`/api/admin/produtos?adminId=${parsedUser.id}`)
+          const data = await response.json()
+          if (data.success) {
+            setProdutos(data.produtos)
+            setEstatisticas(data.estatisticas)
+          }
         } else {
           window.location.href = '/login'
         }
@@ -40,6 +55,68 @@ export default function ProdutosPage() {
 
     checkAuth()
   }, [])
+
+  // Aplicar filtros
+  useEffect(() => {
+    let produtosFiltrados = produtos
+
+    if (filtros.categoria) {
+      produtosFiltrados = produtosFiltrados.filter(p => p.categoria === filtros.categoria)
+    }
+
+    if (filtros.status) {
+      if (filtros.status === 'ativo') {
+        produtosFiltrados = produtosFiltrados.filter(p => p.ativo && p.statusAprovacao === 'APROVADO')
+      } else if (filtros.status === 'inativo') {
+        produtosFiltrados = produtosFiltrados.filter(p => !p.ativo)
+      } else if (filtros.status === 'pendente') {
+        produtosFiltrados = produtosFiltrados.filter(p => p.statusAprovacao === 'PENDENTE')
+      } else if (filtros.status === 'rejeitado') {
+        produtosFiltrados = produtosFiltrados.filter(p => p.statusAprovacao === 'REJEITADO')
+      }
+    }
+
+    if (filtros.vendedorId) {
+      produtosFiltrados = produtosFiltrados.filter(p => p.vendedorId === filtros.vendedorId)
+    }
+
+    setProdutosFiltrados(produtosFiltrados)
+  }, [produtos, filtros])
+
+  const handleAcaoProduto = async (produtoId: number, acao: string) => {
+    if (!user) return
+    
+    try {
+      const response = await fetch('/api/admin/produtos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          adminId: user.id,
+          produtoId,
+          acao
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        alert(data.message)
+        // Recarregar produtos
+        const response2 = await fetch(`/api/admin/produtos?adminId=${user.id}`)
+        const data2 = await response2.json()
+        if (data2.success) {
+          setProdutos(data2.produtos)
+          setEstatisticas(data2.estatisticas)
+        }
+      } else {
+        alert('Erro: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao executar ação:', error)
+      alert('Erro ao executar ação')
+    }
+  }
 
   if (isLoading) {
     return (
@@ -67,11 +144,11 @@ export default function ProdutosPage() {
               </p>
             </div>
             <div className="flex space-x-4">
-              <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+              <button 
+                onClick={() => window.location.href = '/dashboard/admin/produtos/novo'}
+                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+              >
                 + Adicionar Produto
-              </button>
-              <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-                Importar Planilha
               </button>
               <button 
                 onClick={() => window.location.href = '/dashboard/admin'}
@@ -83,6 +160,59 @@ export default function ProdutosPage() {
           </div>
         </div>
 
+        {/* Estatísticas */}
+        {estatisticas && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-full bg-blue-100">
+                  <span className="text-2xl">📦</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total de Produtos</p>
+                  <p className="text-2xl font-bold text-gray-900">{estatisticas.total}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-full bg-green-100">
+                  <span className="text-2xl">✅</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Ativos</p>
+                  <p className="text-2xl font-bold text-gray-900">{estatisticas.ativos}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-full bg-yellow-100">
+                  <span className="text-2xl">⏳</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Pendentes</p>
+                  <p className="text-2xl font-bold text-gray-900">{estatisticas.pendentes}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center">
+                <div className="p-3 rounded-full bg-red-100">
+                  <span className="text-2xl">❌</span>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Rejeitados</p>
+                  <p className="text-2xl font-bold text-gray-900">{estatisticas.rejeitados}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filtros */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Filtros</h2>
@@ -92,11 +222,18 @@ export default function ProdutosPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Categoria
               </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select 
+                value={filtros.categoria}
+                onChange={(e) => setFiltros({...filtros, categoria: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 <option value="">Todas as categorias</option>
-                <option value="uniformes">Uniformes</option>
-                <option value="material">Material Escolar</option>
-                <option value="livros">Livros</option>
+                <option value="UNIFORME">Uniforme</option>
+                <option value="MATERIAL_ESCOLAR">Material Escolar</option>
+                <option value="LIVRO_PARADIDATICO">Livro Paradidático</option>
+                <option value="MOCHILA_ACESSORIO">Mochila e Acessório</option>
+                <option value="ESPORTE_LAZER">Esporte e Lazer</option>
+                <option value="TECNOLOGIA">Tecnologia</option>
               </select>
             </div>
             
@@ -104,11 +241,16 @@ export default function ProdutosPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Status
               </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select 
+                value={filtros.status}
+                onChange={(e) => setFiltros({...filtros, status: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 <option value="">Todos os status</option>
                 <option value="ativo">Ativo</option>
                 <option value="inativo">Inativo</option>
                 <option value="pendente">Pendente</option>
+                <option value="rejeitado">Rejeitado</option>
               </select>
             </div>
             
@@ -116,17 +258,26 @@ export default function ProdutosPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Vendedor
               </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select 
+                value={filtros.vendedorId}
+                onChange={(e) => setFiltros({...filtros, vendedorId: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
                 <option value="">Todos os vendedores</option>
-                <option value="maria">Maria Silva</option>
-                <option value="joao">João Santos</option>
-                <option value="ana">Ana Costa</option>
+                {estatisticas?.produtosPorVendedor?.map((vendedor: any) => (
+                  <option key={vendedor.vendedorId} value={vendedor.vendedorId}>
+                    {vendedor.vendedorNome} ({vendedor.quantidade})
+                  </option>
+                ))}
               </select>
             </div>
             
             <div className="flex items-end">
-              <button className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                Filtrar
+              <button 
+                onClick={() => setFiltros({categoria: '', status: '', vendedorId: ''})}
+                className="w-full bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+              >
+                Limpar Filtros
               </button>
             </div>
           </div>
@@ -135,10 +286,20 @@ export default function ProdutosPage() {
         {/* Lista de Produtos */}
         <div className="bg-white rounded-lg shadow-md">
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900">Produtos Cadastrados</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-900">
+                Produtos Cadastrados ({produtosFiltrados.length})
+              </h2>
+              {produtosFiltrados.length !== produtos.length && (
+                <span className="text-sm text-gray-500">
+                  Mostrando {produtosFiltrados.length} de {produtos.length} produtos
+                </span>
+              )}
+            </div>
           </div>
           
-          <div className="overflow-x-auto">
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -163,16 +324,23 @@ export default function ProdutosPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {[
-                  { produto: 'Kit Completo 6º Ano', categoria: 'Uniformes', vendedor: 'Maria Silva', preco: 'R$ 450,00', status: 'Ativo' },
-                  { produto: 'Uniforme Educação Física', categoria: 'Uniformes', vendedor: 'João Santos', preco: 'R$ 89,90', status: 'Ativo' },
-                  { produto: 'Cadernos Universitários', categoria: 'Material', vendedor: 'Ana Costa', preco: 'R$ 25,50', status: 'Ativo' },
-                  { produto: 'Mochila Escolar', categoria: 'Material', vendedor: 'Carlos Lima', preco: 'R$ 159,90', status: 'Pendente' },
-                  { produto: 'Livro de Matemática', categoria: 'Livros', vendedor: 'Pedro Oliveira', preco: 'R$ 75,00', status: 'Ativo' }
-                ].map((item, index) => (
+                {produtosFiltrados.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">📦</span>
+                      </div>
+                      <p className="text-gray-600 mb-2">Nenhum produto encontrado</p>
+                      <p className="text-sm text-gray-500">
+                        Os produtos aparecerão aqui quando forem cadastrados pelos vendedores
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  produtosFiltrados.map((item, index) => (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{item.produto}</div>
+                      <div className="text-sm font-medium text-gray-900">{item.nome}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -180,31 +348,169 @@ export default function ProdutosPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.vendedor}
+                      {item.vendedor?.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.preco}
+                      R$ {item.preco?.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        item.status === 'Ativo' ? 'bg-green-100 text-green-800' :
-                        item.status === 'Pendente' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                        item.statusAprovacao === 'APROVADO' && item.ativo ? 'bg-green-100 text-green-800' :
+                        item.statusAprovacao === 'REJEITADO' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {item.status}
+                        {item.statusAprovacao === 'APROVADO' && item.ativo ? 'Ativo' :
+                         item.statusAprovacao === 'REJEITADO' ? 'Rejeitado' :
+                         'Pendente'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">Editar</button>
-                        <button className="text-green-600 hover:text-green-900">Aprovar</button>
-                        <button className="text-red-600 hover:text-red-900">Remover</button>
+                      <div className="flex flex-wrap gap-2">
+                        {item.statusAprovacao === 'PENDENTE' && (
+                          <>
+                            <button 
+                              onClick={() => handleAcaoProduto(item.id, 'aprovar')}
+                              className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                            >
+                              Aprovar
+                            </button>
+                            <button 
+                              onClick={() => handleAcaoProduto(item.id, 'rejeitar')}
+                              className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                            >
+                              Rejeitar
+                            </button>
+                          </>
+                        )}
+                        
+                        {item.statusAprovacao === 'APROVADO' && item.ativo && (
+                          <button 
+                            onClick={() => handleAcaoProduto(item.id, 'desativar')}
+                            className="px-3 py-1 bg-yellow-500 text-white text-xs rounded hover:bg-yellow-600"
+                          >
+                            Desativar
+                          </button>
+                        )}
+                        
+                        {item.statusAprovacao === 'APROVADO' && !item.ativo && (
+                          <button 
+                            onClick={() => handleAcaoProduto(item.id, 'ativar')}
+                            className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                          >
+                            Ativar
+                          </button>
+                        )}
+                        
+                        <button 
+                          onClick={() => {
+                            if (confirm('Tem certeza que deseja remover este produto?')) {
+                              handleAcaoProduto(item.id, 'remover')
+                            }
+                          }}
+                          className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                        >
+                          Remover
+                        </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="lg:hidden space-y-4">
+            {produtosFiltrados.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">📦</span>
+                </div>
+                <p className="text-gray-600 mb-2">Nenhum produto encontrado</p>
+                <p className="text-sm text-gray-500">
+                  Os produtos aparecerão aqui quando forem cadastrados pelos vendedores
+                </p>
+              </div>
+            ) : (
+              produtosFiltrados.map((item, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-gray-900 text-sm mb-1">{item.nome}</h3>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                          {item.categoria}
+                        </span>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          item.statusAprovacao === 'APROVADO' && item.ativo 
+                            ? 'bg-green-100 text-green-800'
+                            : item.statusAprovacao === 'PENDENTE'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {item.statusAprovacao === 'APROVADO' && item.ativo 
+                            ? 'Ativo'
+                            : item.statusAprovacao === 'PENDENTE'
+                            ? 'Pendente'
+                            : 'Rejeitado'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-primary-600">
+                        R$ {item.preco.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500 mb-3">
+                    Vendedor: {item.vendedor?.email}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {item.statusAprovacao === 'PENDENTE' && (
+                      <>
+                        <button
+                          onClick={() => handleAcaoProduto(item.id, 'aprovar')}
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                        >
+                          Aprovar
+                        </button>
+                        <button
+                          onClick={() => handleAcaoProduto(item.id, 'rejeitar')}
+                          className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                        >
+                          Rejeitar
+                        </button>
+                      </>
+                    )}
+                    {item.statusAprovacao === 'APROVADO' && item.ativo && (
+                      <button
+                        onClick={() => handleAcaoProduto(item.id, 'desativar')}
+                        className="px-3 py-1 bg-orange-600 text-white text-xs rounded-md hover:bg-orange-700 transition-colors"
+                      >
+                        Desativar
+                      </button>
+                    )}
+                    {item.statusAprovacao === 'APROVADO' && !item.ativo && (
+                      <button
+                        onClick={() => handleAcaoProduto(item.id, 'ativar')}
+                        className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        Ativar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleAcaoProduto(item.id, 'remover')}
+                      className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

@@ -60,7 +60,7 @@ export function Footer() {
       <div className="container mx-auto px-4 relative z-10">
         {/* Seção principal do footer */}
         <div className="py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {/* Logo e descrição */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -68,10 +68,10 @@ export function Footer() {
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
             >
-              <h4 className="text-lg font-semibold text-white mb-6">
+              <h4 className="text-lg font-semibold text-white mb-4 md:mb-6">
                 PosiMarket
               </h4>
-              <p className="text-gray-300 mb-6 leading-relaxed">
+              <p className="text-sm md:text-base text-gray-300 mb-4 md:mb-6 leading-relaxed">
                 A plataforma mais completa para comprar e vender itens escolares de forma prática e sustentável.
               </p>
               

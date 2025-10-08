@@ -11,12 +11,8 @@ export async function GET(
 
     const usuario = await prisma.usuario.findUnique({
       where: { id: usuarioId },
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        tipoUsuario: true,
-        escolaId: true,
+      include: {
+        endereco: true,
         escola: {
           select: {
             nome: true
@@ -34,13 +30,18 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      usuario: {
+      user: {
         id: usuario.id,
         nome: usuario.nome,
         email: usuario.email,
+        cpf: usuario.cpf,
+        telefone: usuario.telefone,
         tipoUsuario: usuario.tipoUsuario,
         escolaId: usuario.escolaId,
-        escolaNome: usuario.escola?.nome
+        escolaNome: usuario.escola?.nome,
+        endereco: usuario.endereco,
+        pixKey: usuario.pixKey,
+        pixType: usuario.pixType
       }
     })
 

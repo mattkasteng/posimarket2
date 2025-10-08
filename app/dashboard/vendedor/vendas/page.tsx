@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -12,89 +12,7 @@ import {
 } from 'lucide-react'
 import { ChatButton } from '@/components/chat/ChatWidget'
 
-// Mock data para pedidos
-const mockOrders = [
-  {
-    id: 'ORD-001',
-    customer: {
-      nome: 'Maria Silva',
-      email: 'maria@email.com',
-      telefone: '(11) 99999-9999',
-      endereco: 'Rua das Flores, 123 - Centro, São Paulo - SP'
-    },
-    produto: {
-      nome: 'Uniforme Escolar Feminino',
-      preco: 89.90,
-      imagem: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=100&h=100&fit=crop'
-    },
-    status: 'PENDENTE_ENVIO',
-    dataPedido: '2023-12-20T10:30:00Z',
-    valorTotal: 89.90,
-    comissaoVendedor: 76.42,
-    chatMessages: 3,
-    trackingCode: null
-  },
-  {
-    id: 'ORD-002',
-    customer: {
-      nome: 'João Santos',
-      email: 'joao@email.com',
-      telefone: '(11) 88888-8888',
-      endereco: 'Av. Paulista, 456 - Bela Vista, São Paulo - SP'
-    },
-    produto: {
-      nome: 'Caderno Universitário 200 folhas',
-      preco: 25.50,
-      imagem: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=100&h=100&fit=crop'
-    },
-    status: 'ENVIADO',
-    dataPedido: '2023-12-19T14:20:00Z',
-    valorTotal: 25.50,
-    comissaoVendedor: 21.68,
-    chatMessages: 1,
-    trackingCode: 'BR123456789SP'
-  },
-  {
-    id: 'ORD-003',
-    customer: {
-      nome: 'Ana Costa',
-      email: 'ana@email.com',
-      telefone: '(11) 77777-7777',
-      endereco: 'Rua Augusta, 789 - Consolação, São Paulo - SP'
-    },
-    produto: {
-      nome: 'Mochila Escolar com Rodinhas',
-      preco: 159.90,
-      imagem: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100&h=100&fit=crop'
-    },
-    status: 'PROCESSANDO',
-    dataPedido: '2023-12-18T09:15:00Z',
-    valorTotal: 159.90,
-    comissaoVendedor: 135.92,
-    chatMessages: 0,
-    trackingCode: null
-  },
-  {
-    id: 'ORD-004',
-    customer: {
-      nome: 'Carlos Lima',
-      email: 'carlos@email.com',
-      telefone: '(11) 66666-6666',
-      endereco: 'Rua Oscar Freire, 321 - Jardins, São Paulo - SP'
-    },
-    produto: {
-      nome: 'Kit de Lápis de Cor 24 cores',
-      preco: 35.90,
-      imagem: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=100&h=100&fit=crop'
-    },
-    status: 'ENTREGUE',
-    dataPedido: '2023-12-17T16:45:00Z',
-    valorTotal: 35.90,
-    comissaoVendedor: 30.52,
-    chatMessages: 2,
-    trackingCode: 'BR987654321SP'
-  }
-]
+// Dados reais serão carregados do banco de dados
 
 const statusConfig = {
   PENDENTE_ENVIO: {
@@ -133,21 +51,81 @@ export default function SalesOrdersPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<'all' | string>('all')
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [orders, setOrders] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
 
-  const filteredOrders = mockOrders.filter(order => {
+  // Carregar dados do usuário e pedidos
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const isLoggedIn = localStorage.getItem('isLoggedIn')
+        const userData = localStorage.getItem('user')
+
+        if (isLoggedIn === 'true' && userData) {
+          const parsedUser = JSON.parse(userData)
+          setUser(parsedUser)
+          // Carregar pedidos reais do banco de dados
+          const response = await fetch(`/api/vendedor/vendas?vendedorId=${parsedUser.id}`)
+          const data = await response.json()
+          if (data.success) {
+            setOrders(data.vendas)
+          }
+        } else {
+          window.location.href = '/login'
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error)
+        window.location.href = '/login'
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkAuth()
+  }, [])
+
+  const filteredOrders = orders.filter(order => {
     const matchesSearch = 
-      order.customer.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.produto.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase())
+      order.customer?.nome?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.produto?.nome?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.id?.toLowerCase().includes(searchQuery.toLowerCase())
     
     const matchesStatus = selectedStatus === 'all' || order.status === selectedStatus
     
     return matchesSearch && matchesStatus
   })
 
-  const handleConfirmShipping = (orderId: string) => {
-    // Implementar lógica de confirmação de envio
-    console.log(`Confirmar envio do pedido ${orderId}`)
+  const handleConfirmShipping = async (orderId: string) => {
+    try {
+      const response = await fetch('/api/vendedor/vendas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendedorId: user?.id,
+          pedidoId: orderId,
+          acao: 'confirmar_envio'
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Atualizar lista de pedidos
+        setOrders(orders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: 'ENVIADO', trackingCode: data.pedido.trackingCode }
+            : order
+        ))
+        alert('Pedido confirmado para envio com sucesso!')
+      } else {
+        alert('Erro ao confirmar envio: ' + data.error)
+      }
+    } catch (error) {
+      console.error('Erro ao confirmar envio:', error)
+      alert('Erro ao confirmar envio do pedido')
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -181,7 +159,7 @@ export default function SalesOrdersPage() {
             <div className="flex items-center space-x-2">
               <div className="text-right">
                 <p className="text-sm text-gray-600">Total de Pedidos</p>
-                <p className="text-2xl font-bold text-primary-600">{mockOrders.length}</p>
+                <p className="text-2xl font-bold text-primary-600">{orders.length}</p>
               </div>
             </div>
           </div>
@@ -235,7 +213,23 @@ export default function SalesOrdersPage() {
           transition={{ delay: 0.2 }}
           className="space-y-6"
         >
-          {filteredOrders.map((order, index) => {
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Carregando vendas...</p>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">📦</span>
+              </div>
+              <p className="text-gray-600 mb-2">Nenhuma venda encontrada</p>
+              <p className="text-sm text-gray-500">
+                Suas vendas aparecerão aqui quando você começar a vender produtos
+              </p>
+            </div>
+          ) : (
+            filteredOrders.map((order, index) => {
             const statusInfo = statusConfig[order.status as keyof typeof statusConfig]
             const StatusIcon = statusInfo.icon
             
@@ -373,7 +367,8 @@ export default function SalesOrdersPage() {
                 </Card>
               </motion.div>
             )
-          })}
+            })
+          )}
         </motion.div>
 
         {/* Resumo */}
@@ -388,25 +383,25 @@ export default function SalesOrdersPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-primary-600">
-                    {mockOrders.filter(o => o.status === 'PENDENTE_ENVIO').length}
+                    {orders.filter(o => o.status === 'PENDENTE_ENVIO').length}
                   </p>
                   <p className="text-sm text-gray-600">Pendentes</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-blue-600">
-                    {mockOrders.filter(o => o.status === 'ENVIADO').length}
+                    {orders.filter(o => o.status === 'ENVIADO').length}
                   </p>
                   <p className="text-sm text-gray-600">Enviados</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-green-600">
-                    {mockOrders.filter(o => o.status === 'ENTREGUE').length}
+                    {orders.filter(o => o.status === 'ENTREGUE').length}
                   </p>
                   <p className="text-sm text-gray-600">Entregues</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900">
-                    R$ {mockOrders.reduce((acc, o) => acc + o.comissaoVendedor, 0).toFixed(2)}
+                    R$ {orders.reduce((acc, o) => acc + (o.comissaoVendedor || 0), 0).toFixed(2)}
                   </p>
                   <p className="text-sm text-gray-600">Comissões</p>
                 </div>

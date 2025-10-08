@@ -16,7 +16,7 @@ export default function ComprasPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
         const isLoggedIn = localStorage.getItem('isLoggedIn')
         const userData = localStorage.getItem('user')
@@ -24,6 +24,12 @@ export default function ComprasPage() {
         if (isLoggedIn === 'true' && userData) {
           const parsedUser = JSON.parse(userData)
           setUser(parsedUser)
+          // Carregar compras reais do banco de dados
+          const response = await fetch(`/api/vendedor/compras?compradorId=${parsedUser.id}`)
+          const data = await response.json()
+          if (data.success) {
+            setCompras(data.compras)
+          }
         } else {
           router.push('/login')
         }
@@ -38,76 +44,8 @@ export default function ComprasPage() {
     checkAuth()
   }, [router])
 
-  const compras = [
-    {
-      id: '#CMP-001',
-      produto: 'Calculadora Científica Casio',
-      vendedor: 'TechStore',
-      vendedorEmail: 'vendas@techstore.com',
-      valor: 79.90,
-      data: 'Hoje',
-      hora: '11:20',
-      status: 'Entregue',
-      pagamento: 'Cartão de Crédito',
-      codigoRastreio: 'BR123456789BR',
-      statusColor: 'green',
-      imagem: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=100&h=100&fit=crop'
-    },
-    {
-      id: '#CMP-002',
-      produto: 'Kit Livros Matemática 9º Ano',
-      vendedor: 'Livraria Positivo',
-      vendedorEmail: 'contato@livpositivo.com',
-      valor: 189.90,
-      data: 'Ontem',
-      hora: '14:30',
-      status: 'Em Trânsito',
-      pagamento: 'Pix',
-      codigoRastreio: 'BR987654321BR',
-      statusColor: 'blue',
-      imagem: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=100&h=100&fit=crop'
-    },
-    {
-      id: '#CMP-003',
-      produto: 'Mochila Escolar Premium',
-      vendedor: 'Ana Costa',
-      vendedorEmail: 'ana.costa@email.com',
-      valor: 159.90,
-      data: '2 dias atrás',
-      hora: '09:45',
-      status: 'Processando',
-      pagamento: 'Boleto',
-      statusColor: 'yellow',
-      imagem: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100&h=100&fit=crop'
-    },
-    {
-      id: '#CMP-004',
-      produto: 'Conjunto de Canetas Gel 24 cores',
-      vendedor: 'PapelariaOnline',
-      vendedorEmail: 'sac@papelaria.com',
-      valor: 45.50,
-      data: '3 dias atrás',
-      hora: '16:20',
-      status: 'Entregue',
-      pagamento: 'Pix',
-      codigoRastreio: 'BR456789123BR',
-      statusColor: 'green',
-      imagem: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?w=100&h=100&fit=crop'
-    },
-    {
-      id: '#CMP-005',
-      produto: 'Estojo Duplo com Compartimentos',
-      vendedor: 'Maria Silva',
-      vendedorEmail: 'maria.silva@email.com',
-      valor: 34.90,
-      data: '5 dias atrás',
-      hora: '10:15',
-      status: 'Cancelado',
-      pagamento: 'Cartão de Crédito',
-      statusColor: 'red',
-      imagem: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=100&h=100&fit=crop'
-    }
-  ]
+  // Dados reais serão carregados do banco de dados
+  const [compras, setCompras] = useState<any[]>([])
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -134,7 +72,7 @@ export default function ComprasPage() {
 
   const totalGasto = compras
     .filter(c => c.status !== 'Cancelado')
-    .reduce((sum, compra) => sum + compra.valor, 0)
+    .reduce((sum, compra) => sum + (compra.valor || 0), 0)
 
   if (isLoading) {
     return (

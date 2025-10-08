@@ -91,9 +91,10 @@ export async function POST(request: NextRequest) {
       await prisma.notificacao.create({
         data: {
           usuarioId: pedido.compradorId,
-          titulo: 'Pagamento Aprovado',
-          mensagem: `Pagamento do pedido ${pedido.numero} foi aprovado!`,
-          tipo: 'SUCESSO'
+          titulo: 'Pagamento Aprovado! 💳✅',
+          mensagem: `Pagamento do pedido ${pedido.numero} foi aprovado! Seu pedido está sendo processado.`,
+          tipo: 'SUCESSO',
+          link: `/pedido-confirmado/${pedido.id}`
         }
       })
 
@@ -102,19 +103,26 @@ export async function POST(request: NextRequest) {
         where: { pedidoId },
         include: {
           produto: {
-            select: { vendedorId: true }
+            select: { 
+              vendedorId: true,
+              nome: true
+            }
           }
         }
       })
 
       const vendedoresIds = Array.from(new Set(itensPedido.map(item => item.produto.vendedorId)))
       for (const vendedorId of vendedoresIds) {
+        const produtosVendedor = itensPedido.filter(item => item.produto.vendedorId === vendedorId)
+        const nomesProdutos = produtosVendedor.map(item => item.produto.nome).join(', ')
+        
         await prisma.notificacao.create({
           data: {
             usuarioId: vendedorId,
-            titulo: 'Pagamento Recebido',
-            mensagem: `Pagamento do pedido ${pedido.numero} foi aprovado!`,
-            tipo: 'SUCESSO'
+            titulo: 'Pagamento Recebido! 💰',
+            mensagem: `Pagamento do pedido ${pedido.numero} foi aprovado! Produtos: ${nomesProdutos}. Valor: R$ ${pedido.total.toFixed(2)}`,
+            tipo: 'SUCESSO',
+            link: `/dashboard/vendedor/vendas`
           }
         })
       }

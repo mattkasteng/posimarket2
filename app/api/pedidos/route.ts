@@ -218,21 +218,26 @@ export async function POST(request: NextRequest) {
     await prisma.notificacao.create({
       data: {
         usuarioId: compradorId,
-        titulo: 'Pedido Realizado',
-        mensagem: `Seu pedido ${numeroPedido} foi realizado com sucesso! Total: R$ ${total.toFixed(2)}`,
-        tipo: 'SUCESSO'
+        titulo: 'Pedido Realizado! 🛍️',
+        mensagem: `Seu pedido ${numeroPedido} foi realizado com sucesso! Total: R$ ${total.toFixed(2)}. Aguarde a confirmação do pagamento.`,
+        tipo: 'SUCESSO',
+        link: `/pedido-confirmado/${pedido.id}`
       }
     })
 
-    // Notificar vendedores
+    // Notificar vendedores com detalhes dos produtos
     const vendedoresIds = Array.from(new Set(produtos.map(p => p.vendedorId)))
     for (const vendedorId of vendedoresIds) {
+      const produtosVendedor = produtos.filter(p => p.vendedorId === vendedorId)
+      const nomesProdutos = produtosVendedor.map(p => p.nome).join(', ')
+      
       await prisma.notificacao.create({
         data: {
           usuarioId: vendedorId,
-          titulo: 'Novo Pedido',
-          mensagem: `Você recebeu um novo pedido: ${numeroPedido}`,
-          tipo: 'INFO'
+          titulo: 'Novo Pedido Recebido! 📦',
+          mensagem: `Você recebeu um novo pedido (${numeroPedido}) para: ${nomesProdutos}. Total: R$ ${total.toFixed(2)}`,
+          tipo: 'INFO',
+          link: `/dashboard/vendedor/vendas`
         }
       })
     }

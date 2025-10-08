@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -19,6 +19,7 @@ model Usuario {
   enderecoId            String?
   escolaId              String?
   emailVerificado       Boolean     @default(false)
+  suspenso              Boolean     @default(false)
   tokenVerificacao      String?
   tokenResetSenha       String?
   tokenResetExpiracao   DateTime?
@@ -221,4 +222,56 @@ model Mensagem {
   destinatario    Usuario   @relation("Destinatario", fields: [destinatarioId], references: [id])
 
   @@map("mensagens")
+}
+
+model ModeloUniforme {
+  id              String    @id @default(cuid())
+  serie           String
+  descricao       String
+  tipo            String?   // CAMISA, CALÇA, SHORT, etc.
+  cor             String?
+  material        String?
+  genero          String?   // MASCULINO, FEMININO, UNISSEX
+  fornecedorId    Int?
+  ativo           Boolean   @default(true)
+  dataCadastro    DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  fornecedor      FornecedorUniforme? @relation(fields: [fornecedorId], references: [id])
+
+  @@map("modelos_uniforme")
+}
+
+model TamanhoUniforme {
+  id              String    @id @default(cuid())
+  tamanho         String
+  alturaMin       Int?
+  alturaMax       Int?
+  pesoMin         Float?
+  pesoMax         Float?
+  peitoMin        Int?
+  peitoMax        Int?
+  ordem           Int       @default(0)
+  dataCadastro    DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("tamanhos_uniforme")
+}
+
+model FornecedorUniforme {
+  id              Int       @id @default(autoincrement())
+  nome            String
+  email           String?
+  telefone        String?
+  endereco        String?
+  status          String    @default("PENDENTE") // PENDENTE, ATIVO, INATIVO
+  dataCadastro    DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  modelos         ModeloUniforme[]
+
+  @@map("fornecedores_uniforme")
 }

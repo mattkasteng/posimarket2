@@ -33,7 +33,7 @@ const steps = [
 
 export function ComoFuncionaSection() {
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-50 to-orange-50 relative overflow-hidden">
+    <section className="py-24 bg-gradient-to-br from-gray-50 to-orange-50 relative overflow-hidden">
       {/* Background decorativo */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary-500/10 via-transparent to-primary-600/10" />
       
@@ -45,15 +45,15 @@ export function ComoFuncionaSection() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 px-4">
             Como Funciona
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto px-4">
             Um processo simples e seguro para comprar e vender itens escolares
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
           {steps.map((step, index) => {
             const Icon = step.icon
             return (
@@ -71,7 +71,7 @@ export function ComoFuncionaSection() {
                 className="group"
               >
                 <Card className="h-full hover:shadow-2xl transition-all duration-500 group-hover:bg-white/90">
-                  <CardContent className="p-8 text-center">
+                  <CardContent className="p-6 md:p-8 text-center">
                     <motion.div
                       whileHover={{ 
                         scale: 1.1,
