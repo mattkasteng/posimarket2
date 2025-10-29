@@ -85,13 +85,6 @@ export async function POST(request: NextRequest) {
                      'unknown'
     const userAgent = request.headers.get('user-agent') || 'unknown'
 
-    const transactionAnalysis = {
-      userId: compradorId,
-      amount: total,
-      ipAddress,
-      userAgent
-    }
-
     // Verificar histórico de pedidos do usuário
     const recentOrders = await prisma.pedido.findMany({
       where: {
@@ -107,12 +100,18 @@ export async function POST(request: NextRequest) {
       o => new Date(o.dataPedido).getTime() > Date.now() - 24 * 60 * 60 * 1000
     ).length
 
-    transactionAnalysis.ordersInLast24h = ordersLast24h
-    transactionAnalysis.ordersInLastWeek = recentOrders.length
+    const avgOrderValue = recentOrders.length > 0
+      ? recentOrders.reduce((sum, o) => sum + o.valorTotal, 0) / recentOrders.length
+      : 0
 
-    if (recentOrders.length > 0) {
-      const avgOrderValue = recentOrders.reduce((sum, o) => sum + o.valorTotal, 0) / recentOrders.length
-      transactionAnalysis.averageOrderValue = avgOrderValue
+    const transactionAnalysis = {
+      userId: compradorId,
+      amount: total,
+      ipAddress,
+      userAgent,
+      ordersInLast24h: ordersLast24h,
+      ordersInLastWeek: recentOrders.length,
+      averageOrderValue: avgOrderValue
     }
 
     // Verificar se deve bloquear transação
