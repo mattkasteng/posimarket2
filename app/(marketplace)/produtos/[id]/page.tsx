@@ -540,12 +540,11 @@ export default function ProductDetailsPage() {
                     condicao={product.condicao}
                     vendedor={product.vendedor}
                     escola={product.escola}
-                    categoria={product.categoria}
-                    avaliacao={0}
-                    totalAvaliacoes={0}
-                    isFavorite={false}
-                    onToggleFavorite={() => {}}
-                    onAddToCart={() => {}}
+                    descricao={product.descricao}
+                    isFavorite={isFavorite(product.id)}
+                    onToggleFavorite={toggleFavorite}
+                    estoque={product.estoque}
+                    vendedorTipo={product.vendedorTipo}
                   />
                 ))}
               </div>

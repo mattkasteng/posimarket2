@@ -183,10 +183,19 @@ export default function FavoritosPage() {
                 transition={{ delay: index * 0.1 }}
               >
                 <ProductCard
-                  {...product}
+                  id={product.id}
+                  nome={product.nome}
+                  preco={product.preco}
+                  precoOriginal={product.precoOriginal}
+                  imagem={product.imagem}
+                  condicao={product.condicao}
+                  vendedor={product.vendedor}
+                  escola={product.escola}
+                  descricao={product.descricao}
                   isFavorite={isFavorite(product.id)}
                   onToggleFavorite={toggleFavorite}
-                  onAddToCart={handleAddToCart}
+                  estoque={product.estoque}
+                  vendedorTipo={product.vendedorTipo}
                 />
               </motion.div>
             ))}
