@@ -102,12 +102,12 @@ export default function ProductDetailsPage() {
           let imagensProduto: string[] = []
           if (data.produto.imagens) {
             if (Array.isArray(data.produto.imagens)) {
-              imagensProduto = data.produto.imagens.filter(img => img && typeof img === 'string')
+              imagensProduto = data.produto.imagens.filter((img: any) => img && typeof img === 'string')
             } else if (typeof data.produto.imagens === 'string') {
               try {
                 const parsed = JSON.parse(data.produto.imagens)
                 if (Array.isArray(parsed)) {
-                  imagensProduto = parsed.filter(img => img && typeof img === 'string')
+                  imagensProduto = parsed.filter((img: any) => img && typeof img === 'string')
                 }
               } catch (e) {
                 console.error('Erro ao parsear imagens:', e)
