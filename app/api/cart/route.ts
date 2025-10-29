@@ -127,9 +127,15 @@ export async function GET(request: NextRequest) {
         }
       })
       
+      // Se produto não encontrado, pular este item
+      if (!produtoAtualizado) {
+        console.warn(`⚠️ Produto ${item.produtoId} não encontrado, pulando item do carrinho`)
+        return null
+      }
+      
       // Parse imagens
       let imagensParsed = []
-      if (produtoAtualizado?.imagens) {
+      if (produtoAtualizado.imagens) {
         try {
           imagensParsed = typeof produtoAtualizado.imagens === 'string' 
             ? JSON.parse(produtoAtualizado.imagens) 
@@ -153,15 +159,18 @@ export async function GET(request: NextRequest) {
         }
       }
     }))
+    
+    // Filtrar itens nulos (produtos não encontrados)
+    const itensValidos = itensMapeados.filter((item): item is NonNullable<typeof item> => item !== null)
 
     // Calcular totais
-    const subtotal = itensMapeados.reduce((acc, item) => {
+    const subtotal = itensValidos.reduce((acc, item) => {
       const preco = item.produto.precoFinal
       return acc + (preco * item.quantidade)
     }, 0)
 
     const serviceFee = subtotal * 0.05 // 5% de taxa de serviço
-    const cleaningFee = itensMapeados.some(item => 
+    const cleaningFee = itensValidos.some(item => 
       item.produto.condicao === 'USADO' || item.produto.condicao === 'SEMINOVO'
     ) ? 10 : 0
 
@@ -169,7 +178,7 @@ export async function GET(request: NextRequest) {
       carrinho: {
         id: carrinho.id,
         usuarioId: carrinho.usuarioId,
-        itens: itensMapeados,
+        itens: itensValidos,
         subtotal,
         serviceFee,
         cleaningFee,
