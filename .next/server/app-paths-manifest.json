@@ -1,15 +1,12 @@
 {
-  "/not-found": "app/not-found.js",
   "/page": "app/page.js",
-  "/(marketplace)/produtos/page": "app/(marketplace)/produtos/page.js",
-  "/dashboard/admin/produtos/page": "app/dashboard/admin/produtos/page.js",
-  "/dashboard/vendedor/page": "app/dashboard/vendedor/page.js",
-  "/mensagens/page": "app/mensagens/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/dashboard/vendedor/page": "app/dashboard/vendedor/page.js",
+  "/api/chat/route": "app/api/chat/route.js",
+  "/dashboard/vendedor/financeiro/page": "app/dashboard/vendedor/financeiro/page.js",
+  "/api/dashboard/vendedor/stats/route": "app/api/dashboard/vendedor/stats/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/auth/simple-login/route": "app/api/auth/simple-login/route.js",
-  "/dashboard/admin/page": "app/dashboard/admin/page.js",
-  "/dashboard/admin/vendedores/page": "app/dashboard/admin/vendedores/page.js",
-  "/api/admin/vendedores/route": "app/api/admin/vendedores/route.js",
-  "/dashboard/admin/uniformes/page": "app/dashboard/admin/uniformes/page.js",
-  "/api/admin/uniformes/route": "app/api/admin/uniformes/route.js"
+  "/api/seller/financial/route": "app/api/seller/financial/route.js",
+  "/api/orders/route": "app/api/orders/route.js"
 }
