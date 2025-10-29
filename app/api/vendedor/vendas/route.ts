@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Buscar vendas do vendedor
     const vendas = await prisma.pedido.findMany({
       where: {
-        vendedorId: parseInt(vendedorId),
+        vendedorId: vendedorId,
         ...(status && status !== 'all' ? { status } : {})
       },
       include: {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Verificar se o pedido pertence ao vendedor
     const pedido = await prisma.pedido.findFirst({
       where: {
-        id: parseInt(pedidoId),
+        id: pedidoId,
         vendedorId: parseInt(vendedorId)
       }
     })

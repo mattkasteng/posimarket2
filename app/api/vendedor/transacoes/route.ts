@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Buscar transações do vendedor
     const transacoes = await prisma.transacaoFinanceira.findMany({
       where: {
-        vendedorId: parseInt(vendedorId),
+        vendedorId: vendedorId,
         dataTransacao: {
           gte: dataInicio
         }
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar se o vendedor tem saldo suficiente para saque
     if (tipo === 'SAQUE') {
-      const saldoAtual = await calcularSaldoVendedor(parseInt(vendedorId))
+      const saldoAtual = await calcularSaldoVendedor(vendedorId)
       if (saldoAtual < parseFloat(valor)) {
         return NextResponse.json(
           { success: false, error: 'Saldo insuficiente para saque' },
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Criar transação
     const transacao = await prisma.transacaoFinanceira.create({
       data: {
-        vendedorId: parseInt(vendedorId),
+        vendedorId: vendedorId,
         tipo,
         valor: tipo === 'SAQUE' ? -parseFloat(valor) : parseFloat(valor),
         status: tipo === 'SAQUE' ? 'PROCESSANDO' : 'CONCLUIDO',
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function calcularSaldoVendedor(vendedorId: number): Promise<number> {
+async function calcularSaldoVendedor(vendedorId: string): Promise<number> {
   const transacoes = await prisma.transacaoFinanceira.findMany({
     where: { vendedorId }
   })

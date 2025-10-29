@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Buscar compras do usuário
     const compras = await prisma.pedido.findMany({
       where: {
-        compradorId: parseInt(compradorId),
+        compradorId: compradorId,
         ...(status && status !== 'all' ? { status } : {})
       },
       include: {
