@@ -82,13 +82,13 @@ export async function POST(request: NextRequest) {
     }
 
     let novoStatus = pedido.status
-    let trackingCode = pedido.trackingCode
+    let codigoRastreio = pedido.codigoRastreio
 
     // Atualizar status baseado na ação
     switch (acao) {
       case 'confirmar_envio':
         novoStatus = 'ENVIADO'
-        trackingCode = `BR${Date.now()}SP` // Gerar código de rastreamento
+        codigoRastreio = `BR${Date.now()}SP` // Gerar código de rastreamento
         break
       case 'marcar_processando':
         novoStatus = 'PROCESSANDO'
@@ -108,14 +108,17 @@ export async function POST(request: NextRequest) {
 
     // Atualizar pedido
     const pedidoAtualizado = await prisma.pedido.update({
-      where: { id: parseInt(pedidoId) },
+      where: { id: pedidoId },
       data: {
         status: novoStatus,
-        trackingCode,
-        dataAtualizacao: new Date()
+        codigoRastreio,
       },
       include: {
-        produto: true,
+        itens: {
+          include: {
+            produto: true
+          }
+        },
         comprador: {
           select: {
             id: true,
