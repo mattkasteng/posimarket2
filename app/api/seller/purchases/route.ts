@@ -96,11 +96,11 @@ export async function GET(request: NextRequest) {
           imagens: item.produto.imagens ? JSON.parse(item.produto.imagens) : []
         }
       })),
-      subtotal: compra.subtotal,
-      taxaServico: compra.taxaServico,
+      subtotal: compra.valorSubtotal,
+      taxaServico: compra.taxaPlataforma,
       taxaHigienizacao: compra.taxaHigienizacao,
-      frete: compra.frete,
-      total: compra.total,
+      frete: compra.custoEnvio,
+      total: compra.valorTotal,
       metodoPagamento: compra.metodoPagamento,
       metodoEnvio: compra.metodoEnvio,
       transportadora: compra.transportadora,
