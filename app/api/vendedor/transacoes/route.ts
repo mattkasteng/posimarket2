@@ -34,17 +34,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar transações do vendedor
-    const transacoes = await prisma.transacaoFinanceira.findMany({
-      where: {
-        vendedorId: vendedorId,
-        dataTransacao: {
-          gte: dataInicio
-        }
-      },
-      orderBy: {
-        dataTransacao: 'desc'
-      }
-    })
+    // TODO: Modelo TransacaoFinanceira não existe no schema ainda
+    // Retornando array vazio temporariamente
+    const transacoes: any[] = []
 
     // Calcular estatísticas
     const totalVendas = transacoes
@@ -102,6 +94,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar transação
+    // TODO: Modelo TransacaoFinanceira não existe no schema ainda
+    // Retornando erro temporariamente
+    return NextResponse.json(
+      { success: false, error: 'Funcionalidade de transações financeiras não implementada ainda' },
+      { status: 501 }
+    )
+    
+    /* Código comentado até que o modelo seja criado:
     const transacao = await prisma.transacaoFinanceira.create({
       data: {
         vendedorId: vendedorId,
@@ -112,12 +112,7 @@ export async function POST(request: NextRequest) {
         dataTransacao: new Date()
       }
     })
-
-    return NextResponse.json({
-      success: true,
-      transacao,
-      message: tipo === 'SAQUE' ? 'Solicitação de saque criada com sucesso' : 'Transação criada com sucesso'
-    })
+    */
   } catch (error) {
     console.error('❌ Erro ao criar transação:', error)
     return NextResponse.json(
@@ -128,9 +123,15 @@ export async function POST(request: NextRequest) {
 }
 
 async function calcularSaldoVendedor(vendedorId: string): Promise<number> {
+  // TODO: Modelo TransacaoFinanceira não existe no schema ainda
+  // Retornando 0 temporariamente
+  return 0
+  
+  /* Código comentado até que o modelo seja criado:
   const transacoes = await prisma.transacaoFinanceira.findMany({
     where: { vendedorId }
   })
 
   return transacoes.reduce((acc, t) => acc + t.valor, 0)
+  */
 }
