@@ -305,7 +305,6 @@ export default function EditProductModal({
                     <p className="text-xs text-gray-400 mt-2">Imagens atuais: {images.length}</p>
                   </div>
                   
-                  {/* Área de upload de imagens */}
                   <div 
                     className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
                       dragActive 
@@ -315,7 +314,7 @@ export default function EditProductModal({
                     onDragEnter={handleDrag}
                     onDragLeave={handleDrag}
                     onDragOver={handleDrag}
-                    onDrop={handleDrop}
+                    onDrop={(e) => { handleDrop(e) }}
                   >
                     <input
                       type="file"
@@ -375,8 +374,7 @@ export default function EditProductModal({
                     </label>
                   </div>
                   
-                  {/* Mostrar imagens atuais */}
-                  {images.length > 0 && (
+                  {images.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2 mt-4">
                       {images.map((image, index) => {
                         // Garantir que a URL da imagem esteja normalizada
