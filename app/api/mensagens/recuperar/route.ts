@@ -75,10 +75,10 @@ export async function POST(request: Request) {
     })
   } catch (error: any) {
     console.error('❌ ERRO ao recuperar mensagem:', error)
-    console.error('Detalhes do erro:', error.message)
+    console.error('Detalhes do erro:', error instanceof Error ? error.message : error)
     console.error('Stack:', error.stack)
     return NextResponse.json(
-      { success: false, message: `Erro ao recuperar mensagem: ${error.message}` },
+      { success: false, message: `Erro ao recuperar mensagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}` },
       { status: 500 }
     )
   }
