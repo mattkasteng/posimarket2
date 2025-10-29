@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS "historico_status" (
 CREATE UNIQUE INDEX IF NOT EXISTS "carrinhos_usuarioId_key" ON "carrinhos"("usuarioId");
 CREATE UNIQUE INDEX IF NOT EXISTS "itens_carrinho_carrinhoId_produtoId_key" ON "itens_carrinho"("carrinhoId", "produtoId");
 
--- Foreign Keys
-ALTER TABLE "carrinhos" ADD CONSTRAINT IF NOT EXISTS "carrinhos_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuarios"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "itens_carrinho" ADD CONSTRAINT IF NOT EXISTS "itens_carrinho_carrinhoId_fkey" FOREIGN KEY ("carrinhoId") REFERENCES "carrinhos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "itens_carrinho" ADD CONSTRAINT IF NOT EXISTS "itens_carrinho_produtoId_fkey" FOREIGN KEY ("produtoId") REFERENCES "produtos"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "historico_status" ADD CONSTRAINT IF NOT EXISTS "historico_status_pedidoId_fkey" FOREIGN KEY ("pedidoId") REFERENCES "pedidos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- Foreign Keys (sem IF NOT EXISTS — Postgres não suporta nessa sintaxe)
+ALTER TABLE "carrinhos" ADD CONSTRAINT "carrinhos_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuarios"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "itens_carrinho" ADD CONSTRAINT "itens_carrinho_carrinhoId_fkey" FOREIGN KEY ("carrinhoId") REFERENCES "carrinhos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "itens_carrinho" ADD CONSTRAINT "itens_carrinho_produtoId_fkey" FOREIGN KEY ("produtoId") REFERENCES "produtos"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "historico_status" ADD CONSTRAINT "historico_status_pedidoId_fkey" FOREIGN KEY ("pedidoId") REFERENCES "pedidos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
