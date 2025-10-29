@@ -263,28 +263,29 @@ export default function ProductDetailsPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12 mb-8 lg:mb-16">
           {/* Galeria de imagens */}
-          <div className="space-y-4">
-            <div className="aspect-square relative overflow-hidden rounded-2xl">
+          <div className="space-y-3 lg:space-y-4">
+            <div className="aspect-square relative overflow-hidden rounded-xl lg:rounded-2xl">
               <Image
                 src={normalizeImageUrl(mockProduct.imagens[selectedImage])}
                 alt={mockProduct.nome}
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
               />
             </div>
             
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 sm:grid-cols-3 gap-2 lg:gap-4">
               {mockProduct.imagens.map((imagem: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`aspect-square relative overflow-hidden rounded-xl border-2 transition-all ${
+                  className={`aspect-square relative overflow-hidden rounded-lg lg:rounded-xl border-2 transition-all min-h-[60px] ${
                     selectedImage === index 
-                      ? 'border-primary-500' 
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-primary-500 ring-2 ring-primary-200' 
+                      : 'border-gray-200 active:border-gray-400'
                   }`}
                 >
                   <Image
@@ -292,7 +293,7 @@ export default function ProductDetailsPage() {
                     alt={`${mockProduct.nome} ${index + 1}`}
                     fill
                     className="object-cover"
-                    sizes="(max-width: 1024px) 33vw, 16vw"
+                    sizes="(max-width: 640px) 25vw, (max-width: 1024px) 33vw, 16vw"
                   />
                 </button>
               ))}
@@ -313,16 +314,16 @@ export default function ProductDetailsPage() {
                 )}
               </div>
               
-              <h1 className="text-3xl font-bold text-gray-900 mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 lg:mb-6">
                 {mockProduct.nome}
               </h1>
 
-              <div className="flex items-center space-x-4 mb-6">
-                <span className="text-3xl font-bold text-gray-900">
+              <div className="flex items-center space-x-3 lg:space-x-4 mb-4 lg:mb-6">
+                <span className="text-2xl sm:text-3xl font-bold text-gray-900">
                   R$ {mockProduct.preco.toLocaleString('pt-BR')}
                 </span>
                 {mockProduct.precoOriginal && (
-                  <span className="text-xl text-gray-500 line-through">
+                  <span className="text-lg sm:text-xl text-gray-500 line-through">
                     R$ {mockProduct.precoOriginal.toLocaleString('pt-BR')}
                   </span>
                 )}
@@ -344,10 +345,10 @@ export default function ProductDetailsPage() {
                           <button
                             key={medida.tamanho}
                             onClick={() => setSelectedSize(medida.tamanho)}
-                            className={`px-4 py-2 border rounded-lg transition-all ${
+                            className={`px-5 py-3 min-h-[48px] border-2 rounded-lg transition-all font-medium ${
                               selectedSize === medida.tamanho
-                                ? 'border-primary-500 bg-primary-50 text-primary-700'
-                                : 'border-gray-300 hover:border-gray-400'
+                                ? 'border-primary-500 bg-primary-50 text-primary-700 ring-2 ring-primary-200'
+                                : 'border-gray-300 active:border-gray-400 bg-white'
                             }`}
                           >
                             {medida.tamanho}
@@ -375,25 +376,27 @@ export default function ProductDetailsPage() {
 
             {/* Quantidade */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Quantidade</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Quantidade</h3>
               <div className="flex items-center space-x-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={quantity <= 1 || shouldLimitQuantity}
+                  className="min-w-[48px] min-h-[48px]"
                 >
-                  <Minus className="h-4 w-4" />
+                  <Minus className="h-5 w-5" />
                 </Button>
-                <span className="text-lg font-medium w-8 text-center">{quantity}</span>
+                <span className="text-lg font-medium w-12 text-center">{quantity}</span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(quantity + 1)}
                   disabled={shouldLimitQuantity}
                   title={shouldLimitQuantity ? 'Este produto único só pode ter 1 unidade' : ''}
+                  className="min-w-[48px] min-h-[48px]"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-5 w-5" />
                 </Button>
               </div>
               {shouldLimitQuantity && (
@@ -402,7 +405,7 @@ export default function ProductDetailsPage() {
             </div>
 
             {/* Ações */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button
                 className="flex-1 glass-button-primary"
                 onClick={handleAddToCart}
@@ -415,13 +418,13 @@ export default function ProductDetailsPage() {
               <Button
                 variant="outline"
                 onClick={handleToggleFavorite}
-                className={`${isProductFavorite ? 'bg-red-50 text-red-600 border-red-200' : ''}`}
+                className={`min-w-[48px] min-h-[48px] ${isProductFavorite ? 'bg-red-50 text-red-600 border-red-200' : ''}`}
               >
-                <Heart className={`h-4 w-4 ${isProductFavorite ? 'fill-current' : ''}`} />
+                <Heart className={`h-5 w-5 ${isProductFavorite ? 'fill-current' : ''}`} />
               </Button>
               
-              <Button variant="outline">
-                <Share2 className="h-4 w-4" />
+              <Button variant="outline" className="min-w-[48px] min-h-[48px]">
+                <Share2 className="h-5 w-5" />
               </Button>
             </div>
 

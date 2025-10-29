@@ -258,7 +258,7 @@ export default function EditProductModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4"
         onClick={onClose}
       >
         <motion.div
@@ -266,16 +266,16 @@ export default function EditProductModal({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+          className="w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto rounded-xl sm:rounded-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <Card className="glass-card-strong">
             <CardContent className="p-0">
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <Package className="h-6 w-6 text-primary-600" />
-                  <h2 className="text-2xl font-bold text-gray-900">
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+                <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                  <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600 flex-shrink-0" />
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 truncate">
                     Editar Produto
                   </h2>
                 </div>
@@ -283,14 +283,14 @@ export default function EditProductModal({
                   variant="ghost"
                   size="sm"
                   onClick={onClose}
-                  className="glass-button"
+                  className="glass-button min-w-[48px] min-h-[48px] flex-shrink-0"
                 >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
 
               {/* Form */}
-              <div className="p-6 space-y-6">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                 {/* Imagens - Movido para o topo para ser mais visível */}
                 <div className="space-y-4 border-b border-gray-200 pb-6">
                   <h3 className="text-lg font-semibold text-gray-900 flex items-center">

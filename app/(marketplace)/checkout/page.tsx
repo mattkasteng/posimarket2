@@ -82,21 +82,20 @@ export default function CheckoutPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center space-x-4 mb-4">
+          <div className="flex items-center space-x-3 lg:space-x-4 mb-4">
             <Link href="/carrinho">
-              <Button variant="ghost" className="glass-button">
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Voltar
+              <Button variant="ghost" className="glass-button min-w-[48px] min-h-[48px] p-2">
+                <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div className="flex items-center space-x-3">
-              <CreditCard className="h-8 w-8 text-primary-600" />
-              <h1 className="text-4xl font-bold text-gray-900">
+            <div className="flex items-center space-x-2 lg:space-x-3">
+              <CreditCard className="h-7 w-7 lg:h-8 lg:w-8 text-primary-600" />
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
                 Finalizar Pedido
               </h1>
             </div>
           </div>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-base lg:text-lg">
             Complete seus dados para finalizar a compra com segurança
           </p>
         </motion.div>

@@ -14,10 +14,10 @@ const buttonVariants = cva(
         destructive: 'glass-button bg-red-500 text-white border-0 hover:bg-red-600',
       },
       size: {
-        sm: 'h-9 px-4 text-sm',
-        default: 'h-12 px-6 text-base',
-        lg: 'h-14 px-8 text-lg',
-        icon: 'h-10 w-10',
+        sm: 'h-11 px-4 text-sm min-h-[44px]',
+        default: 'h-12 px-6 text-base min-h-[48px]',
+        lg: 'h-14 px-8 text-lg min-h-[56px]',
+        icon: 'h-12 w-12 min-h-[48px] min-w-[48px]',
       },
     },
     defaultVariants: {

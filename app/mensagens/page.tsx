@@ -429,12 +429,12 @@ export default function MensagensPage() {
           <p className="text-gray-600 mt-1">Gerencie suas conversas</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           {/* Sidebar com abas */}
-          <div className="lg:col-span-1">
+          <div className={`${selectedConversation ? 'hidden lg:block' : 'block'} lg:col-span-1`}>
             <Card className="glass-card-weak">
-              <CardContent className="p-4">
-                <div className="space-y-2">
+              <CardContent className="p-3 lg:p-4">
+                <div className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 overflow-x-auto lg:overflow-x-visible">
                   {tabs.map((tab) => {
                     const Icon = tab.icon
                     // Contador para conversas não lidas (apenas inbox)
@@ -450,7 +450,7 @@ export default function MensagensPage() {
                           setSelectedMessage(null)
                           setSelectedConversation(null)
                         }}
-                        className={`w-full flex items-center justify-between p-3 rounded-lg transition-all ${
+                        className={`flex-shrink-0 lg:w-full flex items-center justify-between p-3 rounded-lg transition-all min-h-[48px] ${
                           activeTab === tab.id
                             ? 'bg-primary-100 text-primary-700'
                             : 'hover:bg-gray-100'
@@ -461,7 +461,7 @@ export default function MensagensPage() {
                           <span className="font-medium">{tab.label}</span>
                         </div>
                         {count > 0 && (
-                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2">
                             {count}
                           </span>
                         )}
@@ -495,36 +495,36 @@ export default function MensagensPage() {
                           key={conversation.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="p-4 rounded-lg border-2 cursor-pointer transition-all border-gray-200 hover:border-primary-500 bg-white hover:bg-primary-50"
+                          className="p-3 lg:p-4 rounded-lg border-2 cursor-pointer transition-all border-gray-200 active:border-primary-500 bg-white active:bg-primary-50 touch-manipulation"
                           onClick={() => {
                             setSelectedConversation(conversation)
                             loadConversationMessages(conversation.id)
                           }}
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start space-x-3 flex-1">
-                              <Package className="h-5 w-5 text-primary-500 mt-1" />
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start space-x-2 lg:space-x-3 flex-1 min-w-0">
+                              <Package className="h-5 w-5 text-primary-500 mt-0.5 flex-shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-1">
-                                  <p className="text-sm font-semibold text-gray-900 truncate">
+                                <div className="flex items-center justify-between mb-1 gap-2">
+                                  <p className="text-sm lg:text-base font-semibold text-gray-900 truncate">
                                     {conversation.outroUsuario.nome}
                                   </p>
                                   {conversation.mensagensNaoLidas > 0 && (
-                                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full flex-shrink-0">
                                       {conversation.mensagensNaoLidas}
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-primary-600 font-medium mb-1">
+                                <p className="text-xs text-primary-600 font-medium mb-1 truncate">
                                   Sobre: {conversation.produtoNome}
                                 </p>
                                 {conversation.ultimaMensagem && (
-                                  <p className="text-sm text-gray-600 truncate">
-                                    {conversation.ultimaMensagem.remetenteNome}: {conversation.ultimaMensagem.texto}
+                                  <p className="text-sm text-gray-600 line-clamp-2 mb-1">
+                                    <span className="font-medium">{conversation.ultimaMensagem.remetenteNome}:</span> {conversation.ultimaMensagem.texto}
                                   </p>
                                 )}
                                 {conversation.ultimaMensagem && (
-                                  <p className="text-xs text-gray-500 mt-1">
+                                  <p className="text-xs text-gray-500">
                                     {formatDate(conversation.ultimaMensagem.createdAt)}
                                   </p>
                                 )}
@@ -547,71 +547,75 @@ export default function MensagensPage() {
                       className="mt-6"
                     >
                       {/* Cabeçalho da conversa */}
-                      <div className="bg-white border-2 border-gray-200 rounded-lg p-4 mb-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
+                      <div className="bg-white border-2 border-gray-200 rounded-lg p-3 lg:p-4 mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-center space-x-2 lg:space-x-3 flex-1 min-w-0">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedConversation(null)}
+                              className="min-w-[48px] min-h-[48px] flex-shrink-0"
                             >
-                              <ArrowLeft className="h-4 w-4" />
+                              <ArrowLeft className="h-5 w-5" />
                             </Button>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
                                 {selectedConversation.outroUsuario.nome}
                               </h3>
-                              <p className="text-sm text-primary-600">
-                                <Package className="h-4 w-4 inline mr-1" />
-                                Assunto: {selectedConversation.produtoNome}
+                              <p className="text-xs sm:text-sm text-primary-600 truncate">
+                                <Package className="h-3 w-3 sm:h-4 sm:w-4 inline mr-1" />
+                                {selectedConversation.produtoNome}
                               </p>
                             </div>
                           </div>
-                          {activeTab === 'deleted' ? (
-                            <div className="flex space-x-2">
+                          <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
+                            {activeTab === 'deleted' ? (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRecoverConversation(selectedConversation.id)}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50 min-h-[44px] text-sm"
+                                >
+                                  <RotateCcw className="h-4 w-4 mr-2" />
+                                  Recuperar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handlePermanentDeleteConversation(selectedConversation.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 min-h-[44px] text-sm"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  <span className="hidden sm:inline">Deletar Permanentemente</span>
+                                  <span className="sm:hidden">Deletar</span>
+                                </Button>
+                              </>
+                            ) : (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleRecoverConversation(selectedConversation.id)}
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              >
-                                <RotateCcw className="h-4 w-4 mr-2" />
-                                Recuperar
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePermanentDeleteConversation(selectedConversation.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                                onClick={() => handleDeleteConversation(selectedConversation.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300 min-h-[44px] text-sm"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Deletar Permanentemente
+                                Deletar Conversa
                               </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteConversation(selectedConversation.id)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Deletar Conversa
-                            </Button>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
 
                       {/* Thread de mensagens */}
-                      <div className="bg-white border-2 border-gray-200 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto">
+                      <div className="bg-white border-2 border-gray-200 rounded-lg p-3 lg:p-4 mb-4 max-h-[60vh] lg:max-h-96 overflow-y-auto">
                         {!selectedConversation.mensagens ? (
                           <div className="flex justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
                           </div>
                         ) : selectedConversation.mensagens.length === 0 ? (
-                          <p className="text-center text-gray-500 py-8">Nenhuma mensagem nesta conversa</p>
+                          <p className="text-center text-gray-500 py-8 text-sm">Nenhuma mensagem nesta conversa</p>
                         ) : (
-                          <div className="space-y-4">
+                          <div className="space-y-3 lg:space-y-4">
                             {selectedConversation.mensagens.map((mensagem) => {
                               const isFromMe = mensagem.remetenteId === currentUser?.id
                               return (
@@ -619,12 +623,12 @@ export default function MensagensPage() {
                                   key={mensagem.id}
                                   className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
                                 >
-                                  <div className={`max-w-[70%] rounded-lg p-3 ${
+                                  <div className={`max-w-[85%] sm:max-w-[75%] lg:max-w-[70%] rounded-lg p-3 ${
                                     isFromMe
                                       ? 'bg-primary-100 text-primary-900'
                                       : 'bg-gray-100 text-gray-900'
                                   }`}>
-                                    <div className="flex items-center space-x-2 mb-1">
+                                    <div className="flex items-center space-x-2 mb-1 flex-wrap">
                                       <span className="text-xs font-semibold">
                                         {isFromMe ? 'Você' : mensagem.remetenteNome}
                                       </span>
@@ -632,7 +636,7 @@ export default function MensagensPage() {
                                         {formatDate(mensagem.createdAt)}
                                       </span>
                                     </div>
-                                    <p className="text-sm whitespace-pre-wrap">{mensagem.texto}</p>
+                                    <p className="text-sm whitespace-pre-wrap break-words">{mensagem.texto}</p>
                                   </div>
                                 </div>
                               )
@@ -643,30 +647,32 @@ export default function MensagensPage() {
 
                       {/* Campo de resposta - apenas se não estiver em deletadas */}
                       {activeTab !== 'deleted' && (
-                        <div className="bg-white border-2 border-gray-200 rounded-lg p-4">
+                        <div className="bg-white border-2 border-gray-200 rounded-lg p-3 lg:p-4">
                           <textarea
                             value={replyText}
                             onChange={(e) => setReplyText(e.target.value)}
                             placeholder="Digite sua resposta..."
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                            className="w-full px-3 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none min-h-[60px]"
                             disabled={isSending}
                           />
-                          <div className="flex justify-end mt-2">
+                          <div className="flex justify-end mt-3">
                             <Button
                               onClick={handleSendReply}
                               disabled={!replyText.trim() || isSending}
-                              className="glass-button-primary"
+                              className="glass-button-primary min-h-[48px]"
                             >
                               {isSending ? (
                                 <>
                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Enviando...
+                                  <span className="hidden sm:inline">Enviando...</span>
+                                  <span className="sm:hidden">...</span>
                                 </>
                               ) : (
                                 <>
                                   <Send className="h-4 w-4 mr-2" />
-                                  Enviar Resposta
+                                  <span className="hidden sm:inline">Enviar Resposta</span>
+                                  <span className="sm:hidden">Enviar</span>
                                 </>
                               )}
                             </Button>

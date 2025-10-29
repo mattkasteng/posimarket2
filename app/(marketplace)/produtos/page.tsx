@@ -355,32 +355,38 @@ export default function ProductsPage() {
 
             {/* Paginação */}
             {filteredProducts.length > 0 && (
-              <div className="flex justify-center items-center mt-12 gap-2">
+              <div className="flex flex-wrap justify-center items-center mt-8 lg:mt-12 gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  className="min-h-[44px] min-w-[80px]"
                 >
-                  Anterior
+                  <span className="hidden sm:inline">Anterior</span>
+                  <span className="sm:hidden">Ant</span>
                 </Button>
                 
-                {Array.from({ length: Math.max(1, totalPages) }, (_, i) => i + 1).map(page => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    onClick={() => setCurrentPage(page)}
-                    className={currentPage === page ? "bg-primary-600 text-white" : ""}
-                  >
-                    {page}
-                  </Button>
-                ))}
+                <div className="flex flex-wrap justify-center gap-2">
+                  {Array.from({ length: Math.max(1, totalPages) }, (_, i) => i + 1).map(page => (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      onClick={() => setCurrentPage(page)}
+                      className={`min-h-[44px] min-w-[44px] ${currentPage === page ? "bg-primary-600 text-white" : ""}`}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </div>
                 
                 <Button
                   variant="outline"
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages || totalPages <= 1}
+                  className="min-h-[44px] min-w-[80px]"
                 >
-                  Próximo
+                  <span className="hidden sm:inline">Próximo</span>
+                  <span className="sm:hidden">Próx</span>
                 </Button>
               </div>
             )}
