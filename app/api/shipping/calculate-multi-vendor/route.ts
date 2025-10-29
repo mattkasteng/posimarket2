@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Verificar se Posilog está disponível para este vendedor
-      const allItemsUsedOrSeminovo = produtosVendedor.every(p => 
+      const allItemsUsedOrSeminovo = produtosVendedor.every((p: any) => 
         p.condicao === 'USADO' || p.condicao === 'SEMINOVO'
       )
       
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
           estado: origemEstado,
           isAdmin: isAdmin
         },
-        produtos: produtosVendedor.map(p => ({
+        produtos: produtosVendedor.map((p: any) => ({
           id: p.id,
           nome: p.nome,
           quantidade: p.quantidade
