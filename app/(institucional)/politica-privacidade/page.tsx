@@ -15,7 +15,7 @@ export default function PoliticaPrivacidadePage() {
             Política de Privacidade
           </h1>
           <p className="text-center text-gray-600 mb-12">
-            Última atualização: 02 de outubro de 2025
+            Última atualização: 27 de outubro de 2025
           </p>
 
           <Card className="mb-8">
@@ -89,15 +89,47 @@ export default function PoliticaPrivacidadePage() {
 
               <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">6. Segurança dos Dados</h2>
               <p className="text-gray-700 mb-4">
-                Implementamos medidas técnicas e organizacionais para proteger seus dados:
+                Implementamos medidas técnicas e organizacionais de última geração para proteger seus dados:
               </p>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">6.1 Criptografia</h3>
               <ul className="list-disc pl-6 text-gray-700 mb-4">
-                <li>Criptografia SSL/TLS para transmissão de dados</li>
-                <li>Servidores seguros e protegidos</li>
-                <li>Controle de acesso restrito</li>
-                <li>Monitoramento contínuo de segurança</li>
-                <li>Backups regulares</li>
-                <li>Treinamento de equipe em proteção de dados</li>
+                <li><strong>Em Trânsito:</strong> Criptografia SSL/TLS (HTTPS) obrigatória para todas as comunicações</li>
+                <li><strong>Em Repouso:</strong> Criptografia AES-256-CBC para dados sensíveis armazenados</li>
+                <li><strong>Senhas:</strong> Hash seguro com algoritmo SHA-256 (em produção: bcrypt)</li>
+                <li><strong>Dados Sensíveis:</strong> CPF, dados bancários e informações pessoais são criptografados</li>
+              </ul>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">6.2 Sistema de Auditoria</h3>
+              <ul className="list-disc pl-6 text-gray-700 mb-4">
+                <li>Registro completo de todas as ações críticas do sistema</li>
+                <li>Logs de login, logout e autenticação</li>
+                <li>Rastreamento de todas as transações e pedidos</li>
+                <li>Registro de ações administrativas</li>
+                <li>Monitoramento de exportação e exclusão de dados (LGPD)</li>
+                <li>Armazenamento seguro de logs com IP, timestamp e user agent</li>
+              </ul>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">6.3 Detecção de Fraudes</h3>
+              <ul className="list-disc pl-6 text-gray-700 mb-4">
+                <li>Sistema automatizado de análise de transações suspeitas</li>
+                <li>Monitoramento de padrões anômalos de comportamento</li>
+                <li>Bloqueio automático de transações de alto risco</li>
+                <li>Verificação de múltiplos pedidos em pouco tempo</li>
+                <li>Análise de valores atípicos de transações</li>
+                <li>Validação de usuários não verificados ou suspensos</li>
+              </ul>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">6.4 Proteções Adicionais</h3>
+              <ul className="list-disc pl-6 text-gray-700 mb-4">
+                <li>Servidores seguros e protegidos com firewall</li>
+                <li>Controle de acesso restrito baseado em funções</li>
+                <li>Monitoramento contínuo de segurança 24/7</li>
+                <li>Backups regulares e automatizados</li>
+                <li>Validação rigorosa de dados de entrada</li>
+                <li>Mascaramento de dados sensíveis em logs</li>
+                <li>Rate limiting para prevenir ataques</li>
+                <li>Treinamento contínuo da equipe em proteção de dados</li>
               </ul>
 
               <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">7. Seus Direitos (LGPD)</h2>
@@ -115,11 +147,41 @@ export default function PoliticaPrivacidadePage() {
                 Para exercer seus direitos, entre em contato: <strong>privacidade@marketplacepositivo.com.br</strong>
               </p>
 
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">8. Cookies</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">8. Cookies e Consentimento</h2>
+              
+              <h3 className="text-xl font-bold text-gray-900 mb-3">8.1 Banner de Consentimento LGPD/GDPR</h3>
               <p className="text-gray-700 mb-4">
-                Utilizamos cookies e tecnologias similares para melhorar sua experiência. Você pode 
-                gerenciar cookies nas configurações do seu navegador. Alguns cookies são essenciais 
-                para o funcionamento da plataforma.
+                Em conformidade com a LGPD e GDPR, solicitamos seu consentimento para uso de cookies. 
+                O banner de consentimento aparece automaticamente na primeira visita e permite que você 
+                escolha quais tipos de cookies aceitar.
+              </p>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">8.2 Tipos de Cookies Utilizados</h3>
+              <ul className="list-disc pl-6 text-gray-700 mb-4">
+                <li><strong>Cookies Necessários:</strong> Essenciais para funcionamento básico da plataforma (sessão, autenticação, carrinho) - sempre ativos</li>
+                <li><strong>Cookies de Análise:</strong> Coletam informações sobre como você usa o site para melhorar a experiência (requer consentimento)</li>
+                <li><strong>Cookies de Marketing:</strong> Usados para personalizar anúncios e campanhas de marketing (requer consentimento)</li>
+              </ul>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">8.3 Gerenciamento de Cookies</h3>
+              <p className="text-gray-700 mb-4">
+                Você pode a qualquer momento:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 mb-4">
+                <li>Alterar suas preferências de cookies através do banner</li>
+                <li>Aceitar ou rejeitar categorias específicas de cookies</li>
+                <li>Gerenciar cookies nas configurações do navegador</li>
+                <li>Excluir cookies existentes do seu navegador</li>
+              </ul>
+
+              <p className="text-gray-700 mb-4">
+                <strong>Nota:</strong> Algumas funcionalidades podem ficar limitadas se você desabilitar cookies necessários.
+              </p>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-3">8.4 Expiração do Consentimento</h3>
+              <p className="text-gray-700 mb-4">
+                Seu consentimento é válido por 1 ano. Após esse período, o banner será exibido novamente 
+                para que você possa revisar e atualizar suas preferências.
               </p>
 
               <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">9. Retenção de Dados</h2>
@@ -135,19 +197,49 @@ export default function PoliticaPrivacidadePage() {
                 Após esse período, os dados são anonimizados ou excluídos de forma segura.
               </p>
 
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">10. Menores de Idade</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">10. Sistema de Reserva de Estoque</h2>
+              <p className="text-gray-700 mb-4">
+                Para garantir transparência e prevenir venda de produtos acima do estoque disponível:
+              </p>
+              <ul className="list-disc pl-6 text-gray-700 mb-4">
+                <li>Quando você adiciona um item ao carrinho, ele é temporariamente reservado para você</li>
+                <li>A reserva tem validade de 15 minutos</li>
+                <li>Se você não concluir a compra em 15 minutos, a reserva expira automaticamente e o item fica disponível novamente</li>
+                <li>Cada ação no carrinho renova a reserva por mais 15 minutos</li>
+                <li>Isso garante que você não perca o produto enquanto finaliza sua compra</li>
+                <li>Também previne que o mesmo produto seja vendido para múltiplos compradores simultaneamente</li>
+              </ul>
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">11. Menores de Idade</h2>
               <p className="text-gray-700 mb-4">
                 Nossos serviços são destinados a maiores de 18 anos. Para menores, é necessária 
                 autorização e supervisão dos pais ou responsáveis legais.
               </p>
 
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">11. Alterações nesta Política</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">12. Exercício dos Direitos LGPD</h2>
+              <p className="text-gray-700 mb-4">
+                Para exercer seus direitos de forma simples e direta:
+              </p>
+
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+                <p className="text-gray-700 mb-2">
+                  <strong>📤 Exportar Seus Dados:</strong> Você pode solicitar todos os seus dados pessoais em formato JSON através do dashboard ou contactando nosso suporte.
+                </p>
+                <p className="text-gray-700 mb-2">
+                  <strong>🗑️ Excluir Seus Dados:</strong> Você tem o direito ao esquecimento. Podemos anonimizar ou excluir completamente seus dados pessoais conforme solicitado.
+                </p>
+                <p className="text-gray-700">
+                  <strong>📧 Contato:</strong> privacidade@marketplacepositivo.com.br
+                </p>
+              </div>
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">13. Alterações nesta Política</h2>
               <p className="text-gray-700 mb-4">
                 Podemos atualizar esta política periodicamente. Notificaremos sobre mudanças 
                 significativas por email ou através da plataforma.
               </p>
 
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">12. Contato</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 mt-8">14. Contato</h2>
               <p className="text-gray-700 mb-2">
                 <strong>Encarregado de Dados (DPO):</strong>
               </p>

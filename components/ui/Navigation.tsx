@@ -4,23 +4,24 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from './Button'
-import { ShoppingCart, User, BookOpen, Home, LogOut, LayoutDashboard, Bell, Mail, Heart } from 'lucide-react'
+import { ShoppingCart, User, BookOpen, Home, LogOut, LayoutDashboard, Bell, Mail, Heart, Shirt } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { MobileNavigation } from './MobileNavigation'
+import { useSession, signOut } from 'next-auth/react'
 
 const navigation = [
   { name: 'Início', href: '/', icon: Home },
   { name: 'Produtos', href: '/produtos', icon: BookOpen },
+  { name: 'Prova de Uniformes', href: '/prova-de-uniformes', icon: Shirt },
   { name: 'Carrinho', href: '/carrinho', icon: ShoppingCart },
 ]
 
 export function Navigation() {
   const pathname = usePathname()
+  const { data: session, status } = useSession()
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
   const [favoritesCount, setFavoritesCount] = useState(0)
@@ -56,6 +57,24 @@ export function Navigation() {
     }
     
     loadUnreadCount()
+
+    // Atualizar quando notificações mudarem
+    const handleNotificationUpdate = () => {
+      loadUnreadCount()
+    }
+
+    // Escutar mudanças no localStorage
+    window.addEventListener('storage', handleNotificationUpdate)
+    // Escutar evento customizado para mudanças locais
+    window.addEventListener('notificationsUpdated', handleNotificationUpdate)
+    // Atualizar quando a página ganha foco (usuário retorna de outra aba)
+    window.addEventListener('focus', handleNotificationUpdate)
+
+    return () => {
+      window.removeEventListener('storage', handleNotificationUpdate)
+      window.removeEventListener('notificationsUpdated', handleNotificationUpdate)
+      window.removeEventListener('focus', handleNotificationUpdate)
+    }
   }, [user])
 
   // Carregar contador de favoritos
@@ -98,11 +117,12 @@ export function Navigation() {
   useEffect(() => {
     const loadCartCount = () => {
       if (typeof window !== 'undefined') {
-        const savedCart = localStorage.getItem('cart')
+        const savedCart = localStorage.getItem('posimarket_cart')
         if (savedCart) {
           try {
-            const cart = JSON.parse(savedCart)
-            setCartItemsCount(cart.length)
+            const cartData = JSON.parse(savedCart)
+            const totalItems = cartData.items ? cartData.items.reduce((sum: number, item: any) => sum + item.quantidade, 0) : 0
+            setCartItemsCount(totalItems)
           } catch (e) {
             console.error('Erro ao carregar carrinho:', e)
             setCartItemsCount(0)
@@ -129,37 +149,115 @@ export function Navigation() {
     }
   }, [])
 
+  // Carregar contador de mensagens não lidas
   useEffect(() => {
-    // Verificar se o usuário está logado
+    const loadUnreadMessagesCount = async () => {
+      if (!user?.id) {
+        setUnreadMessagesCount(0)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/chat?usuarioId=${user.id}`)
+        const data = await response.json()
+        
+        if (data.success && data.conversas) {
+          const totalUnread = data.conversas.reduce((sum: number, conversa: any) => {
+            return sum + (conversa.mensagensNaoLidas || 0)
+          }, 0)
+          
+          setUnreadMessagesCount(totalUnread)
+          console.log('💬 Mensagens não lidas:', totalUnread)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar mensagens não lidas:', error)
+        setUnreadMessagesCount(0)
+      }
+    }
+
+    loadUnreadMessagesCount()
+
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(loadUnreadMessagesCount, 30000)
+
+    // Atualizar quando voltar para a página
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadMessagesCount()
+      }
+    }
+
+    // Atualizar quando eventos customizados ocorrerem
+    const handleMessagesUpdate = () => {
+      loadUnreadMessagesCount()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('messagesUpdated', handleMessagesUpdate)
+    window.addEventListener('focus', loadUnreadMessagesCount)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('messagesUpdated', handleMessagesUpdate)
+      window.removeEventListener('focus', loadUnreadMessagesCount)
+    }
+  }, [user])
+
+  useEffect(() => {
+    // SOLUÇÃO HÍBRIDA: Verificar NextAuth E localStorage
     const checkAuth = () => {
+      // 1. Tentar NextAuth primeiro
+      if (status === 'authenticated' && session?.user) {
+        const userData = session.user as any
+        console.log('✅ Navigation - NextAuth session encontrada:', userData.email)
+        setUser(userData)
+        setIsLoading(false)
+        return
+      }
+      
+      // 2. Fallback para localStorage
       const isLoggedIn = localStorage.getItem('isLoggedIn')
       const userData = localStorage.getItem('user')
+      const nextAuthLogin = localStorage.getItem('nextauth-login')
       
-      if (isLoggedIn === 'true' && userData) {
+      if (isLoggedIn === 'true' && userData && nextAuthLogin === 'true') {
         try {
           const parsedUser = JSON.parse(userData)
+          console.log('✅ Navigation - Usuário encontrado no localStorage:', parsedUser.email)
           setUser(parsedUser)
         } catch (error) {
           console.error('Erro ao parsear dados do usuário:', error)
         }
+      } else {
+        setUser(null)
       }
+      
       setIsLoading(false)
     }
 
-    checkAuth()
+    if (status === 'loading') {
+      setIsLoading(true)
+    } else {
+      checkAuth()
+    }
+    
     // Verificar mudanças no localStorage (para quando fizer login/logout)
     window.addEventListener('storage', checkAuth)
     
     return () => {
       window.removeEventListener('storage', checkAuth)
     }
-  }, [])
+  }, [session, status])
 
   const handleLogout = () => {
+    // Limpar localStorage
     localStorage.removeItem('user')
     localStorage.removeItem('isLoggedIn')
-    setUser(null)
-    window.location.href = '/'
+    localStorage.removeItem('nextauth-login')
+    
+    // Fazer logout via NextAuth
+    signOut({ callbackUrl: '/' })
   }
 
   const getDashboardUrl = () => {
@@ -251,20 +349,21 @@ export function Navigation() {
 
                   {/* Notification Bell */}
                   <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowNotifications(!showNotifications)}
-                      className="relative"
-                    >
-                      <Bell className="h-4 w-4" />
-                      {/* Notification Badge - só mostra se houver notificações não lidas */}
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                          {unreadCount}
-                        </span>
-                      )}
-                    </Button>
+                    <Link href="/notificacoes">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="relative"
+                      >
+                        <Bell className="h-4 w-4" />
+                        {/* Notification Badge - só mostra se houver notificações não lidas */}
+                        {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                            {unreadCount}
+                          </span>
+                        )}
+                      </Button>
+                    </Link>
                   </div>
 
                   {/* User Menu */}
@@ -333,18 +432,6 @@ export function Navigation() {
         <MobileNavigation />
       </div>
 
-      {/* Notification Center */}
-      {showNotifications && user && (
-        <div className="fixed inset-0 z-50 flex items-start justify-end p-4">
-          <div className="bg-black/50 absolute inset-0" onClick={() => setShowNotifications(false)} />
-          <div className="relative w-full max-w-md">
-            <NotificationCenter
-              usuarioId={user.id}
-              onClose={() => setShowNotifications(false)}
-            />
-          </div>
-        </div>
-      )}
     </>
   )
 }

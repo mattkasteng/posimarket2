@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 interface VendedorStats {
   produtosAtivos: number
@@ -12,6 +14,8 @@ interface VendedorStats {
 }
 
 export default function VendedorDashboard() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<VendedorStats | null>(null)
@@ -28,91 +32,55 @@ export default function VendedorDashboard() {
     complemento: '',
     bairro: '',
     cidade: '',
-    estado: '',
-    pixKey: '',
-    pixType: 'cpf'
+    estado: ''
   })
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const isLoggedIn = localStorage.getItem('isLoggedIn')
-        const userData = localStorage.getItem('user')
-
-        if (isLoggedIn === 'true' && userData) {
+    console.log('🔍 VendedorDashboard useEffect - Status:', status)
+    console.log('🔍 VendedorDashboard useEffect - Session:', session)
+    
+    // SOLUÇÃO HÍBRIDA: Verificar NextAuth E localStorage
+    const checkAuth = () => {
+      // 1. Tentar NextAuth primeiro
+      if (status === 'authenticated' && session?.user) {
+        const userData = session.user as any
+        console.log('✅ VendedorDashboard - NextAuth session encontrada:', userData.email)
+        
+        if (userData.tipoUsuario === 'PAI_RESPONSAVEL' || userData.tipoUsuario === 'ESCOLA') {
+          console.log('✅ VendedorDashboard - Usuário vendedor via NextAuth')
+          setUser(userData)
+          setEditForm({
+            nome: userData.nome || '',
+            email: userData.email || '',
+            telefone: userData.telefone || '',
+            cpf: userData.cpf || '',
+            cep: userData.endereco?.cep || '',
+            logradouro: userData.endereco?.logradouro || '',
+            numero: userData.endereco?.numero || '',
+            complemento: userData.endereco?.complemento || '',
+            bairro: userData.endereco?.bairro || '',
+            cidade: userData.endereco?.cidade || '',
+            estado: userData.endereco?.estado || ''
+          })
+          setIsLoading(false)
+          return
+        }
+      }
+      
+      // 2. Fallback para localStorage
+      console.log('🔍 VendedorDashboard - Verificando localStorage...')
+      const isLoggedIn = localStorage.getItem('isLoggedIn')
+      const userData = localStorage.getItem('user')
+      const nextAuthLogin = localStorage.getItem('nextauth-login')
+      
+      if (isLoggedIn === 'true' && userData && nextAuthLogin === 'true') {
+        try {
           const parsedUser = JSON.parse(userData)
+          console.log('✅ VendedorDashboard - Usuário encontrado no localStorage:', parsedUser.email)
           
-          // Buscar dados completos do usuário da API
-          try {
-            const response = await fetch(`/api/usuarios/${parsedUser.id}`)
-            if (response.ok) {
-              const userDetails = await response.json()
-              if (userDetails.success) {
-                const completeUser = userDetails.user
-                setUser(completeUser)
-                
-                // Popular o formulário de edição com dados completos
-                setEditForm({
-                  nome: completeUser.nome || '',
-                  email: completeUser.email || '',
-                  telefone: completeUser.telefone || '',
-                  cpf: completeUser.cpf || '',
-                  cep: completeUser.endereco?.cep || '',
-                  logradouro: completeUser.endereco?.logradouro || '',
-                  numero: completeUser.endereco?.numero || '',
-                  complemento: completeUser.endereco?.complemento || '',
-                  bairro: completeUser.endereco?.bairro || '',
-                  cidade: completeUser.endereco?.cidade || '',
-                  estado: completeUser.endereco?.estado || '',
-                  pixKey: completeUser.pixKey || '',
-                  pixType: completeUser.pixType || 'cpf'
-                })
-                
-                console.log('✅ Dados completos do usuário carregados:', completeUser)
-              } else {
-                // Fallback para dados do localStorage
-                setUser(parsedUser)
-                setEditForm({
-                  nome: parsedUser.nome || '',
-                  email: parsedUser.email || '',
-                  telefone: parsedUser.telefone || '',
-                  cpf: parsedUser.cpf || '',
-                  cep: parsedUser.endereco?.cep || '',
-                  logradouro: parsedUser.endereco?.logradouro || '',
-                  numero: parsedUser.endereco?.numero || '',
-                  complemento: parsedUser.endereco?.complemento || '',
-                  bairro: parsedUser.endereco?.bairro || '',
-                  cidade: parsedUser.endereco?.cidade || '',
-                  estado: parsedUser.endereco?.estado || '',
-                  pixKey: parsedUser.pixKey || '',
-                  pixType: parsedUser.pixType || 'cpf'
-                })
-                console.log('⚠️ Usando dados do localStorage:', parsedUser)
-              }
-            } else {
-              // Fallback para dados do localStorage
-              setUser(parsedUser)
-              setEditForm({
-                nome: parsedUser.nome || '',
-                email: parsedUser.email || '',
-                telefone: parsedUser.telefone || '',
-                cpf: parsedUser.cpf || '',
-                cep: parsedUser.endereco?.cep || '',
-                logradouro: parsedUser.endereco?.logradouro || '',
-                numero: parsedUser.endereco?.numero || '',
-                complemento: parsedUser.endereco?.complemento || '',
-                bairro: parsedUser.endereco?.bairro || '',
-                cidade: parsedUser.endereco?.cidade || '',
-                estado: parsedUser.endereco?.estado || '',
-                pixKey: parsedUser.pixKey || '',
-                pixType: parsedUser.pixType || 'cpf'
-              })
-              console.log('⚠️ Usando dados do localStorage (API falhou):', parsedUser)
-            }
-          } catch (apiError) {
-            console.error('❌ Erro ao buscar dados do usuário da API:', apiError)
-            // Fallback para dados do localStorage
+          if (parsedUser.tipoUsuario === 'PAI_RESPONSAVEL' || parsedUser.tipoUsuario === 'ESCOLA') {
+            console.log('✅ VendedorDashboard - Usuário vendedor via localStorage')
             setUser(parsedUser)
             setEditForm({
               nome: parsedUser.nome || '',
@@ -125,28 +93,37 @@ export default function VendedorDashboard() {
               complemento: parsedUser.endereco?.complemento || '',
               bairro: parsedUser.endereco?.bairro || '',
               cidade: parsedUser.endereco?.cidade || '',
-              estado: parsedUser.endereco?.estado || '',
-              pixKey: parsedUser.pixKey || '',
-              pixType: parsedUser.pixType || 'cpf'
+              estado: parsedUser.endereco?.estado || ''
             })
-            console.log('⚠️ Usando dados do localStorage (erro na API):', parsedUser)
+            setIsLoading(false)
+            return
+          } else {
+            console.log('❌ VendedorDashboard - Usuário não é vendedor')
+            router.push('/dashboard/admin')
+            return
           }
-          
-          console.log('Usuário logado no Dashboard Vendedor:', parsedUser)
-        } else {
-          console.log('Usuário não logado, redirecionando para login')
-          window.location.href = '/login'
+        } catch (error) {
+          console.error('❌ Erro ao parsear dados do localStorage:', error)
         }
-      } catch (error) {
-        console.error('Erro ao verificar autenticação no Dashboard Vendedor:', error)
-        window.location.href = '/login'
-      } finally {
-        setIsLoading(false)
+      }
+      
+      // 3. Se chegou aqui, não está autenticado
+      console.log('❌ VendedorDashboard - Nenhuma autenticação encontrada')
+      if (status !== 'loading') {
+        router.push('/login')
       }
     }
-
-    checkAuth()
-  }, [])
+    
+    if (status === 'loading') {
+      console.log('⏳ VendedorDashboard - Aguardando NextAuth carregar...')
+      // Aguardar um pouco e tentar localStorage
+      setTimeout(() => {
+        checkAuth()
+      }, 1000)
+    } else {
+      checkAuth()
+    }
+  }, [session, status, router])
 
   // Buscar estatísticas do vendedor
   useEffect(() => {
@@ -176,36 +153,51 @@ export default function VendedorDashboard() {
   const handleSaveUserInfo = async () => {
     setIsSaving(true)
     try {
-      // Simular salvamento - em produção, aqui seria uma chamada para a API
-      const updatedUser = {
-        ...user,
-        nome: editForm.nome,
-        email: editForm.email,
-        telefone: editForm.telefone,
-        cpf: editForm.cpf,
-        pixKey: editForm.pixKey,
-        pixType: editForm.pixType,
-        endereco: {
-          ...user.endereco,
-          cep: editForm.cep,
-          logradouro: editForm.logradouro,
-          numero: editForm.numero,
-          complemento: editForm.complemento,
-          bairro: editForm.bairro,
-          cidade: editForm.cidade,
-          estado: editForm.estado
-        }
+      // Chamar API para atualizar dados no banco
+      const response = await fetch(`/api/usuarios/${user.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nome: editForm.nome,
+          email: editForm.email,
+          telefone: editForm.telefone,
+          cpf: editForm.cpf,
+          endereco: {
+            cep: editForm.cep,
+            logradouro: editForm.logradouro,
+            numero: editForm.numero,
+            complemento: editForm.complemento,
+            bairro: editForm.bairro,
+            cidade: editForm.cidade,
+            estado: editForm.estado
+          }
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao salvar')
       }
 
-      // Atualizar localStorage
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-      setUser(updatedUser)
-      setShowEditModal(false)
+      const result = await response.json()
       
-      alert('Informações atualizadas com sucesso!')
+      if (result.success) {
+        // Atualizar localStorage com dados do servidor
+        const updatedUser = result.user
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+        setUser(updatedUser)
+        setShowEditModal(false)
+        
+        alert('Informações atualizadas com sucesso!')
+        console.log('✅ Dados atualizados no servidor e localStorage')
+      } else {
+        throw new Error(result.error || 'Erro ao salvar')
+      }
     } catch (error) {
-      console.error('Erro ao salvar:', error)
-      alert('Erro ao salvar as informações. Tente novamente.')
+      console.error('❌ Erro ao salvar:', error)
+      alert(`Erro ao salvar as informações: ${error.message || 'Tente novamente.'}`)
     } finally {
       setIsSaving(false)
     }
@@ -367,7 +359,7 @@ export default function VendedorDashboard() {
                 <span className="text-2xl">💳</span>
                 <div>
                   <p className="font-semibold text-gray-900">Financeiro</p>
-                  <p className="text-sm text-gray-600">Solicitar saque</p>
+                  <p className="text-sm text-gray-600">Ver ganhos e vendas</p>
                 </div>
               </div>
             </div>
@@ -483,26 +475,6 @@ export default function VendedorDashboard() {
               </div>
             </div>
 
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Informações Financeiras</h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p><strong>Chave PIX:</strong> {user.pixKey ? user.pixKey : 'Não configurada'}</p>
-                {user.pixKey && user.pixType && (
-                  <p><strong>Tipo:</strong> {
-                    user.pixType === 'cpf' ? 'CPF' :
-                    user.pixType === 'email' ? 'E-mail' :
-                    user.pixType === 'telefone' ? 'Telefone' :
-                    'Chave Aleatória'
-                  }</p>
-                )}
-                {!user.pixKey && (
-                  <p className="text-yellow-600 font-medium">
-                    <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-                    Configure sua chave PIX na seção Financeiro
-                  </p>
-                )}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -665,46 +637,6 @@ export default function VendedorDashboard() {
                           <option value="TO">Tocantins</option>
                         </select>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Informações PIX */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Chave PIX</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tipo da Chave PIX</label>
-                        <select
-                          value={editForm.pixType}
-                          onChange={(e) => setEditForm({...editForm, pixType: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="cpf">CPF</option>
-                          <option value="email">E-mail</option>
-                          <option value="telefone">Telefone</option>
-                          <option value="aleatoria">Chave Aleatória</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Chave PIX</label>
-                        <input
-                          type="text"
-                          value={editForm.pixKey}
-                          onChange={(e) => setEditForm({...editForm, pixKey: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder={
-                            editForm.pixType === 'cpf' ? '000.000.000-00' :
-                            editForm.pixType === 'email' ? 'seu@email.com' :
-                            editForm.pixType === 'telefone' ? '(11) 99999-9999' :
-                            'chave-aleatoria-exemplo'
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-2 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        💡 <strong>Dica:</strong> Sua chave PIX será usada para receber pagamentos. Você também pode configurá-la na seção Financeiro.
-                      </p>
                     </div>
                   </div>
 

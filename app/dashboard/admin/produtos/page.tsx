@@ -13,6 +13,11 @@ export default function ProdutosPage() {
     vendedorId: ''
   })
   const [produtosFiltrados, setProdutosFiltrados] = useState<any[]>([])
+  const [produtoEditando, setProdutoEditando] = useState<any>(null)
+  const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
+  const [modelos, setModelos] = useState<any[]>([])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -41,6 +46,13 @@ export default function ProdutosPage() {
           if (data.success) {
             setProdutos(data.produtos)
             setEstatisticas(data.estatisticas)
+          }
+          
+          // Carregar modelos de uniforme
+          const modelosResponse = await fetch('/api/uniformes/modelos')
+          const modelosData = await modelosResponse.json()
+          if (modelosData.success) {
+            setModelos(modelosData.modelos)
           }
         } else {
           window.location.href = '/login'
@@ -116,6 +128,168 @@ export default function ProdutosPage() {
       console.error('Erro ao executar ação:', error)
       alert('Erro ao executar ação')
     }
+  }
+
+  const handleEditarProduto = (produto: any) => {
+    // Converter imagens de JSON string para array se necessário
+    let imagens: string[] = []
+    
+    if (typeof produto.imagens === 'string') {
+      try {
+        imagens = JSON.parse(produto.imagens)
+      } catch (error) {
+        console.error('Erro ao parsear imagens:', error)
+        imagens = []
+      }
+    } else if (Array.isArray(produto.imagens)) {
+      imagens = produto.imagens
+    }
+    
+    const produtoComImagens = {
+      ...produto,
+      imagens
+    }
+    setProdutoEditando(produtoComImagens)
+    setModalEdicaoAberto(true)
+  }
+
+  const handleSalvarEdicao = async () => {
+    if (!produtoEditando) return
+
+    try {
+      setSalvando(true)
+      
+      // Converter imagens de array para JSON string antes de enviar
+      let imagensParaEnviar: string
+      if (typeof produtoEditando.imagens === 'string') {
+        imagensParaEnviar = produtoEditando.imagens
+      } else if (Array.isArray(produtoEditando.imagens)) {
+        imagensParaEnviar = JSON.stringify(produtoEditando.imagens)
+      } else {
+        imagensParaEnviar = '[]'
+      }
+
+      console.log('🔍 Estado atual de imagens antes de enviar:', {
+        original: produtoEditando.imagens,
+        tipo: typeof produtoEditando.imagens,
+        isArray: Array.isArray(produtoEditando.imagens)
+      })
+
+      const produtoParaEnviar = {
+        ...produtoEditando,
+        imagens: imagensParaEnviar
+      }
+
+      console.log('📤 Enviando para API:', {
+        imagens: produtoParaEnviar.imagens,
+        tipoImagens: typeof produtoParaEnviar.imagens
+      })
+
+      const response = await fetch(`/api/produtos/${produtoEditando.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(produtoParaEnviar)
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('📥 Resposta da API:', data)
+        console.log('📸 Imagens retornadas pela API:', data.produto?.imagens)
+        
+        if (data.success) {
+          // Recarregar a lista completa de produtos para garantir dados atualizados
+          const user = localStorage.getItem('user')
+          const parsedUser = JSON.parse(user || '{}')
+          
+          const reloadResponse = await fetch(`/api/admin/produtos?adminId=${parsedUser.id}`)
+          const reloadData = await reloadResponse.json()
+          
+          if (reloadData.success) {
+            setProdutos(reloadData.produtos)
+          } else {
+            // Fallback: atualizar apenas o produto editado
+            const updatedProdutos = produtos.map(p => 
+              p.id === produtoEditando.id ? data.produto : p
+            )
+            setProdutos(updatedProdutos)
+          }
+          
+          alert('Produto atualizado com sucesso!')
+          
+          // Fechar modal
+          setModalEdicaoAberto(false)
+          setProdutoEditando(null)
+        } else {
+          alert(data.error || 'Erro ao atualizar produto')
+        }
+      } else {
+        const error = await response.json()
+        alert(error.error || 'Erro ao atualizar produto')
+      }
+    } catch (error) {
+      console.error('Erro ao salvar edição:', error)
+      alert('Erro ao salvar edição')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files)
+      const uploadedUrls = []
+      
+      for (const file of files) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('tipo', 'produto')
+        
+        try {
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          })
+          
+          if (response.ok) {
+            const result = await response.json()
+            uploadedUrls.push(result.url)
+          }
+        } catch (error) {
+          console.error('Erro no upload:', error)
+        }
+      }
+      
+      // Garantir que imagens seja um array
+      const currentImages = Array.isArray(produtoEditando.imagens) 
+        ? produtoEditando.imagens 
+        : (typeof produtoEditando.imagens === 'string' ? JSON.parse(produtoEditando.imagens) : [])
+      
+      setProdutoEditando({
+        ...produtoEditando,
+        imagens: [...currentImages, ...uploadedUrls]
+      })
+    }
+  }
+
+  const handleCancelarEdicao = () => {
+    setModalEdicaoAberto(false)
+    setProdutoEditando(null)
   }
 
   if (isLoading) {
@@ -366,6 +540,13 @@ export default function ProdutosPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex flex-wrap gap-2">
+                        <button 
+                          onClick={() => handleEditarProduto(item)}
+                          className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                        >
+                          Editar
+                        </button>
+                        
                         {item.statusAprovacao === 'PENDENTE' && (
                           <>
                             <button 
@@ -514,6 +695,312 @@ export default function ProdutosPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Edição */}
+      {modalEdicaoAberto && produtoEditando && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">Editar Produto</h2>
+            
+            {/* Seção de Upload de Imagens */}
+            <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Imagens do Produto
+              </h3>
+              
+              <div 
+                className={`border-2 border-dashed rounded-lg p-6 text-center bg-white mb-4 transition-colors ${
+                  dragActive 
+                    ? 'border-primary-600 bg-primary-50' 
+                    : 'border-blue-300'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={async (e) => {
+                    if (e.target.files) {
+                      const files = Array.from(e.target.files)
+                      const uploadedUrls = []
+                      
+                      for (const file of files) {
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        formData.append('tipo', 'produto')
+                        
+                        try {
+                          const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                          })
+                          
+                          if (response.ok) {
+                            const result = await response.json()
+                            uploadedUrls.push(result.url)
+                          }
+                        } catch (error) {
+                          console.error('Erro no upload:', error)
+                        }
+                      }
+                      
+                      // Garantir que imagens seja um array
+                      const currentImages = Array.isArray(produtoEditando.imagens) 
+                        ? produtoEditando.imagens 
+                        : (typeof produtoEditando.imagens === 'string' ? JSON.parse(produtoEditando.imagens) : [])
+                      
+                      setProdutoEditando({
+                        ...produtoEditando,
+                        imagens: [...currentImages, ...uploadedUrls]
+                      })
+                    }
+                  }}
+                  className="hidden"
+                  id="image-upload-admin"
+                />
+                <label htmlFor="image-upload-admin" className="cursor-pointer">
+                  <svg className="w-12 h-12 text-blue-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="text-blue-600 font-semibold mb-1">Clique para adicionar imagens</p>
+                  <p className="text-sm text-gray-500">ou arraste arquivos aqui</p>
+                  <p className="text-xs text-gray-400 mt-2">JPG, PNG, WebP até 5MB</p>
+                </label>
+              </div>
+              
+              {/* Preview das imagens */}
+              {(() => {
+                // Garantir que imagens seja sempre um array
+                let imagensArray: string[] = []
+                if (typeof produtoEditando.imagens === 'string') {
+                  try {
+                    imagensArray = JSON.parse(produtoEditando.imagens)
+                  } catch {
+                    imagensArray = []
+                  }
+                } else if (Array.isArray(produtoEditando.imagens)) {
+                  imagensArray = produtoEditando.imagens
+                }
+
+                return imagensArray.length > 0 && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {imagensArray.map((image: string, index: number) => (
+                      <div key={index} className="relative group">
+                        <img 
+                          src={image} 
+                          alt={`Imagem ${index + 1}`} 
+                          className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newImages = imagensArray.filter((_: string, i: number) => i !== index)
+                            // Garantir que produtoEditando.imagens seja atualizado também
+                            setProdutoEditando({
+                              ...produtoEditando, 
+                              imagens: newImages
+                            })
+                          }}
+                          className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Produto
+                </label>
+                <input
+                  type="text"
+                  value={produtoEditando.nome || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, nome: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Preço (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={produtoEditando.preco || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, preco: parseFloat(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Preço Original (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={produtoEditando.precoOriginal || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, precoOriginal: parseFloat(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoria
+                </label>
+                <select
+                  value={produtoEditando.categoria || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, categoria: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  <option value="UNIFORME">Uniforme</option>
+                  <option value="MATERIAL_ESCOLAR">Material Escolar</option>
+                  <option value="LIVRO">Livro</option>
+                  <option value="OUTRO">Outro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Condição
+                </label>
+                <select
+                  value={produtoEditando.condicao || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, condicao: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione a condição</option>
+                  <option value="NOVO">Novo</option>
+                  <option value="USADO">Usado</option>
+                  <option value="SEMINOVO">Seminovo</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tamanho
+                </label>
+                <input
+                  type="text"
+                  value={produtoEditando.tamanho || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, tamanho: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cor
+                </label>
+                <input
+                  type="text"
+                  value={produtoEditando.cor || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, cor: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Material
+                </label>
+                <input
+                  type="text"
+                  value={produtoEditando.material || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, material: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Marca
+                </label>
+                <input
+                  type="text"
+                  value={produtoEditando.marca || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, marca: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Estoque
+                </label>
+                <input
+                  type="number"
+                  value={produtoEditando.estoque || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, estoque: parseInt(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Modelo de Uniforme
+                </label>
+                <select
+                  value={produtoEditando.modeloId || ''}
+                  onChange={(e) => setProdutoEditando({...produtoEditando, modeloId: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Selecione um modelo (opcional)</option>
+                  {modelos.map((modelo) => (
+                    <option key={modelo.id} value={modelo.id}>
+                      {modelo.serie} - {modelo.descricao}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Descrição
+              </label>
+              <textarea
+                value={produtoEditando.descricao || ''}
+                onChange={(e) => setProdutoEditando({...produtoEditando, descricao: e.target.value})}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-4 mt-6">
+              <button
+                onClick={handleCancelarEdicao}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                disabled={salvando}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSalvarEdicao}
+                disabled={salvando}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {salvando ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

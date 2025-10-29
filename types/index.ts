@@ -151,6 +151,59 @@ export interface ItemPedido {
   subtotal: number
 }
 
+export interface CartItem {
+  id: string
+  produtoId: string
+  nome: string
+  preco: number
+  precoOriginal?: number
+  imagem: string
+  vendedor: string
+  vendedorId: string
+  escola: string
+  categoria: string
+  condicao: string // NOVO, SEMINOVO, USADO
+  tamanho?: string
+  quantidade: number
+  estoque?: number
+  vendedorTipo?: string // ESCOLA ou PAI_RESPONSAVEL
+}
+
+// Shipping Types
+export type ShippingMethod = 'PAC' | 'SEDEX' | 'POSILOG'
+
+export interface ShippingOption {
+  method: ShippingMethod
+  name: string
+  company: string
+  cost: number
+  days: string
+  estimatedDelivery?: Date
+  includesHygiene?: boolean
+  includesPickup?: boolean
+}
+
+export interface ShipmentGroup {
+  sellerId: string
+  sellerName: string
+  sellerCity?: string
+  sellerCep?: string
+  items: CartItem[]
+  shippingOptions: ShippingOption[]
+  selectedShippingIndex: number
+  selectedShipping?: ShippingOption
+  shippingCost: number
+  subtotal: number
+}
+
+export interface MultiShipmentData {
+  shipments: ShipmentGroup[]
+  totalProductsCost: number
+  totalShippingCost: number
+  serviceFee: number
+  grandTotal: number
+}
+
 export interface ConfiguracaoUniforme {
   id: string
   escola: Escola

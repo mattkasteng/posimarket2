@@ -13,6 +13,7 @@ import {
 import Image from 'next/image'
 import EditProductModal from '@/components/products/EditProductModal'
 import ProductActionsMenu from '@/components/products/ProductActionsMenu'
+import { normalizeImageUrl } from '@/lib/utils'
 
 // Mock data para produtos do vendedor (incluindo produtos com status de aprovação)
 const mockProducts = [
@@ -120,13 +121,24 @@ export default function ProductsManagementPage() {
       setLoading(true)
       
       // Obter dados do usuário logado
+      const isLoggedIn = localStorage.getItem('isLoggedIn')
       const userData = localStorage.getItem('user')
-      if (!userData) {
-        console.error('Usuário não autenticado')
+      
+      if (isLoggedIn !== 'true' || !userData) {
+        alert('Você precisa estar logado para acessar esta página.')
+        window.location.href = '/login'
         return
       }
 
       const parsedUser = JSON.parse(userData)
+      
+      // Verificar se o usuário é vendedor
+      if (parsedUser.tipoUsuario !== 'PAI_RESPONSAVEL' && parsedUser.tipoUsuario !== 'ESCOLA') {
+        alert('Acesso negado. Esta página é apenas para vendedores.')
+        window.location.href = '/'
+        return
+      }
+      
       setUser(parsedUser)
 
       console.log('🔄 Buscando produtos do vendedor:', parsedUser.id)
@@ -191,13 +203,37 @@ export default function ProductsManagementPage() {
   const handleSaveProduct = async (updatedProduct: any) => {
     try {
       console.log('💾 Salvando produto:', updatedProduct.id, updatedProduct)
+      
+      // Converter imagens para JSON string se for array
+      let imagensParaEnviar: any = updatedProduct.imagens
+      if (Array.isArray(updatedProduct.imagens)) {
+        imagensParaEnviar = JSON.stringify(updatedProduct.imagens)
+      } else if (typeof updatedProduct.imagens === 'string') {
+        imagensParaEnviar = updatedProduct.imagens
+      } else {
+        imagensParaEnviar = '[]'
+      }
+      
+      console.log('📤 Imagens que serão enviadas:', imagensParaEnviar)
 
       const response = await fetch(`/api/produtos/${updatedProduct.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedProduct)
+        body: JSON.stringify({
+          nome: updatedProduct.nome,
+          preco: updatedProduct.preco,
+          precoOriginal: updatedProduct.precoOriginal,
+          categoria: updatedProduct.categoria,
+          estoque: updatedProduct.estoque,
+          descricao: updatedProduct.descricao,
+          tamanho: updatedProduct.tamanho,
+          cor: updatedProduct.cor,
+          condicao: updatedProduct.condicao,
+          modeloId: updatedProduct.modeloId,
+          imagens: imagensParaEnviar
+        })
       })
 
       const data = await response.json()
@@ -491,7 +527,7 @@ export default function ProductsManagementPage() {
                     {/* Imagem do Produto */}
                     <div className="relative w-full h-48 rounded-t-xl overflow-hidden">
                       <Image
-                        src={product.imagem}
+                        src={normalizeImageUrl(product.imagem)}
                         alt={product.nome}
                         fill
                         style={{ objectFit: 'cover' }}

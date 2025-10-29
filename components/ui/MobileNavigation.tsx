@@ -15,23 +15,25 @@ import {
   Mail, 
   Heart, 
   Menu, 
-  X 
+  X,
+  Shirt
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { NotificationCenter } from '@/components/notifications/NotificationCenter'
+import { useSession, signOut } from 'next-auth/react'
 
 const navigation = [
   { name: 'Início', href: '/', icon: Home },
   { name: 'Produtos', href: '/produtos', icon: BookOpen },
+  { name: 'Prova de Uniformes', href: '/prova-de-uniformes', icon: Shirt },
   { name: 'Carrinho', href: '/carrinho', icon: ShoppingCart },
 ]
 
 export function MobileNavigation() {
   const pathname = usePathname()
+  const { data: session, status } = useSession()
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0)
@@ -55,8 +57,19 @@ export function MobileNavigation() {
   useEffect(() => {
     const loadCounters = () => {
       if (typeof window !== 'undefined') {
-        const cart = JSON.parse(localStorage.getItem('cart') || '[]')
-        setCartItemsCount(cart.length)
+        const savedCart = localStorage.getItem('posimarket_cart')
+        if (savedCart) {
+          try {
+            const cartData = JSON.parse(savedCart)
+            const totalItems = cartData.items ? cartData.items.reduce((sum: number, item: any) => sum + item.quantidade, 0) : 0
+            setCartItemsCount(totalItems)
+          } catch (e) {
+            console.error('Erro ao carregar carrinho:', e)
+            setCartItemsCount(0)
+          }
+        } else {
+          setCartItemsCount(0)
+        }
 
         const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
         setFavoritesCount(favorites.length)
@@ -68,38 +81,131 @@ export function MobileNavigation() {
     // Recarregar contadores quando localStorage mudar
     const handleStorageChange = () => loadCounters()
     window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('cartUpdated', handleStorageChange)
     
-    return () => window.removeEventListener('storage', handleStorageChange)
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('cartUpdated', handleStorageChange)
+    }
   }, [])
 
-  // Carregar notificações
+  // Carregar contador de notificações ao montar e quando usuário mudar
   useEffect(() => {
-    if (!user?.id) return
+    const loadUnreadCount = () => {
+      if (typeof window !== 'undefined') {
+        const userData = localStorage.getItem('user')
+        if (userData) {
+          try {
+            const user = JSON.parse(userData)
+            // Usar email como identificador (mesmo padrão do NotificationCenter)
+            const notificationKey = `notifications_${user.email.replace('@', '_').replace('.', '_')}`
+            const saved = localStorage.getItem(notificationKey)
+            console.log('🔍 Procurando notificações em:', notificationKey)
+            if (saved) {
+              const notifications = JSON.parse(saved)
+              const count = notifications.filter((n: any) => !n.read).length
+              setUnreadCount(count)
+              console.log('🔔 Contador de notificações carregado:', count)
+            } else {
+              console.log('📭 Nenhuma notificação encontrada para este usuário')
+              setUnreadCount(0)
+            }
+          } catch (e) {
+            console.error('Erro ao carregar contador de notificações:', e)
+            setUnreadCount(0)
+          }
+        }
+      }
+    }
+    
+    loadUnreadCount()
 
-    const loadNotifications = async () => {
+    // Atualizar quando notificações mudarem
+    const handleNotificationUpdate = () => {
+      loadUnreadCount()
+    }
+
+    // Escutar mudanças no localStorage
+    window.addEventListener('storage', handleNotificationUpdate)
+    // Escutar evento customizado para mudanças locais
+    window.addEventListener('notificationsUpdated', handleNotificationUpdate)
+    // Atualizar quando a página ganha foco (usuário retorna de outra aba)
+    window.addEventListener('focus', handleNotificationUpdate)
+
+    return () => {
+      window.removeEventListener('storage', handleNotificationUpdate)
+      window.removeEventListener('notificationsUpdated', handleNotificationUpdate)
+      window.removeEventListener('focus', handleNotificationUpdate)
+    }
+  }, [user])
+
+  // Carregar contador de mensagens não lidas
+  useEffect(() => {
+    const loadUnreadMessagesCount = async () => {
+      if (!user?.id) {
+        setUnreadMessagesCount(0)
+        return
+      }
+
       try {
-        const response = await fetch(`/api/notificacoes?usuarioId=${user.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          const unread = data.notificacoes.filter((n: any) => !n.lida).length
-          setUnreadCount(unread)
+        const response = await fetch(`/api/chat?usuarioId=${user.id}`)
+        const data = await response.json()
+        
+        if (data.success && data.conversas) {
+          const totalUnread = data.conversas.reduce((sum: number, conversa: any) => {
+            return sum + (conversa.mensagensNaoLidas || 0)
+          }, 0)
+          
+          setUnreadMessagesCount(totalUnread)
+          console.log('💬 Mobile - Mensagens não lidas:', totalUnread)
         }
       } catch (error) {
-        console.error('Erro ao carregar notificações:', error)
+        console.error('Erro ao carregar mensagens não lidas:', error)
+        setUnreadMessagesCount(0)
       }
     }
 
-    loadNotifications()
-  }, [user?.id])
+    loadUnreadMessagesCount()
+
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(loadUnreadMessagesCount, 30000)
+
+    // Atualizar quando voltar para a página
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadMessagesCount()
+      }
+    }
+
+    // Atualizar quando eventos customizados ocorrerem
+    const handleMessagesUpdate = () => {
+      loadUnreadMessagesCount()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('messagesUpdated', handleMessagesUpdate)
+    window.addEventListener('focus', loadUnreadMessagesCount)
+
+    return () => {
+      clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('messagesUpdated', handleMessagesUpdate)
+      window.removeEventListener('focus', loadUnreadMessagesCount)
+    }
+  }, [user])
 
   const handleLogout = () => {
+    // Limpar localStorage
     localStorage.removeItem('user')
     localStorage.removeItem('isLoggedIn')
+    localStorage.removeItem('nextauth-login')
     localStorage.removeItem('cart')
     localStorage.removeItem('favorites')
     setUser(null)
     setShowMobileMenu(false)
-    window.location.href = '/'
+    
+    // Fazer logout via NextAuth
+    signOut({ callbackUrl: '/' })
   }
 
   const getDashboardUrl = () => {
@@ -227,12 +333,10 @@ export function MobileNavigation() {
                     )}
                   </Link>
                   
-                  <button
-                    onClick={() => {
-                      setShowMobileMenu(false)
-                      setShowNotifications(!showNotifications)
-                    }}
-                    className="flex items-center space-x-3 px-3 py-3 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors w-full"
+                  <Link
+                    href="/notificacoes"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="flex items-center space-x-3 px-3 py-3 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                   >
                     <Bell className="h-5 w-5" />
                     <span className="font-medium">Notificações</span>
@@ -241,7 +345,7 @@ export function MobileNavigation() {
                         {unreadCount}
                       </span>
                     )}
-                  </button>
+                  </Link>
                   
                   <button
                     onClick={() => {
@@ -280,18 +384,6 @@ export function MobileNavigation() {
         )}
       </div>
 
-      {/* Notification Center */}
-      {showNotifications && user && (
-        <div className="fixed inset-0 z-50 flex items-start justify-end p-4">
-          <div className="bg-black/50 absolute inset-0" onClick={() => setShowNotifications(false)} />
-          <div className="relative w-full max-w-md">
-            <NotificationCenter
-              usuarioId={user.id}
-              onClose={() => setShowNotifications(false)}
-            />
-          </div>
-        </div>
-      )}
     </nav>
   )
 }

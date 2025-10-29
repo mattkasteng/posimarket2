@@ -14,38 +14,50 @@ export default function ComprasPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('todas')
   const [searchTerm, setSearchTerm] = useState('')
+  const [compras, setCompras] = useState<any[]>([])
 
+  // Carregar compras da API
   useEffect(() => {
-    const checkAuth = async () => {
+    const loadCompras = async () => {
       try {
         const isLoggedIn = localStorage.getItem('isLoggedIn')
         const userData = localStorage.getItem('user')
 
         if (isLoggedIn === 'true' && userData) {
           const parsedUser = JSON.parse(userData)
+          
+          // Verificar se o usuário é vendedor
+          if (parsedUser.tipoUsuario !== 'PAI_RESPONSAVEL' && parsedUser.tipoUsuario !== 'ESCOLA') {
+            alert('Acesso negado. Esta página é apenas para vendedores.')
+            window.location.href = '/'
+            return
+          }
+          
           setUser(parsedUser)
-          // Carregar compras reais do banco de dados
-          const response = await fetch(`/api/vendedor/compras?compradorId=${parsedUser.id}`)
+          
+          // Carregar compras via API
+          const response = await fetch(`/api/seller/purchases?compradorId=${parsedUser.id}`)
           const data = await response.json()
+          
           if (data.success) {
+            console.log('🛍️ Compras carregadas:', data.compras.length)
             setCompras(data.compras)
+          } else {
+            console.error('Erro ao carregar compras:', data.error)
           }
         } else {
-          router.push('/login')
+          window.location.href = '/login'
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error)
-        router.push('/login')
+        console.error('Erro ao carregar compras:', error)
+        window.location.href = '/login'
       } finally {
         setIsLoading(false)
       }
     }
 
-    checkAuth()
-  }, [router])
-
-  // Dados reais serão carregados do banco de dados
-  const [compras, setCompras] = useState<any[]>([])
+    loadCompras()
+  }, [])
 
   const getStatusIcon = (status: string) => {
     switch (status) {

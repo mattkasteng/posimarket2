@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, getSession, signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 interface AdminStats {
   totalUsuarios: number
@@ -13,50 +15,75 @@ interface AdminStats {
 }
 
 export default function AdminDashboard() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [isLoadingStats, setIsLoadingStats] = useState(false)
 
   useEffect(() => {
+    console.log('🔍 AdminDashboard useEffect - Status:', status)
+    console.log('🔍 AdminDashboard useEffect - Session:', session)
+    
+    // SOLUÇÃO HÍBRIDA: Verificar NextAuth E localStorage
     const checkAuth = () => {
-      try {
-        const isLoggedIn = localStorage.getItem('isLoggedIn')
-        const userData = localStorage.getItem('user')
-
-        if (isLoggedIn === 'true' && userData) {
+      // 1. Tentar NextAuth primeiro
+      if (status === 'authenticated' && session?.user) {
+        const userData = session.user as any
+        console.log('✅ AdminDashboard - NextAuth session encontrada:', userData.email)
+        
+        if (userData.tipoUsuario === 'ESCOLA' || userData.tipoUsuario === 'ADMIN_ESCOLA') {
+          console.log('✅ AdminDashboard - Usuário admin via NextAuth')
+          setUser(userData)
+          setIsLoading(false)
+          return
+        }
+      }
+      
+      // 2. Fallback para localStorage
+      console.log('🔍 AdminDashboard - Verificando localStorage...')
+      const isLoggedIn = localStorage.getItem('isLoggedIn')
+      const userData = localStorage.getItem('user')
+      const nextAuthLogin = localStorage.getItem('nextauth-login')
+      
+      if (isLoggedIn === 'true' && userData && nextAuthLogin === 'true') {
+        try {
           const parsedUser = JSON.parse(userData)
+          console.log('✅ AdminDashboard - Usuário encontrado no localStorage:', parsedUser.email)
           
-          // Verificar se o usuário é admin (tipo ESCOLA)
-          if (parsedUser.tipoUsuario !== 'ESCOLA') {
-            console.log('⛔ Acesso negado: Usuário não é admin')
-            console.log('Tipo de usuário:', parsedUser.tipoUsuario)
-            console.log('Redirecionando para dashboard apropriado...')
-            
-            if (parsedUser.tipoUsuario === 'PAI_RESPONSAVEL') {
-              window.location.href = '/dashboard/vendedor'
-            } else {
-              window.location.href = '/login'
-            }
+          if (parsedUser.tipoUsuario === 'ESCOLA' || parsedUser.tipoUsuario === 'ADMIN_ESCOLA') {
+            console.log('✅ AdminDashboard - Usuário admin via localStorage')
+            setUser(parsedUser)
+            setIsLoading(false)
+            return
+          } else {
+            console.log('❌ AdminDashboard - Usuário não é admin')
+            router.push('/dashboard/vendedor')
             return
           }
-          
-          setUser(parsedUser)
-          console.log('✅ Usuário admin logado:', parsedUser)
-        } else {
-          console.log('❌ Usuário não logado, redirecionando para login')
-          window.location.href = '/login'
+        } catch (error) {
+          console.error('❌ Erro ao parsear dados do localStorage:', error)
         }
-      } catch (error) {
-        console.error('❌ Erro ao verificar autenticação:', error)
-        window.location.href = '/login'
-      } finally {
-        setIsLoading(false)
+      }
+      
+      // 3. Se chegou aqui, não está autenticado
+      console.log('❌ AdminDashboard - Nenhuma autenticação encontrada')
+      if (status !== 'loading') {
+        router.push('/login')
       }
     }
-
-    checkAuth()
-  }, [])
+    
+    if (status === 'loading') {
+      console.log('⏳ AdminDashboard - Aguardando NextAuth carregar...')
+      // Aguardar um pouco e tentar localStorage
+      setTimeout(() => {
+        checkAuth()
+      }, 1000)
+    } else {
+      checkAuth()
+    }
+  }, [session, status, router])
 
   // Buscar estatísticas do admin
   useEffect(() => {
@@ -84,9 +111,13 @@ export default function AdminDashboard() {
   }, [user])
 
   const logout = () => {
+    // Limpar localStorage
     localStorage.removeItem('user')
     localStorage.removeItem('isLoggedIn')
-    window.location.href = '/login'
+    localStorage.removeItem('nextauth-login')
+    
+    // Fazer logout via NextAuth
+    signOut({ callbackUrl: '/login' })
   }
 
   if (isLoading) {
@@ -102,9 +133,73 @@ export default function AdminDashboard() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <p className="text-gray-600">Redirecionando...</p>
+      <div className="min-h-screen bg-gray-100 p-8">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">
+              🔍 AdminDashboard Debug - NextAuth
+            </h1>
+            
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h2 className="text-xl font-semibold text-blue-800 mb-2">
+                  📊 Status da Sessão (Híbrido)
+                </h2>
+                <p className="text-blue-700">NextAuth Status: <strong>{status}</strong></p>
+                <p className="text-blue-700">NextAuth Session: <strong>{session ? 'Sim' : 'Não'}</strong></p>
+                <p className="text-blue-700">NextAuth User: <strong>{session?.user ? 'Sim' : 'Não'}</strong></p>
+                <p className="text-blue-700">localStorage Login: <strong>{localStorage.getItem('isLoggedIn') === 'true' ? 'Sim' : 'Não'}</strong></p>
+                <p className="text-blue-700">localStorage User: <strong>{localStorage.getItem('user') ? 'Sim' : 'Não'}</strong></p>
+                <p className="text-blue-700">NextAuth Login: <strong>{localStorage.getItem('nextauth-login') === 'true' ? 'Sim' : 'Não'}</strong></p>
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h2 className="text-xl font-semibold text-red-800 mb-2">
+                  ❌ Nenhum Usuário Logado
+                </h2>
+                <p className="text-red-700">Status da sessão: <strong>{status}</strong></p>
+                <p className="text-red-700">Por favor, faça login para acessar o dashboard admin.</p>
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h2 className="text-xl font-semibold text-yellow-800 mb-2">
+                  🐛 Debug Info
+                </h2>
+                <pre className="text-sm text-yellow-700 bg-yellow-100 p-2 rounded overflow-auto">
+                  {JSON.stringify({ status, session, user }, null, 2)}
+                </pre>
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h2 className="text-xl font-semibold text-purple-800 mb-2">
+                  🔄 Ações de Debug
+                </h2>
+                <div className="space-y-2">
+                  <button
+                    onClick={async () => {
+                      console.log('🔄 Forçando refresh da sessão...')
+                      const newSession = await getSession()
+                      console.log('🔄 Nova sessão:', newSession)
+                      window.location.reload()
+                    }}
+                    className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+                  >
+                    Forçar Refresh da Sessão
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('🧹 Limpando localStorage...')
+                      localStorage.clear()
+                      window.location.reload()
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 ml-2"
+                  >
+                    Limpar localStorage
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )

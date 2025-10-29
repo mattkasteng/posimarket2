@@ -185,6 +185,12 @@ export function NotificationCenter({ isOpen, onClose, onUnreadCountChange }: Not
       )
       const unread = updated.filter(n => !n.read).length
       console.log('📊 Após marcar - Total:', updated.length, '| Não lidas:', unread)
+      
+      // Disparar evento para atualizar contadores em outros componentes
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+      }, 100)
+      
       return updated
     })
   }
@@ -194,6 +200,12 @@ export function NotificationCenter({ isOpen, onClose, onUnreadCountChange }: Not
     setNotifications(prev => {
       const updated = prev.map(notification => ({ ...notification, read: true }))
       console.log('📊 Todas marcadas como lidas - Total:', updated.length)
+      
+      // Disparar evento para atualizar contadores em outros componentes
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('notificationsUpdated'))
+      }, 100)
+      
       return updated
     })
   }
@@ -223,7 +235,7 @@ export function NotificationCenter({ isOpen, onClose, onUnreadCountChange }: Not
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       ref={dropdownRef}
-      className="absolute right-0 top-full mt-2 w-96 z-50"
+      className="relative w-full z-50"
     >
       <div className="bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden">
         <div className="p-0">

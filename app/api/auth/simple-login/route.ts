@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
     const user = await prisma.usuario.findUnique({
       where: { email },
       include: {
-        escola: true
+        escola: true,
+        endereco: true
       }
     })
 
@@ -63,9 +64,14 @@ export async function POST(request: NextRequest) {
       id: user.id,
       email: user.email,
       nome: user.nome,
+      cpf: user.cpf,
+      telefone: user.telefone,
       tipoUsuario: user.tipoUsuario,
       escolaId: user.escolaId,
-      escola: user.escola
+      escola: user.escola,
+      endereco: user.endereco,
+      pixKey: user.pixKey,
+      pixType: user.pixType
     }
 
     console.log('✅ Simple Login - Login bem-sucedido:', userData)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -10,10 +10,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { 
   User, MapPin, CreditCard, CheckCircle, ArrowRight, ArrowLeft,
-  Mail, Phone, Hash, Building, QrCode, Shield, Clock, Percent
+  Mail, Phone, Hash, Building, Shield, Info
 } from 'lucide-react'
-import { PixPayment } from './PixPayment'
-import { StripePayment } from './StripePayment'
 
 // Schemas de validação
 const step1Schema = z.object({
@@ -48,8 +46,21 @@ interface CheckoutStepsProps {
 
 export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
   const [currentStep, setCurrentStep] = useState(1)
+  const [shippingCep, setShippingCep] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false)
+
+  // Load shipping CEP from localStorage
+  useEffect(() => {
+    const savedCep = localStorage.getItem('shippingCep')
+    if (savedCep) {
+      setShippingCep(savedCep)
+    }
+  }, [])
+
+  // Show alert for CEP change
+  const handleCepInfoClick = () => {
+    alert('Para alterar o CEP, volte ao carrinho e calcule o frete novamente com o novo CEP.')
+  }
 
   const {
     register: registerStep1,
@@ -63,23 +74,28 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
   const {
     register: registerStep2,
     handleSubmit: handleSubmitStep2,
+    setValue: setValueStep2,
     formState: { errors: errorsStep2 },
     trigger: triggerStep2,
   } = useForm<Step2Data>({
     resolver: zodResolver(step2Schema),
+    defaultValues: {
+      zipCode: shippingCep,
+    },
   })
 
+  // Update form value when shippingCep changes
+  useEffect(() => {
+    if (shippingCep) {
+      setValueStep2('zipCode', shippingCep)
+    }
+  }, [shippingCep, setValueStep2])
+
   const {
-    register: registerStep3,
-    handleSubmit: handleSubmitStep3,
-    formState: { errors: errorsStep3 },
     trigger: triggerStep3,
-    watch: watchStep3,
   } = useForm<Step3Data>({
     resolver: zodResolver(step3Schema),
   })
-
-  const paymentMethod = watchStep3('paymentMethod')
 
   const nextStep = async () => {
     let isValid = false
@@ -105,19 +121,75 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
     }
   }
 
-  const handlePaymentConfirmed = () => {
-    setPaymentConfirmed(true)
-    handleFinalSubmit()
-  }
 
   const handleFinalSubmit = async () => {
     setIsLoading(true)
     try {
-      // Simular processamento do pagamento
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      onComplete({ success: true, orderId: 'ORD-' + Date.now() })
+      // Criar pedido no backend
+      const userData = localStorage.getItem('user')
+      const isLoggedIn = localStorage.getItem('isLoggedIn')
+      
+      if (!isLoggedIn || !userData) {
+        throw new Error('Usuário não logado')
+      }
+
+      const user = JSON.parse(userData)
+      const selectedShipping = localStorage.getItem('selectedShipping')
+      const selectedShippingOption = localStorage.getItem('selectedShippingOption')
+      
+      const orderData = {
+        compradorId: user.id,
+        metodoEnvio: selectedShippingOption ? JSON.parse(selectedShippingOption) : null,
+        custoEnvio: selectedShipping ? parseFloat(selectedShipping) : 0
+      }
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar pedido')
+      }
+
+      const orderResult = await response.json()
+      
+      if (orderResult.success) {
+        // Redirecionar para Stripe Checkout
+        const stripeResponse = await fetch('/api/stripe/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            orderId: orderResult.pedido.id,
+            amount: orderResult.pedido.valorTotal,
+            successUrl: `${window.location.origin}/pedido-confirmado/${orderResult.pedido.id}`,
+            cancelUrl: `${window.location.origin}/checkout`
+          })
+        })
+
+        if (!stripeResponse.ok) {
+          throw new Error('Erro ao criar sessão do Stripe')
+        }
+
+        const stripeData = await stripeResponse.json()
+        
+        if (stripeData.success && stripeData.url) {
+          // Redirecionar para Stripe
+          window.location.href = stripeData.url
+        } else {
+          throw new Error('Erro no redirecionamento do Stripe')
+        }
+      } else {
+        throw new Error(orderResult.error || 'Erro ao processar pedido')
+      }
     } catch (error) {
       console.error('Erro no checkout:', error)
+      alert('Erro ao processar pagamento. Tente novamente.')
     } finally {
       setIsLoading(false)
     }
@@ -248,10 +320,18 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
                 <div className="md:col-span-1">
                   <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
                     CEP
+                    <Info 
+                      className="inline-block ml-2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
+                      onClick={handleCepInfoClick}
+                      title="Clique para mais informações"
+                    />
                   </label>
                   <Input
                     id="zipCode"
                     placeholder="00000-000"
+                    value={shippingCep}
+                    disabled
+                    className="bg-gray-100 cursor-not-allowed"
                     {...registerStep2('zipCode')}
                   />
                   {errorsStep2.zipCode && (
@@ -361,78 +441,51 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
             transition={{ duration: 0.3 }}
           >
             <div className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Escolha a forma de pagamento:</h3>
-                
-                {/* Cartão de Crédito */}
-                <label className="glass-card-weak flex items-center p-4 rounded-xl cursor-pointer hover:glass-card-strong transition-all">
-                  <input
-                    type="radio"
-                    value="credit-card"
-                    {...registerStep3('paymentMethod')}
-                    className="form-radio h-5 w-5 text-primary-600"
-                  />
-                  <CreditCard className="h-6 w-6 text-primary-600 ml-4 mr-3" />
-                  <div className="flex-1">
-                    <span className="text-lg font-medium text-gray-800">Cartão de Crédito</span>
-                    <p className="text-sm text-gray-600">Visa, Mastercard, Elo</p>
-                  </div>
-                  <Shield className="h-5 w-5 text-green-600" />
-                </label>
-
-                {/* PIX */}
-                <label className="glass-card-weak flex items-center p-4 rounded-xl cursor-pointer hover:glass-card-strong transition-all">
-                  <input
-                    type="radio"
-                    value="pix"
-                    {...registerStep3('paymentMethod')}
-                    className="form-radio h-5 w-5 text-primary-600"
-                  />
-                  <QrCode className="h-6 w-6 text-primary-600 ml-4 mr-3" />
-                  <div className="flex-1">
-                    <span className="text-lg font-medium text-gray-800">PIX</span>
-                    <p className="text-sm text-gray-600">Aprovação instantânea</p>
-                  </div>
-                  <Clock className="h-5 w-5 text-blue-600" />
-                </label>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="h-8 w-8 text-primary-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  Pagamento via Stripe
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Você será redirecionado para o Stripe para realizar o pagamento de forma segura.
+                </p>
               </div>
-
-              {/* Componente de Pagamento */}
-              {paymentMethod && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  {paymentMethod === 'credit-card' && (
-                    <StripePayment
-                      amount={331.60}
-                      orderId="ORD-1703123456789"
-                      onPaymentConfirmed={handlePaymentConfirmed}
-                    />
-                  )}
-                  
-                  {paymentMethod === 'pix' && (
-                    <PixPayment
-                      amount={331.60}
-                      orderId="ORD-1703123456789"
-                      onPaymentConfirmed={handlePaymentConfirmed}
-                    />
-                  )}
-                </motion.div>
-              )}
 
               {/* Informações de segurança */}
               <div className="p-4 glass-card-weak rounded-xl">
                 <div className="flex items-center space-x-3 mb-3">
                   <Shield className="h-5 w-5 text-green-600" />
-                  <span className="font-medium text-gray-900">Pagamento Seguro</span>
+                  <span className="font-medium text-gray-900">Pagamento 100% Seguro</span>
                 </div>
                 <div className="space-y-2 text-sm text-gray-600">
                   <p>• Seus dados são criptografados com SSL 256-bit</p>
                   <p>• Processamento via Stripe (PCI DSS compliant)</p>
                   <p>• Split automático para vendedores</p>
+                  <p>• Aceita cartões de crédito, débito e PIX</p>
                 </div>
+              </div>
+
+              {/* Botão para processar pagamento */}
+              <div className="text-center">
+                <Button
+                  onClick={handleFinalSubmit}
+                  className="w-full glass-button-primary py-4 text-lg font-semibold"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-5 w-5 mr-2" />
+                      Finalizar Pagamento no Stripe
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </motion.div>
@@ -500,8 +553,7 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
           {renderStep()}
 
           {/* Navigation */}
-          {!paymentConfirmed && (
-            <div className="flex justify-between mt-8 pt-6 border-t border-gray-200/50">
+          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200/50">
               {currentStep > 1 && (
                 <Button
                   variant="outline"
@@ -516,12 +568,12 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
               <Button
                 onClick={nextStep}
                 className="glass-button-primary ml-auto"
-                disabled={isLoading || (currentStep === 3 && !paymentMethod)}
+                disabled={isLoading}
               >
                 {isLoading ? (
                   'Processando...'
                 ) : currentStep === 3 ? (
-                  paymentMethod ? 'Processar Pagamento' : 'Selecione um método'
+                  'Processar Pagamento'
                 ) : (
                   <>
                     Próximo
@@ -529,8 +581,7 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
                   </>
                 )}
               </Button>
-            </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>

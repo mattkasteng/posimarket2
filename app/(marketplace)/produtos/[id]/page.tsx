@@ -6,12 +6,14 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/Card'
+import { normalizeImageUrl } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { ProductCard } from '@/components/products/ProductCard'
+import { useFavorites } from '@/hooks/useFavorites'
+import { useCart } from '@/hooks/useCart'
 import { 
   Heart, 
   ShoppingCart, 
-  Star, 
   Share2, 
   ArrowLeft,
   Truck,
@@ -24,86 +26,6 @@ import {
   AlertCircle
 } from 'lucide-react'
 
-// Produto padrão para fallback (caso API falhe)
-const mockProductFallback = {
-  id: '1',
-  nome: 'Uniforme Escolar Masculino - Camisa Polo',
-  preco: 89.90,
-  precoOriginal: 120.00,
-  imagens: [
-    'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&h=600&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&h=600&fit=crop&q=60'
-  ],
-  condicao: 'NOVO' as const,
-  vendedor: 'Escola Positivo',
-  escola: 'Colégio Positivo - Centro',
-  avaliacao: 4.8,
-  totalAvaliacoes: 124,
-  descricao: 'Camisa polo masculina do uniforme escolar, confeccionada em tecido de alta qualidade, com acabamento impecável e durabilidade garantida.',
-  detalhes: [
-    'Tecido: 100% algodão',
-    'Cores: Azul marinho e branco',
-    'Acabamento: Bordado da escola',
-    'Cuidados: Lavar a mão ou máquina delicada'
-  ],
-  medidas: [
-    { tamanho: 'PP', peito: '44cm', comprimento: '62cm' },
-    { tamanho: 'P', peito: '46cm', comprimento: '64cm' },
-    { tamanho: 'M', peito: '48cm', comprimento: '66cm' },
-    { tamanho: 'G', peito: '50cm', comprimento: '68cm' },
-    { tamanho: 'GG', peito: '52cm', comprimento: '70cm' }
-  ],
-  categoria: 'UNIFORME'
-}
-
-const mockRelatedProducts = [
-  {
-    id: '5',
-    nome: 'Uniforme Escolar Feminino - Saia',
-    preco: 75.00,
-    imagem: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-    condicao: 'SEMINOVO' as const,
-    vendedor: 'Escola Positivo',
-    escola: 'Colégio Positivo - Batel',
-    avaliacao: 4.6,
-    totalAvaliacoes: 156,
-    categoria: 'UNIFORME'
-  },
-  {
-    id: '7',
-    nome: 'Uniforme Escolar Masculino - Bermuda',
-    preco: 65.00,
-    precoOriginal: 85.00,
-    imagem: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-    condicao: 'NOVO' as const,
-    vendedor: 'Maria Oliveira',
-    escola: 'Colégio Positivo - Centro',
-    avaliacao: 4.7,
-    totalAvaliacoes: 89,
-    categoria: 'UNIFORME'
-  }
-]
-
-const mockReviews = [
-  {
-    id: '1',
-    nome: 'Ana Silva',
-    avaliacao: 5,
-    comentario: 'Produto excelente, qualidade muito boa!',
-    data: '2024-01-15',
-    verificada: true
-  },
-  {
-    id: '2',
-    nome: 'João Santos',
-    avaliacao: 4,
-    comentario: 'Bom produto, entrega rápida.',
-    data: '2024-01-10',
-    verificada: true
-  }
-]
-
 export default function ProductDetailsPage() {
   const params = useParams()
   const router = useRouter()
@@ -115,9 +37,24 @@ export default function ProductDetailsPage() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [selectedSize, setSelectedSize] = useState('M')
   const [quantity, setQuantity] = useState(1)
-  const [isFavorite, setIsFavorite] = useState(false)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([])
+
+  const { favorites, toggleFavorite, isFavorite } = useFavorites()
+  const { addItem } = useCart()
+
+  // Verificar se o produto permite quantidade > 1
+  const isProdutoUnico = product?.estoque === 1 || false
+  const isVendedorIndividual = product?.vendedorTipo === 'PAI_RESPONSAVEL'
+  const shouldLimitQuantity = isProdutoUnico && isVendedorIndividual
+
+  // Forçar quantidade = 1 se for produto único
+  useEffect(() => {
+    if (shouldLimitQuantity && quantity > 1) {
+      setQuantity(1)
+    }
+  }, [shouldLimitQuantity, quantity])
 
   // Buscar usuário logado
   useEffect(() => {
@@ -161,21 +98,41 @@ export default function ProductDetailsPage() {
           console.log(`📋 Tipo de vendedor: ${data.produto.vendedorTipo}`)
           console.log(`🏫 É escola? ${isEscola}`)
           
+          // Parsear imagens garantindo que seja um array válido
+          let imagensProduto: string[] = []
+          if (data.produto.imagens) {
+            if (Array.isArray(data.produto.imagens)) {
+              imagensProduto = data.produto.imagens.filter(img => img && typeof img === 'string')
+            } else if (typeof data.produto.imagens === 'string') {
+              try {
+                const parsed = JSON.parse(data.produto.imagens)
+                if (Array.isArray(parsed)) {
+                  imagensProduto = parsed.filter(img => img && typeof img === 'string')
+                }
+              } catch (e) {
+                console.error('Erro ao parsear imagens:', e)
+              }
+            }
+          }
+          
+          // Se não houver imagens válidas, usar fallback
+          if (imagensProduto.length === 0) {
+            imagensProduto = ['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&h=600&fit=crop']
+          }
+          
+          console.log('🖼️ Imagens parseadas para o produto:', imagensProduto)
+          
           // Mapear para formato esperado pela UI
           const produtoMapeado = {
             id: data.produto.id,
             nome: data.produto.nome,
             preco: data.produto.preco,
             precoOriginal: data.produto.precoOriginal,
-            imagens: data.produto.imagens && data.produto.imagens.length > 0 
-              ? data.produto.imagens 
-              : ['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&h=600&fit=crop'],
+            imagens: imagensProduto,
             condicao: data.produto.condicao || 'USADO',
             vendedor: data.produto.vendedorNome || 'Vendedor',
             vendedorId: data.produto.vendedorId,
             escola: data.produto.escolaNome || 'Escola Positivo',
-            avaliacao: 4.5, // Mock por enquanto
-            totalAvaliacoes: Math.floor(Math.random() * 100) + 10,
             descricao: data.produto.descricao || 'Produto de qualidade',
             detalhes: [
               `Condição: ${data.produto.condicao}`,
@@ -193,10 +150,13 @@ export default function ProductDetailsPage() {
             ] : null,
             categoria: data.produto.categoria,
             tamanhoFixo: data.produto.tamanho, // Tamanho fixo indicado pelo vendedor
-            isEscola: isEscola // Flag para saber se pode escolher tamanho
+            isEscola: isEscola, // Flag para saber se pode escolher tamanho
+            estoque: data.produto.estoque || 1,
+            vendedorTipo: data.produto.vendedorTipo
           }
           
           setProduct(produtoMapeado)
+          console.log('📋 Produto carregado - estoque:', data.produto.estoque, 'vendedorTipo:', data.produto.vendedorTipo)
           console.log('✅ Produto carregado com sucesso')
         } else {
           setError('Produto não encontrado')
@@ -214,19 +174,48 @@ export default function ProductDetailsPage() {
     }
   }, [productId])
 
+  // Buscar produtos relacionados
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      if (!productId) return
+      
+      try {
+        console.log('🔄 Buscando produtos relacionados para:', productId)
+        const response = await fetch(`/api/produtos/${productId}/related`)
+        const data = await response.json()
+        
+        if (data.success) {
+          console.log('✅ Produtos relacionados:', data.produtos.length)
+          setRelatedProducts(data.produtos)
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar produtos relacionados:', error)
+      }
+    }
+
+    fetchRelatedProducts()
+  }, [productId])
+
   const discount = product?.precoOriginal ? 
     Math.round(((product.precoOriginal - product.preco) / product.precoOriginal) * 100) : 0
 
   const handleAddToCart = async () => {
+    if (!product) return
+    
     setIsAddingToCart(true)
-    // Simular adição ao carrinho
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsAddingToCart(false)
+    try {
+      await addItem(product, quantity)
+    } finally {
+      setIsAddingToCart(false)
+    }
   }
 
   const handleToggleFavorite = () => {
-    setIsFavorite(!isFavorite)
+    if (!product) return
+    toggleFavorite(product)
   }
+
+  const isProductFavorite = product ? isFavorite(product.id) : false
 
   // Loading state
   if (isLoading) {
@@ -279,7 +268,7 @@ export default function ProductDetailsPage() {
           <div className="space-y-4">
             <div className="aspect-square relative overflow-hidden rounded-2xl">
               <Image
-                src={mockProduct.imagens[selectedImage]}
+                src={normalizeImageUrl(mockProduct.imagens[selectedImage])}
                 alt={mockProduct.nome}
                 fill
                 className="object-cover"
@@ -299,7 +288,7 @@ export default function ProductDetailsPage() {
                   }`}
                 >
                   <Image
-                    src={imagem}
+                    src={normalizeImageUrl(imagem)}
                     alt={`${mockProduct.nome} ${index + 1}`}
                     fill
                     className="object-cover"
@@ -324,25 +313,9 @@ export default function ProductDetailsPage() {
                 )}
               </div>
               
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              <h1 className="text-3xl font-bold text-gray-900 mb-6">
                 {mockProduct.nome}
               </h1>
-              
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-5 w-5 ${
-                        i < Math.floor(mockProduct.avaliacao) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                  <span className="text-sm text-gray-600 ml-2">
-                    {mockProduct.avaliacao} ({mockProduct.totalAvaliacoes} avaliações)
-                  </span>
-                </div>
-              </div>
 
               <div className="flex items-center space-x-4 mb-6">
                 <span className="text-3xl font-bold text-gray-900">
@@ -408,7 +381,7 @@ export default function ProductDetailsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1}
+                  disabled={quantity <= 1 || shouldLimitQuantity}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -417,10 +390,15 @@ export default function ProductDetailsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(quantity + 1)}
+                  disabled={shouldLimitQuantity}
+                  title={shouldLimitQuantity ? 'Este produto único só pode ter 1 unidade' : ''}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+              {shouldLimitQuantity && (
+                <p className="text-sm text-orange-600 mt-2">Este produto é único e individual. Apenas 1 unidade pode ser adicionada ao carrinho.</p>
+              )}
             </div>
 
             {/* Ações */}
@@ -437,9 +415,9 @@ export default function ProductDetailsPage() {
               <Button
                 variant="outline"
                 onClick={handleToggleFavorite}
-                className={`${isFavorite ? 'bg-red-50 text-red-600 border-red-200' : ''}`}
+                className={`${isProductFavorite ? 'bg-red-50 text-red-600 border-red-200' : ''}`}
               >
-                <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                <Heart className={`h-4 w-4 ${isProductFavorite ? 'fill-current' : ''}`} />
               </Button>
               
               <Button variant="outline">
@@ -451,11 +429,11 @@ export default function ProductDetailsPage() {
             <Card className="glass-card-weak">
               <CardContent className="p-4">
                 <h3 className="font-semibold text-gray-900 mb-2">Vendedor</h3>
-                <p className="text-gray-700 mb-1">{mockProduct.vendedor}</p>
-                <p className="text-sm text-gray-600">{mockProduct.escola}</p>
+                <p className="text-gray-700 mb-1">{product?.vendedorNome || 'Vendedor'}</p>
+                <p className="text-sm text-gray-600">{product?.escolaNome || ''}</p>
                 {/* Botão para enviar mensagem */}
                 <Link 
-                  href={currentUser ? `/mensagens/enviar?vendedorId=${product.vendedorId}&produtoId=${mockProduct.id}` : '/login'}
+                  href={currentUser ? `/mensagens/enviar?vendedorId=${product?.vendedorId}&produtoId=${product?.id}` : '/login'}
                 >
                   <Button variant="outline" size="sm" className="w-full mt-3">
                     <MessageCircle className="h-4 w-4 mr-2" />
@@ -543,61 +521,33 @@ export default function ProductDetailsPage() {
             </Card>
           )}
 
-          {/* Avaliações */}
-          <Card className="glass-card-weak">
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Avaliações ({mockProduct.totalAvaliacoes})
-              </h2>
-              
-              <div className="space-y-4">
-                {mockReviews.map((review: any) => (
-                  <div key={review.id} className="border-b border-gray-200 pb-4 last:border-b-0">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-gray-900">{review.nome}</span>
-                        {review.verificada && (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                            Compra verificada
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm text-gray-500">{review.data}</span>
-                    </div>
-                    
-                    <div className="flex items-center space-x-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < review.avaliacao ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    
-                    <p className="text-gray-700">{review.comentario}</p>
-                  </div>
+          {/* Produtos relacionados */}
+          {relatedProducts.length > 0 && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Produtos Relacionados</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {relatedProducts.map((product: any) => (
+                  <ProductCard
+                    key={product.id}
+                    id={product.id}
+                    nome={product.nome}
+                    preco={product.preco}
+                    precoOriginal={product.precoOriginal}
+                    imagem={Array.isArray(product.imagens) && product.imagens.length > 0 ? product.imagens[0] : 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop'}
+                    condicao={product.condicao}
+                    vendedor={product.vendedor}
+                    escola={product.escola}
+                    categoria={product.categoria}
+                    avaliacao={0}
+                    totalAvaliacoes={0}
+                    isFavorite={false}
+                    onToggleFavorite={() => {}}
+                    onAddToCart={() => {}}
+                  />
                 ))}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Produtos relacionados */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Produtos Relacionados</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockRelatedProducts.map((product: any) => (
-                <ProductCard
-                  key={product.id}
-                  {...product}
-                  isFavorite={false}
-                  onToggleFavorite={() => {}}
-                  onAddToCart={() => {}}
-                />
-              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

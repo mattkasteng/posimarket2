@@ -6,6 +6,8 @@ declare module 'next-auth' {
       id: string
       email: string
       nome: string
+      cpf: string | null
+      telefone: string | null
       tipoUsuario: string
       escolaId: string | null
       escola?: {
@@ -13,6 +15,9 @@ declare module 'next-auth' {
         nome: string
         cnpj: string
       } | null
+      endereco?: any
+      pixKey: string | null
+      pixType: string | null
     }
   }
 
@@ -20,6 +25,8 @@ declare module 'next-auth' {
     id: string
     email: string
     nome: string
+    cpf: string | null
+    telefone: string | null
     tipoUsuario: string
     escolaId: string | null
     escola?: {
@@ -27,11 +34,18 @@ declare module 'next-auth' {
       nome: string
       cnpj: string
     } | null
+    endereco?: any
+    pixKey: string | null
+    pixType: string | null
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
+    id: string
+    nome: string
+    cpf: string | null
+    telefone: string | null
     tipoUsuario: string
     escolaId: string | null
     escola?: {
@@ -39,5 +53,8 @@ declare module 'next-auth/jwt' {
       nome: string
       cnpj: string
     } | null
+    endereco?: any
+    pixKey: string | null
+    pixType: string | null
   }
 }

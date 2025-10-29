@@ -14,7 +14,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }))
 
   return (
-    <SessionProvider>
+    <SessionProvider 
+      refetchInterval={5} // Recarregar sessão a cada 5 segundos
+      refetchOnWindowFocus={true}
+    >
       <QueryClientProvider client={queryClient}>
         {children}
       </QueryClientProvider>

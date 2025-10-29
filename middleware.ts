@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 import { securityMiddleware, getSecurityHeaders } from '@/lib/security'
 
 export async function middleware(request: NextRequest) {
@@ -18,26 +19,8 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Rotas protegidas que requerem autenticação
-  const protectedRoutes = [
-    '/dashboard',
-    '/admin',
-    '/vendedor',
-    '/checkout',
-    '/carrinho',
-  ]
-
-  // Verificar se é uma rota protegida
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  )
-
-  // Para rotas protegidas, permitir acesso (autenticação será verificada no cliente)
-  // O middleware não pode acessar localStorage, então deixamos o cliente verificar
-  if (isProtectedRoute) {
-    // Não redirecionar aqui - deixar o cliente verificar a autenticação
-    return response
-  }
+  // Não verificar autenticação no middleware - deixar o cliente fazer isso
+  // O middleware apenas aplica headers de segurança
 
   // Otimizações de performance
   if (pathname.startsWith('/_next/static/')) {

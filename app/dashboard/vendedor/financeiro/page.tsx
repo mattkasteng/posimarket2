@@ -1,166 +1,150 @@
 'use client'
 
-import { useState } from 'react'
-import React from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
 import { 
-  Wallet, DollarSign, TrendingUp, TrendingDown, 
-  CreditCard, QrCode, Clock, CheckCircle, 
-  AlertCircle, Calendar, Download, Filter
+  Wallet, DollarSign, TrendingUp, 
+  CheckCircle, Clock, Calendar, Download,
+  ShoppingBag, Package
 } from 'lucide-react'
 
-// Dados reais serão carregados do banco de dados
-
-const statusConfig = {
-  CONCLUIDO: {
-    color: 'text-green-600 bg-green-50',
-    icon: CheckCircle,
-    label: 'Concluído'
-  },
-  PROCESSANDO: {
-    color: 'text-orange-600 bg-orange-50',
-    icon: Clock,
-    label: 'Processando'
-  },
-  PENDENTE: {
-    color: 'text-yellow-600 bg-yellow-50',
-    icon: AlertCircle,
-    label: 'Pendente'
-  }
-}
-
 export default function FinancialDashboardPage() {
-  const [withdrawAmount, setWithdrawAmount] = useState('')
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState('30d')
-  const [showPixModal, setShowPixModal] = useState(false)
-  const [pixKey, setPixKey] = useState('')
-  const [pixType, setPixType] = useState('cpf')
-  const [transactions, setTransactions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [financialData, setFinancialData] = useState<any>(null)
+  const [transactions, setTransactions] = useState<any[]>([])
 
-  // Calcular totais
-  const totalBalance = 0.00 // TODO: Carregar do banco de dados
-  const availableBalance = 0.00 // Saldo disponível para saque
-  const pendingBalance = 0.00 // Em processamento
-  const monthlyEarnings = transactions
-    .filter(t => t.tipo === 'VENDA' && t.status === 'CONCLUIDO')
-    .reduce((acc, t) => acc + (t.valor || 0), 0)
-
-  // Carregar dados do usuário e transações
-  React.useEffect(() => {
-    const checkAuth = async () => {
+  // Carregar dados financeiros
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         const isLoggedIn = localStorage.getItem('isLoggedIn')
         const userData = localStorage.getItem('user')
 
         if (isLoggedIn === 'true' && userData) {
           const parsedUser = JSON.parse(userData)
+          
+          if (parsedUser.tipoUsuario !== 'PAI_RESPONSAVEL' && parsedUser.tipoUsuario !== 'ESCOLA') {
+            alert('Acesso negado. Esta página é apenas para vendedores.')
+            window.location.href = '/'
+            return
+          }
+          
           setUser(parsedUser)
-          // Carregar transações reais do banco de dados
-          const response = await fetch(`/api/vendedor/transacoes?vendedorId=${parsedUser.id}`)
+          
+          // Buscar dados financeiros da API
+          const periodo = selectedPeriod === '7d' ? '7' : selectedPeriod === '30d' ? '30' : selectedPeriod === '90d' ? '90' : '365'
+          const response = await fetch(`/api/seller/financial?vendedorId=${parsedUser.id}&periodo=${periodo}`)
           const data = await response.json()
+          
           if (data.success) {
-            setTransactions(data.transacoes)
+            setFinancialData(data.financeiro)
+            console.log('💰 Dados financeiros:', data.financeiro)
+            
+            // Carregar histórico de transações (vendas)
+            await loadTransactions(parsedUser.id)
           }
         } else {
           window.location.href = '/login'
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error)
-        window.location.href = '/login'
+        console.error('Erro ao carregar dados:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    checkAuth()
-  }, [])
+    fetchData()
+  }, [selectedPeriod])
+
+  const loadTransactions = async (vendedorId: string) => {
+    try {
+      // Buscar pedidos do vendedor
+      const response = await fetch(`/api/orders?usuarioId=${vendedorId}&tipo=vendas`)
+      const data = await response.json()
+      
+      if (data.success && data.pedidos) {
+        // Formatar transações para exibição
+        const formattedTransactions = data.pedidos.map((pedido: any) => {
+          // Calcular receita deste vendedor para este pedido
+          const itensVendedor = pedido.itens.filter((item: any) => 
+            item.produto.vendedorId === vendedorId
+          )
+          
+          const subtotalVendedor = itensVendedor.reduce((sum: number, item: any) => 
+            sum + (item.precoUnitario * item.quantidade), 0
+          )
+          
+          const taxaPlataforma = subtotalVendedor * 0.10 // 10% taxa
+          const receitaLiquida = subtotalVendedor - taxaPlataforma
+          
+          return {
+            id: pedido.id,
+            data: pedido.createdAt || pedido.dataPedido,
+            descricao: itensVendedor.map((item: any) => item.produto.nome).join(', '),
+            valor: receitaLiquida,
+            status: pedido.status,
+            numeroPedido: pedido.numero,
+            quantidadeItens: itensVendedor.length
+          }
+        })
+        
+        setTransactions(formattedTransactions)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar transações:', error)
+    }
+  }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     })
   }
 
-  const handleWithdraw = async () => {
-    const amount = parseFloat(withdrawAmount)
-    if (amount > 0 && amount <= availableBalance) {
-      try {
-        const response = await fetch('/api/vendedor/transacoes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            vendedorId: user?.id,
-            valor: amount,
-            tipo: 'SAQUE'
-          })
-        })
-
-        const data = await response.json()
-        if (data.success) {
-          alert('Solicitação de saque criada com sucesso!')
-          setShowWithdrawModal(false)
-          setWithdrawAmount('')
-          // Recarregar transações
-          const response2 = await fetch(`/api/vendedor/transacoes?vendedorId=${user.id}`)
-          const data2 = await response2.json()
-          if (data2.success) {
-            setTransactions(data2.transacoes)
-          }
-        } else {
-          alert('Erro ao solicitar saque: ' + data.error)
-        }
-      } catch (error) {
-        console.error('Erro ao solicitar saque:', error)
-        alert('Erro ao solicitar saque')
-      }
-    }
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
   }
 
-  const handlePixConfiguration = () => {
-    if (pixKey.trim()) {
-      // Obter dados do usuário do localStorage
-      const userData = localStorage.getItem('user')
-      if (userData) {
-        const user = JSON.parse(userData)
-        const updatedUser = {
-          ...user,
-          pixKey: pixKey.trim(),
-          pixType: pixType
-        }
-        
-        // Atualizar localStorage
-        localStorage.setItem('user', JSON.stringify(updatedUser))
-        
-        alert('Chave PIX configurada com sucesso!')
-        setShowPixModal(false)
-        setPixKey('')
-      }
+  const getStatusInfo = (status: string) => {
+    const statusMap: any = {
+      'PENDENTE': { color: 'text-yellow-600 bg-yellow-50', label: 'Pendente', icon: Clock },
+      'PROCESSANDO': { color: 'text-blue-600 bg-blue-50', label: 'Processando', icon: Clock },
+      'CONFIRMADO': { color: 'text-green-600 bg-green-50', label: 'Confirmado', icon: CheckCircle },
+      'ENVIADO': { color: 'text-purple-600 bg-purple-50', label: 'Enviado', icon: Package },
+      'ENTREGUE': { color: 'text-green-700 bg-green-100', label: 'Entregue', icon: CheckCircle },
+      'CANCELADO': { color: 'text-red-600 bg-red-50', label: 'Cancelado', icon: Clock }
     }
+    
+    return statusMap[status] || { color: 'text-gray-600 bg-gray-50', label: status, icon: Clock }
   }
 
-  // Carregar chave PIX existente quando o componente montar
-  const [currentPixKey, setCurrentPixKey] = useState('')
-  
-  React.useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (userData) {
-      const user = JSON.parse(userData)
-      if (user.pixKey) {
-        setCurrentPixKey(user.pixKey)
-        setPixType(user.pixType || 'cpf')
-      }
-    }
-  }, [showPixModal])
+  const totalGanho = financialData?.resumo?.receitaLiquida || 0
+  const totalVendas = financialData?.resumo?.totalVendas || 0
+  const ticketMedio = financialData?.resumo?.ticketMedio || 0
+  const valorPendente = financialData?.resumo?.valorPendente || 0
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando dados financeiros...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-orange-50">
@@ -177,13 +161,13 @@ export default function FinancialDashboardPage() {
                 Dashboard Financeiro
               </h1>
               <p className="text-gray-600 text-lg">
-                Gerencie seus ganhos e solicite saques
+                Acompanhe seus ganhos e histórico de vendas
               </p>
             </div>
           </div>
         </motion.div>
 
-        {/* Cards de Saldo */}
+        {/* Cards de Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -195,18 +179,17 @@ export default function FinancialDashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-1">
-                      Saldo Total
+                      Total Ganho
                     </p>
                     <p className="text-3xl font-bold text-gray-900 mb-2">
-                      R$ {totalBalance.toFixed(2)}
+                      {formatCurrency(totalGanho)}
                     </p>
-                    <div className="flex items-center space-x-1">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-green-600">+12.5% este mês</span>
-                    </div>
+                    <p className="text-sm text-gray-500">
+                      No período selecionado
+                    </p>
                   </div>
-                  <div className="w-16 h-16 bg-primary-50/20 rounded-xl flex items-center justify-center">
-                    <Wallet className="h-8 w-8 text-primary-600" />
+                  <div className="w-16 h-16 bg-green-50/20 rounded-xl flex items-center justify-center">
+                    <DollarSign className="h-8 w-8 text-green-600" />
                   </div>
                 </div>
               </CardContent>
@@ -223,17 +206,17 @@ export default function FinancialDashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-1">
-                      Disponível para Saque
+                      Total de Vendas
                     </p>
-                    <p className="text-3xl font-bold text-green-600 mb-2">
-                      R$ {availableBalance.toFixed(2)}
+                    <p className="text-3xl font-bold text-gray-900 mb-2">
+                      {totalVendas}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Pode ser sacado agora
+                      Pedidos realizados
                     </p>
                   </div>
-                  <div className="w-16 h-16 bg-green-50/20 rounded-xl flex items-center justify-center">
-                    <DollarSign className="h-8 w-8 text-green-600" />
+                  <div className="w-16 h-16 bg-blue-50/20 rounded-xl flex items-center justify-center">
+                    <ShoppingBag className="h-8 w-8 text-blue-600" />
                   </div>
                 </div>
               </CardContent>
@@ -250,17 +233,17 @@ export default function FinancialDashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-1">
-                      Em Processamento
+                      Ticket Médio
                     </p>
-                    <p className="text-3xl font-bold text-orange-600 mb-2">
-                      R$ {pendingBalance.toFixed(2)}
+                    <p className="text-3xl font-bold text-gray-900 mb-2">
+                      {formatCurrency(ticketMedio)}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Aguardando liberação
+                      Por venda
                     </p>
                   </div>
                   <div className="w-16 h-16 bg-orange-50/20 rounded-xl flex items-center justify-center">
-                    <Clock className="h-8 w-8 text-orange-600" />
+                    <TrendingUp className="h-8 w-8 text-orange-600" />
                   </div>
                 </div>
               </CardContent>
@@ -268,69 +251,18 @@ export default function FinancialDashboardPage() {
           </motion.div>
         </div>
 
-        {/* Ações Rápidas */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mb-8"
-        >
-          <Card className="glass-card-strong">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Ações Rápidas</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  onClick={() => setShowWithdrawModal(true)}
-                  className="glass-button-primary h-16"
-                  disabled={availableBalance <= 0}
-                >
-                  <QrCode className="h-6 w-6 mr-3" />
-                  <div className="text-left">
-                    <p className="font-semibold">Solicitar Saque</p>
-                    <p className="text-sm opacity-90">Via PIX</p>
-                  </div>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="glass-button h-16"
-                >
-                  <Download className="h-6 w-6 mr-3" />
-                  <div className="text-left">
-                    <p className="font-semibold">Extrato</p>
-                    <p className="text-sm opacity-90">Download PDF</p>
-                  </div>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPixModal(true)}
-                  className="glass-button h-16"
-                >
-                  <CreditCard className="h-6 w-6 mr-3" />
-                  <div className="text-left">
-                    <p className="font-semibold">Configurar PIX</p>
-                    <p className="text-sm opacity-90">{currentPixKey ? 'Alterar chave' : 'Chave PIX'}</p>
-                  </div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
         {/* Filtros e Período */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.4 }}
           className="mb-6"
         >
           <Card className="glass-card-strong">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <Filter className="h-5 w-5 text-gray-400" />
+                  <Calendar className="h-5 w-5 text-gray-400" />
                   <span className="font-medium text-gray-900">Período:</span>
                   <select
                     value={selectedPeriod}
@@ -347,7 +279,7 @@ export default function FinancialDashboardPage() {
                 <div className="text-right">
                   <p className="text-sm text-gray-600">Ganhos do período</p>
                   <p className="text-2xl font-bold text-green-600">
-                    R$ {monthlyEarnings.toFixed(2)}
+                    {formatCurrency(totalGanho)}
                   </p>
                 </div>
               </div>
@@ -355,239 +287,115 @@ export default function FinancialDashboardPage() {
           </Card>
         </motion.div>
 
-        {/* Histórico de Transações */}
+        {/* Histórico de Vendas */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.5 }}
         >
           <Card className="glass-card-strong">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Histórico de Transações</h2>
+                <h2 className="text-xl font-bold text-gray-900">Histórico de Vendas</h2>
                 <Button variant="outline" className="glass-button">
                   <Download className="h-4 w-4 mr-2" />
                   Exportar
                 </Button>
               </div>
               
-              <div className="space-y-4">
-                {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Carregando transações...</p>
+              {transactions.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Wallet className="h-8 w-8 text-gray-400" />
                   </div>
-                ) : transactions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">💰</span>
-                    </div>
-                    <p className="text-gray-600 mb-2">Nenhuma transação encontrada</p>
-                    <p className="text-sm text-gray-500">
-                      Suas transações financeiras aparecerão aqui quando você começar a vender
-                    </p>
-                  </div>
-                ) : (
-                  transactions.map((transaction, index) => {
-                  const statusInfo = statusConfig[transaction.status as keyof typeof statusConfig]
-                  const StatusIcon = statusInfo.icon
-                  
-                  return (
-                    <motion.div
-                      key={transaction.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="flex items-center justify-between p-4 glass-card-weak rounded-xl hover:glass-card-strong transition-all"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          transaction.tipo === 'VENDA' ? 'bg-green-50' : 'bg-blue-50'
-                        }`}>
-                          {transaction.tipo === 'VENDA' ? (
-                            <TrendingUp className={`h-5 w-5 ${
-                              transaction.tipo === 'VENDA' ? 'text-green-600' : 'text-blue-600'
-                            }`} />
-                          ) : (
-                            <TrendingDown className="h-5 w-5 text-blue-600" />
-                          )}
-                        </div>
-                        
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.descricao}</p>
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <Calendar className="h-4 w-4" />
-                            <span>{formatDate(transaction.data)}</span>
-                            <span>•</span>
-                            <span>Ref: {transaction.referencia}</span>
+                  <p className="text-gray-600 mb-2">Nenhuma venda encontrada</p>
+                  <p className="text-sm text-gray-500">
+                    Suas vendas aparecerão aqui quando você começar a vender
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {transactions.map((transaction, index) => {
+                    const statusInfo = getStatusInfo(transaction.status)
+                    const StatusIcon = statusInfo.icon
+                    
+                    return (
+                      <motion.div
+                        key={transaction.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 * index }}
+                        className="flex items-center justify-between p-4 glass-card-weak rounded-xl hover:glass-card-strong transition-all"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                            <DollarSign className="h-6 w-6 text-green-600" />
+                          </div>
+                          
+                          <div>
+                            <p className="font-medium text-gray-900">{transaction.descricao}</p>
+                            <div className="flex items-center space-x-2 text-sm text-gray-600 mt-1">
+                              <Calendar className="h-4 w-4" />
+                              <span>{formatDate(transaction.data)}</span>
+                              <span>•</span>
+                              <span>Pedido #{transaction.numeroPedido}</span>
+                              <span>•</span>
+                              <span>{transaction.quantidadeItens} item(ns)</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-4">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusInfo.label}
-                        </span>
                         
-                        <div className="text-right">
-                          <p className={`font-bold ${
-                            transaction.valor > 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.valor > 0 ? '+' : ''}R$ {transaction.valor.toFixed(2)}
-                          </p>
+                        <div className="flex items-center space-x-4">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                            <StatusIcon className="h-3 w-3 mr-1" />
+                            {statusInfo.label}
+                          </span>
+                          
+                          <div className="text-right">
+                            <p className="font-bold text-green-600">
+                              +{formatCurrency(transaction.valor)}
+                            </p>
+                            <p className="text-xs text-gray-500">Receita líquida</p>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )
-                  })
-                )}
-              </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Modal de Saque */}
-        {showWithdrawModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card-strong p-8 max-w-md w-full"
-            >
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Solicitar Saque</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Valor do Saque
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                    className="text-lg"
-                  />
-                  <p className="text-sm text-gray-600 mt-1">
-                    Disponível: R$ {availableBalance.toFixed(2)}
-                  </p>
-                </div>
-                
-                <div className="p-4 glass-card-weak rounded-xl">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <QrCode className="h-5 w-5 text-primary-600" />
-                    <span className="font-medium text-gray-900">Método de Pagamento</span>
+        {/* Nota sobre Stripe */}
+        {valorPendente > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-6"
+          >
+            <Card className="glass-card-strong border-2 border-blue-200">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <Clock className="h-6 w-6 text-blue-600" />
                   </div>
-                  <p className="text-sm text-gray-600">
-                    O saque será processado via PIX em até 1 dia útil.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex space-x-4 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowWithdrawModal(false)}
-                  className="flex-1 glass-button"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleWithdraw}
-                  disabled={!withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > availableBalance}
-                  className="flex-1 glass-button-primary"
-                >
-                  Confirmar Saque
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-
-        {/* Modal de Configuração PIX */}
-        {showPixModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card-strong p-8 max-w-md w-full"
-            >
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Configurar Chave PIX</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Chave PIX
-                  </label>
-                  <select
-                    value={pixType}
-                    onChange={(e) => setPixType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="cpf">CPF</option>
-                    <option value="email">E-mail</option>
-                    <option value="telefone">Telefone</option>
-                    <option value="aleatoria">Chave Aleatória</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Chave PIX
-                  </label>
-                  <Input
-                    type="text"
-                    placeholder={
-                      pixType === 'cpf' ? '000.000.000-00' :
-                      pixType === 'email' ? 'seu@email.com' :
-                      pixType === 'telefone' ? '(11) 99999-9999' :
-                      'chave-aleatoria-exemplo'
-                    }
-                    value={pixKey}
-                    onChange={(e) => setPixKey(e.target.value)}
-                    className="text-lg"
-                  />
-                  {currentPixKey && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      Chave atual: {currentPixKey}
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-1">
+                      Valor Pendente
+                    </h3>
+                    <p className="text-gray-600 mb-2">
+                      Você tem {formatCurrency(valorPendente)} em vendas pendentes de confirmação.
                     </p>
-                  )}
-                </div>
-                
-                <div className="p-4 glass-card-weak rounded-xl">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <CreditCard className="h-5 w-5 text-primary-600" />
-                    <span className="font-medium text-gray-900">Informação Importante</span>
+                    <p className="text-sm text-gray-500">
+                      Este valor será processado via Stripe e depositado em sua conta assim que o pagamento for confirmado.
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Esta chave será usada para receber seus pagamentos por PIX. Certifique-se de que está correta.
-                  </p>
                 </div>
-              </div>
-              
-              <div className="flex space-x-4 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowPixModal(false)
-                    setPixKey('')
-                  }}
-                  className="flex-1 glass-button"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handlePixConfiguration}
-                  disabled={!pixKey.trim()}
-                  className="flex-1 glass-button-primary"
-                >
-                  Salvar Chave PIX
-                </Button>
-              </div>
-            </motion.div>
-          </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </div>
     </div>

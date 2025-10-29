@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
       cor,
       material,
       marca,
+      modeloUniformeId,
       images,
       vendedorId,
       isAdmin
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
         cor,
         material,
         marca,
+        modeloId: modeloUniformeId || null,
         imagens: JSON.stringify(images || []),
         vendedorId,
         vendedorNome: vendedor.nome,
@@ -156,12 +158,24 @@ export async function GET(request: NextRequest) {
         vendedor: {
           select: {
             nome: true,
-            email: true
+            email: true,
+            tipoUsuario: true
           }
         },
         escola: {
           select: {
             nome: true
+          }
+        },
+        modelo: {
+          select: {
+            id: true,
+            serie: true,
+            descricao: true,
+            tipo: true,
+            cor: true,
+            material: true,
+            genero: true
           }
         }
       },
@@ -185,18 +199,61 @@ export async function GET(request: NextRequest) {
       cor: produto.cor,
       material: produto.material,
       marca: produto.marca,
-      imagens: produto.imagens ? JSON.parse(produto.imagens) : [],
+      modeloId: produto.modeloId,
+      modelo: produto.modelo ? {
+        id: produto.modelo.id,
+        serie: produto.modelo.serie,
+        descricao: produto.modelo.descricao,
+        tipo: produto.modelo.tipo,
+        cor: produto.modelo.cor,
+        material: produto.modelo.material,
+        genero: produto.modelo.genero
+      } : null,
+      imagens: (() => {
+        try {
+          if (!produto.imagens) {
+            console.log(`⚠️ Produto ${produto.id} (${produto.nome}) não tem imagens`)
+            return [];
+          }
+          const parsed = typeof produto.imagens === 'string' ? JSON.parse(produto.imagens) : produto.imagens;
+          const imagensArray = Array.isArray(parsed) ? parsed.filter(img => img && typeof img === 'string') : [];
+          
+          if (imagensArray.length > 0) {
+            console.log(`✅ Produto ${produto.id} (${produto.nome}) tem ${imagensArray.length} imagem(ns):`, imagensArray)
+          } else {
+            console.log(`⚠️ Produto ${produto.id} (${produto.nome}) tem imagens vazias`)
+          }
+          
+          return imagensArray;
+        } catch (error) {
+          console.error(`❌ Erro ao parsear imagens do produto ${produto.id}:`, error)
+          return [];
+        }
+      })(),
       vendedorId: produto.vendedorId,
       vendedorNome: produto.vendedorNome || produto.vendedor?.nome,
+      vendedorTipo: produto.vendedor?.tipoUsuario, // PAI_RESPONSAVEL ou ESCOLA
       escolaId: produto.escolaId,
       escolaNome: produto.escolaNome || produto.escola?.nome,
       ativo: produto.ativo,
       statusAprovacao: produto.statusAprovacao,
+      estoque: produto.estoque,
+      mediaAvaliacao: produto.mediaAvaliacao,
+      totalAvaliacoes: produto.totalAvaliacoes,
       createdAt: produto.createdAt.toISOString(),
       updatedAt: produto.updatedAt.toISOString()
     }))
 
-    return NextResponse.json({ produtos: produtosMapeados })
+    return NextResponse.json(
+      { produtos: produtosMapeados },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
+    )
 
   } catch (error) {
     console.error('❌ Erro ao buscar produtos:', error)

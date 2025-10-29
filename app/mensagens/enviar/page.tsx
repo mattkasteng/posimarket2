@@ -11,9 +11,11 @@ import Link from 'next/link'
 export default function EnviarMensagemPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const vendedorId = searchParams.get('vendedorId')
+  // Aceitar tanto vendedorId quanto vendedorld (typo comum)
+  const vendedorId = searchParams.get('vendedorId') || searchParams.get('vendedorld')
   const destinatarioId = searchParams.get('destinatarioId')
-  const produtoId = searchParams.get('produtoId')
+  // Aceitar tanto produtoId quanto produtold (typo comum)
+  const produtoId = searchParams.get('produtoId') || searchParams.get('produtold')
 
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [destinatario, setDestinatario] = useState<any>(null)
@@ -98,6 +100,11 @@ export default function EnviarMensagemPage() {
       const data = await response.json()
 
       if (data.success) {
+        // Disparar evento para atualizar contador de mensagens
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('messagesUpdated'))
+        }
+        
         // Redirecionar para central de mensagens
         router.push('/mensagens?tab=sent')
       } else {

@@ -57,6 +57,17 @@ export async function GET(request: NextRequest) {
             tipoUsuario: true
           }
         },
+        modelo: {
+          select: {
+            id: true,
+            serie: true,
+            descricao: true,
+            tipo: true,
+            cor: true,
+            material: true,
+            genero: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'

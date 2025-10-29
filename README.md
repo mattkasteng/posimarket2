@@ -5,11 +5,13 @@ Marketplace educacional completo desenvolvido para o Grupo Positivo, permitindo 
 ## ✨ Funcionalidades
 
 ### 🛒 **Marketplace Completo**
-- Catálogo de produtos com filtros avançados
-- Sistema de busca inteligente
-- Carrinho de compras e checkout
-- Integração com Stripe para pagamentos
-- Sistema de avaliações e reputação
+- ✅ Catálogo de produtos com filtros avançados
+- ✅ Sistema de busca inteligente
+- ✅ **Carrinho persistente** (backend + localStorage)
+- ✅ **Sistema de estoque** com validação em tempo real
+- ✅ **Sistema de avaliações** real (0% mock)
+- ✅ **Dois métodos de envio** (Frete tradicional + Posilog)
+- ⏳ Integração com Stripe para pagamentos (aguardando chaves)
 
 ### 👥 **Múltiplos Tipos de Usuário**
 - **Administradores**: Gestão completa da escola
@@ -23,10 +25,14 @@ Marketplace educacional completo desenvolvido para o Grupo Positivo, permitindo 
 - FAQ integrado e sistema de tickets
 
 ### 📊 **Dashboards Avançados**
-- Métricas de vendas e performance
-- Relatórios detalhados
-- Gestão de estoque
-- Configuração de uniformes por série
+- ✅ **Dashboard Financeiro** com métricas em tempo real
+- ✅ **Página de Vendas** com filtros e paginação
+- ✅ **Página de Compras** com rastreamento
+- ✅ Cálculo automático de comissões (5%)
+- ✅ Gráficos de vendas (diário, semanal, mensal)
+- ✅ Top 10 produtos mais vendidos
+- ✅ Gestão de estoque automática
+- ✅ Configuração de uniformes por série
 
 ### 🎨 **Design Moderno**
 - Interface glassmorphism

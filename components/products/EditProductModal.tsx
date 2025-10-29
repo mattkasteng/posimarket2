@@ -32,6 +32,16 @@ interface Product {
   condicao?: string
   material?: string
   marca?: string
+  modeloId?: string
+  modelo?: {
+    id: string
+    serie: string
+    descricao: string
+    tipo?: string
+    cor?: string
+    material?: string
+    genero?: string
+  }
   vendedorId?: string
   ativo?: boolean
   createdAt?: string
@@ -70,11 +80,14 @@ export default function EditProductModal({
     descricao: '',
     tamanho: '',
     cor: '',
-    condicao: 'NOVO'
+    condicao: 'NOVO',
+    modeloId: ''
   })
 
   const [images, setImages] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
+  const [modelos, setModelos] = useState<any[]>([])
 
   useEffect(() => {
     if (product) {
@@ -87,11 +100,56 @@ export default function EditProductModal({
         descricao: product.descricao || '',
         tamanho: product.tamanho || '',
         cor: product.cor || '',
-        condicao: product.condicao || 'NOVO'
+        condicao: product.condicao || 'NOVO',
+        modeloId: product.modeloId || ''
       })
-      setImages(product.imagens || [product.imagem] || [])
+      
+      // Inicializar imagens corretamente - converter de JSON string para array
+      const imagensIniciais: string[] = []
+      
+      if (product.imagens) {
+        if (Array.isArray(product.imagens)) {
+          // Já é um array
+          imagensIniciais.push(...product.imagens)
+        } else if (typeof product.imagens === 'string') {
+          // É uma string JSON, precisa ser parseada
+          try {
+            const parsed = JSON.parse(product.imagens)
+            if (Array.isArray(parsed)) {
+              imagensIniciais.push(...parsed)
+            }
+          } catch (e) {
+            console.error('Erro ao parsear imagens:', e)
+          }
+        }
+      } else if (product.imagem) {
+        // Fallback para campo imagem único
+        imagensIniciais.push(product.imagem)
+      }
+      
+      console.log('🖼️ Inicializando imagens do produto:', imagensIniciais)
+      setImages(imagensIniciais)
     }
   }, [product])
+
+  // Carregar modelos de uniformes
+  useEffect(() => {
+    const fetchModelos = async () => {
+      try {
+        const response = await fetch('/api/uniformes/modelos')
+        const result = await response.json()
+        if (result.success) {
+          setModelos(result.modelos)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar modelos de uniformes:', error)
+      }
+    }
+
+    if (isOpen) {
+      fetchModelos()
+    }
+  }, [isOpen])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -101,7 +159,60 @@ export default function EditProductModal({
   }
 
   const handleImagesChange = (newImages: string[]) => {
+    console.log('🖼️ Imagens alteradas:', newImages)
     setImages(newImages)
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      try {
+        console.log('📤 Fazendo upload de', e.dataTransfer.files.length, 'imagem(ns)')
+        
+        const uploadPromises = Array.from(e.dataTransfer.files).map(async (file) => {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('tipo', 'produto')
+
+          console.log('📤 Enviando arquivo para /api/upload:', file.name)
+          
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+          })
+
+          if (!response.ok) {
+            const error = await response.json()
+            throw new Error(error.error || 'Erro no upload')
+          }
+
+          const result = await response.json()
+          console.log('✅ Upload concluído:', result.url)
+          return result.url
+        })
+
+        const uploadedUrls = await Promise.all(uploadPromises)
+        console.log('🎉 Todas as imagens foram carregadas:', uploadedUrls)
+        
+        handleImagesChange([...images, ...uploadedUrls])
+      } catch (error) {
+        console.error('❌ Erro ao fazer upload:', error)
+        alert('Erro ao fazer upload das imagens. Por favor, tente novamente.')
+      }
+    }
   }
 
   const handleSave = async () => {
@@ -121,19 +232,19 @@ export default function EditProductModal({
         tamanho: formData.tamanho,
         cor: formData.cor,
         condicao: formData.condicao,
+        modeloId: formData.modeloId || undefined,
         imagem: images[0] || product.imagem,
         imagens: images.length > 0 ? images : (product.imagens || [product.imagem])
       }
 
       console.log('💾 Salvando produto atualizado:', updatedProduct)
-
-      // Simular delay de salvamento
-      await new Promise(resolve => setTimeout(resolve, 1000))
       
+      // Chamar a função onSave do componente pai para gerenciar a API
       onSave(updatedProduct)
       onClose()
     } catch (error) {
-      console.error('Erro ao salvar produto:', error)
+      console.error('❌ Erro ao salvar produto:', error)
+      alert('Erro ao salvar produto. Tente novamente.')
     } finally {
       setIsLoading(false)
     }
@@ -180,6 +291,128 @@ export default function EditProductModal({
 
               {/* Form */}
               <div className="p-6 space-y-6">
+                {/* Imagens - Movido para o topo para ser mais visível */}
+                <div className="space-y-4 border-b border-gray-200 pb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <ImageIcon className="h-5 w-5 mr-2 text-primary-600" />
+                    Imagens do Produto
+                  </h3>
+                  
+                  {/* Teste simples para verificar se está renderizando */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <p className="text-gray-600 mb-2">Área de Upload de Imagens</p>
+                    <p className="text-sm text-gray-500">Arraste imagens aqui ou clique para selecionar</p>
+                    <p className="text-xs text-gray-400 mt-2">Imagens atuais: {images.length}</p>
+                  </div>
+                  
+                  {/* Área de upload de imagens */}
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                      dragActive 
+                        ? 'border-primary-600 bg-primary-50' 
+                        : 'border-blue-300 bg-blue-50'
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={async (e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          try {
+                            console.log('📤 Fazendo upload de', e.target.files.length, 'imagem(ns)')
+                            
+                            const uploadPromises = Array.from(e.target.files).map(async (file) => {
+                              const formData = new FormData()
+                              formData.append('file', file)
+                              formData.append('tipo', 'produto')
+
+                              console.log('📤 Enviando arquivo para /api/upload:', file.name)
+                              
+                              const response = await fetch('/api/upload', {
+                                method: 'POST',
+                                body: formData
+                              })
+
+                              if (!response.ok) {
+                                const error = await response.json()
+                                throw new Error(error.error || 'Erro no upload')
+                              }
+
+                              const result = await response.json()
+                              console.log('✅ Upload concluído:', result.url)
+                              return result.url
+                            })
+
+                            const uploadedUrls = await Promise.all(uploadPromises)
+                            console.log('🎉 Todas as imagens foram carregadas:', uploadedUrls)
+                            
+                            handleImagesChange([...images, ...uploadedUrls])
+                          } catch (error) {
+                            console.error('❌ Erro ao fazer upload:', error)
+                            alert('Erro ao fazer upload das imagens. Por favor, tente novamente.')
+                          }
+                        }
+                      }}
+                      className="hidden"
+                      id="image-upload"
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      <div className="flex flex-col items-center">
+                        <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <p className="text-blue-600 font-medium">Clique para adicionar imagens</p>
+                        <p className="text-sm text-blue-500">ou arraste arquivos aqui</p>
+                        <p className="text-xs text-gray-400 mt-2">JPG, PNG, WebP até 5MB</p>
+                      </div>
+                    </label>
+                  </div>
+                  
+                  {/* Mostrar imagens atuais */}
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mt-4">
+                      {images.map((image, index) => {
+                        // Garantir que a URL da imagem esteja normalizada
+                        const normalizedImage = typeof image === 'string' && image.startsWith('/') 
+                          ? image 
+                          : typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))
+                          ? image
+                          : `/${image}`
+                        
+                        return (
+                          <div key={index} className="relative group">
+                            <img 
+                              src={normalizedImage} 
+                              alt={`Upload ${index + 1}`} 
+                              className="w-full h-32 object-cover rounded border-2 border-gray-200" 
+                              onError={(e) => {
+                                console.error('❌ Erro ao carregar imagem:', image)
+                                e.currentTarget.src = 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=200&h=200&fit=crop'
+                              }}
+                            />
+                            <button
+                              onClick={() => handleImagesChange(images.filter((_, i) => i !== index))}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                              title="Remover imagem"
+                            >
+                              ×
+                            </button>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 text-center">
+                              Imagem {index + 1}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {console.log('🖼️ Renderizando ImageUpload com imagens:', images)}
+                </div>
+
                 {/* Informações Básicas */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900">
@@ -340,22 +573,35 @@ export default function EditProductModal({
                       </select>
                     </div>
                   </div>
+
+                  {/* Campo Modelo - só aparece para uniformes */}
+                  {formData.categoria === 'UNIFORME' && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Modelo de Uniforme (Opcional)
+                      </label>
+                      <select
+                        value={formData.modeloId}
+                        onChange={(e) => handleInputChange('modeloId', e.target.value)}
+                        className="glass-input w-full"
+                      >
+                        <option value="">Selecione um modelo de uniforme</option>
+                        {modelos.map(modelo => (
+                          <option key={modelo.id} value={modelo.id}>
+                            {modelo.serie} - {modelo.descricao}
+                            {modelo.cor && ` (${modelo.cor})`}
+                            {modelo.tipo && ` - ${modelo.tipo}`}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Escolha um modelo pré-definido para uniformes escolares
+                      </p>
+                    </div>
+                  )}
                 </div>
 
 
-                {/* Imagens */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Imagens do Produto
-                  </h3>
-                  
-                  <ImageUpload
-                    images={images}
-                    onImagesChange={handleImagesChange}
-                    maxImages={5}
-                    tipo="produto"
-                  />
-                </div>
               </div>
 
               {/* Footer */}

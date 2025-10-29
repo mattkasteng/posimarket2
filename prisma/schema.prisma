@@ -23,19 +23,26 @@ model Usuario {
   tokenVerificacao      String?
   tokenResetSenha       String?
   tokenResetExpiracao   DateTime?
+  stripeCustomerId      String?     // ID do cliente no Stripe
+  stripeConnectId       String?     // ID do vendedor no Stripe Connect
+  pixKey                String?     // Chave PIX do usuário
+  pixType               String?     // Tipo da chave PIX (cpf, email, telefone, aleatoria)
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
 
-  endereco        Endereco?   @relation(fields: [enderecoId], references: [id])
+  endereco        Endereco?   @relation("EnderecoPrincipal", fields: [enderecoId], references: [id])
+  enderecos       Endereco[]  @relation("EnderecosUsuario")
   escola          Escola?     @relation(fields: [escolaId], references: [id])
   produtos        Produto[]   @relation("Vendedor")
   pedidos         Pedido[]    @relation("Comprador")
+  pedidosVendedor Pedido[]    @relation("VendedorPedidos")
   avaliacoes      Avaliacao[] @relation("Avaliador")
   notificacoes    Notificacao[] @relation("Usuario")
   conversas1      Conversa[]  @relation("Usuario1")
   conversas2      Conversa[]  @relation("Usuario2")
   mensagensEnviadas    Mensagem[] @relation("Remetente")
   mensagensRecebidas   Mensagem[] @relation("Destinatario")
+  carrinho        Carrinho?
 
   @@map("usuarios")
 }
@@ -64,12 +71,16 @@ model Endereco {
   bairro      String
   cidade      String
   estado      String
+  pais        String    @default("Brasil")
   tipo        String    // RESIDENCIAL, COMERCIAL, ENTREGA
+  padrao      Boolean   @default(false)
+  usuarioId   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  usuarios    Usuario[]
-  escolas     Escola[]
+  usuarioPrincipal Usuario[]  @relation("EnderecoPrincipal")
+  usuario          Usuario?   @relation("EnderecosUsuario", fields: [usuarioId], references: [id], onDelete: Cascade)
+  escolas          Escola[]
 
   @@map("enderecos")
 }
@@ -86,6 +97,7 @@ model Produto {
   cor             String?
   material        String?
   marca           String?
+  modeloId        String?   // ID do modelo de uniforme (se aplicável)
   imagens         String    // JSON string com array de URLs
   vendedorId      String
   vendedorNome    String?
@@ -93,12 +105,24 @@ model Produto {
   escolaNome      String?
   ativo           Boolean   @default(true)
   statusAprovacao String    @default("PENDENTE") // PENDENTE, APROVADO, REJEITADO
+  estoque         Int       @default(1)
+  alertaEstoqueBaixo Int?   @default(3)
+  desconto        Float?    // Percentual de desconto
+  promocaoAtiva   Boolean   @default(false)
+  mediaAvaliacao  Float?    // Média das avaliações (calculada)
+  totalAvaliacoes Int       @default(0)
+  peso            Float?    // Peso em kg para cálculo de frete
+  altura          Float?    // Altura em cm
+  largura         Float?    // Largura em cm
+  profundidade    Float?    // Profundidade em cm
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   vendedor        Usuario   @relation("Vendedor", fields: [vendedorId], references: [id])
   escola          Escola?   @relation(fields: [escolaId], references: [id])
+  modelo          ModeloUniforme? @relation(fields: [modeloId], references: [id])
   itensPedido     ItemPedido[]
+  itensCarrinho   ItemCarrinho[]
   avaliacoes      Avaliacao[]
 
   @@map("produtos")
@@ -109,21 +133,35 @@ model Pedido {
   numero          String    @unique
   compradorId     String
   status          String    // PENDENTE, PROCESSANDO, CONFIRMADO, ENVIADO, ENTREGUE, CANCELADO
-  metodoPagamento String    // CARTAO_CREDITO, PIX, BOLETO
-  total           Float
-  subtotal        Float
-  taxaServico     Float
-  taxaHigienizacao Float?
-  frete           Float
+  metodoPagamento String    // CARTAO_CREDITO, PIX, BOLETO, STRIPE
+  valorTotal      Float     // Valor total do pedido
+  valorSubtotal   Float     // Valor subtotal (sem taxas/frete)
+  taxaPlataforma  Float     @default(0) // Taxa da plataforma (10%)
+  taxaHigienizacao Float?   // Taxa de higienização (5% - opcional)
+  custoEnvio      Float     @default(0) // Custo do frete
   enderecoEntrega String    // JSON string
+  metodoEnvio     String    @default("PAC") // PAC, SEDEX, POSILOG
+  transportadora  String?
+  codigoRastreio  String?
+  prazoEntrega    Int?      // dias
+  pontoColeta     String?   // JSON string com dados do ponto de coleta (para Posilog)
   dataPedido      DateTime  @default(now())
   dataEntrega     DateTime?
+  dataCancelamento DateTime?
+  motivoCancelamento String?
+  observacoes     String?   // Observações adicionais
+  pedidoPaiId     String?   // Para sub-pedidos (multi-vendor)
+  vendedorId      String?   // Para identificar sub-pedidos de vendedores específicos
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   comprador       Usuario   @relation("Comprador", fields: [compradorId], references: [id])
+  vendedor        Usuario?  @relation("VendedorPedidos", fields: [vendedorId], references: [id])
+  pedidoPai       Pedido?   @relation("SubPedidos", fields: [pedidoPaiId], references: [id])
+  subPedidos      Pedido[]  @relation("SubPedidos")
   itens           ItemPedido[]
   pagamentos      Pagamento[]
+  historico       HistoricoStatus[]
 
   @@map("pedidos")
 }
@@ -239,6 +277,7 @@ model ModeloUniforme {
   updatedAt       DateTime  @updatedAt
 
   fornecedor      FornecedorUniforme? @relation(fields: [fornecedorId], references: [id])
+  produtos        Produto[]
 
   @@map("modelos_uniforme")
 }
@@ -274,4 +313,45 @@ model FornecedorUniforme {
   modelos         ModeloUniforme[]
 
   @@map("fornecedores_uniforme")
+}
+
+model Carrinho {
+  id          String    @id @default(cuid())
+  usuarioId   String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  itens       ItemCarrinho[]
+
+  @@map("carrinhos")
+}
+
+model ItemCarrinho {
+  id            String    @id @default(cuid())
+  carrinhoId    String
+  produtoId     String
+  quantidade    Int       @default(1)
+  reservadoDesde DateTime  @default(now()) // Timestamp de quando a reserva foi criada
+  expiraEm     DateTime                 // Timestamp de quando a reserva expira
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  carrinho      Carrinho  @relation(fields: [carrinhoId], references: [id], onDelete: Cascade)
+  produto       Produto   @relation(fields: [produtoId], references: [id])
+
+  @@unique([carrinhoId, produtoId])
+  @@map("itens_carrinho")
+}
+
+model HistoricoStatus {
+  id          String    @id @default(cuid())
+  pedidoId    String
+  status      String
+  observacao  String?
+  createdAt   DateTime  @default(now())
+
+  pedido      Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@map("historico_status")
 }

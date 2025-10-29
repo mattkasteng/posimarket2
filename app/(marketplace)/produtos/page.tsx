@@ -21,6 +21,8 @@ export default function ProductsPage() {
   const { favorites, toggleFavorite, isFavorite } = useFavorites()
   const { addItem } = useCart()
   const [addedProductId, setAddedProductId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const productsPerPage = 12
   
   const [filters, setFilters] = useState({
     categoria: [] as string[],
@@ -38,29 +40,49 @@ export default function ProductsPage() {
         setIsLoading(true)
         console.log('🔄 Buscando produtos públicos aprovados...')
         
-        const response = await fetch('/api/produtos?statusAprovacao=APROVADO&ativo=true')
+        // Adicionar timestamp para evitar cache
+        const response = await fetch(`/api/produtos?statusAprovacao=APROVADO&ativo=true&_=${Date.now()}`)
         const data = await response.json()
         
         console.log('📦 Produtos aprovados recebidos:', data.produtos?.length || 0)
         
         if (data.produtos) {
           // Mapear produtos para o formato esperado pela UI
-          const produtosMapeados = data.produtos.map((produto: any) => ({
-            id: produto.id,
-            nome: produto.nome,
-            preco: produto.preco,
-            precoOriginal: produto.precoOriginal,
-            imagem: produto.imagens && produto.imagens.length > 0 
-              ? produto.imagens[0] 
-              : 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
-            condicao: produto.condicao || 'USADO',
-            vendedor: produto.vendedorNome || 'Vendedor',
-            escola: produto.escolaNome || 'Escola Positivo',
-            avaliacao: 4.5, // Mock por enquanto
-            totalAvaliacoes: Math.floor(Math.random() * 100) + 10, // Mock por enquanto
-            categoria: produto.categoria,
-            tamanho: produto.tamanho
-          }))
+          const produtosMapeados = data.produtos.map((produto: any) => {
+            // Log para debug
+            console.log(`🔍 Produto ${produto.id} - imagens:`, produto.imagens)
+            
+            // Garantir que imagens seja um array
+            let imagensArray: string[] = []
+            if (Array.isArray(produto.imagens)) {
+              imagensArray = produto.imagens
+            } else if (typeof produto.imagens === 'string') {
+              try {
+                imagensArray = JSON.parse(produto.imagens)
+              } catch (e) {
+                console.error('Erro ao parsear imagens:', e)
+                imagensArray = []
+              }
+            }
+            
+            return {
+              id: produto.id,
+              nome: produto.nome,
+              preco: produto.preco,
+              precoOriginal: produto.precoOriginal,
+              imagem: imagensArray.length > 0 
+                ? imagensArray[0] 
+                : 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
+              condicao: produto.condicao || 'USADO',
+              vendedor: produto.vendedorNome || 'Vendedor',
+              escola: produto.escolaNome || 'Escola Positivo',
+              descricao: produto.descricao || '',
+              categoria: produto.categoria,
+              tamanho: produto.tamanho,
+              estoque: produto.estoque,
+              vendedorTipo: produto.vendedorTipo
+            }
+          })
           
           // Usar APENAS produtos reais da API (sem mock)
           setProducts(produtosMapeados)
@@ -157,6 +179,17 @@ export default function ProductsPage() {
     return filtered
   }, [products, searchQuery, filters, sortBy])
 
+  // Calcular produtos paginados
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage)
+  const startIndex = (currentPage - 1) * productsPerPage
+  const endIndex = startIndex + productsPerPage
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex)
+
+  // Resetar para página 1 quando filtros mudarem
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, filters, sortBy])
+
   const handleSearch = (query: string) => {
     setSearchQuery(query)
   }
@@ -181,6 +214,7 @@ export default function ProductsPage() {
         vendedorId: product.vendedorId,
         escola: product.escola,
         categoria: product.categoria,
+        condicao: product.condicao,
         tamanho: product.tamanho
       })
 
@@ -266,13 +300,13 @@ export default function ProductsPage() {
             ) : (
               <>
             {/* Grid de produtos */}
-            {filteredProducts.length > 0 ? (
+            {paginatedProducts.length > 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className={`grid ${gridCols} gap-6`}
               >
-                {filteredProducts.map((product, index) => (
+                {paginatedProducts.map((product, index) => (
                   <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -283,7 +317,6 @@ export default function ProductsPage() {
                       {...product}
                       isFavorite={isFavorite(product.id)}
                       onToggleFavorite={toggleFavorite}
-                      onAddToCart={handleAddToCart}
                     />
                   </motion.div>
                 ))}
@@ -320,20 +353,35 @@ export default function ProductsPage() {
               </motion.div>
             )}
 
-            {/* Paginação (simulada) */}
+            {/* Paginação */}
             {filteredProducts.length > 0 && (
-              <div className="flex justify-center mt-12">
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" disabled>
-                    Anterior
+              <div className="flex justify-center items-center mt-12 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </Button>
+                
+                {Array.from({ length: Math.max(1, totalPages) }, (_, i) => i + 1).map(page => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    onClick={() => setCurrentPage(page)}
+                    className={currentPage === page ? "bg-primary-600 text-white" : ""}
+                  >
+                    {page}
                   </Button>
-                  <Button className="bg-primary-500 text-white">1</Button>
-                  <Button variant="outline">2</Button>
-                  <Button variant="outline">3</Button>
-                  <Button variant="outline">
-                    Próximo
-                  </Button>
-                </div>
+                ))}
+                
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages || totalPages <= 1}
+                >
+                  Próximo
+                </Button>
               </div>
             )}
               </>

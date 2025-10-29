@@ -256,34 +256,6 @@ export function FiltersSidebar({ isOpen, onClose, filters, onFiltersChange }: Fi
                     </div>
                   </FilterSection>
 
-                  <FilterSection title="Avaliação Mínima" section="avaliacao">
-                    <div className="space-y-2">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <label key={star} className="flex items-center space-x-3">
-                          <input
-                            type="radio"
-                            name="avaliacao"
-                            checked={filters.avaliacaoMinima === star}
-                            onChange={() => onFiltersChange({ ...filters, avaliacaoMinima: star })}
-                            className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500"
-                          />
-                          <div className="flex items-center space-x-1">
-                            {[...Array(5)].map((_, i) => (
-                              <div
-                                key={i}
-                                className={`w-4 h-4 ${i < star ? 'text-yellow-400' : 'text-gray-300'}`}
-                              >
-                                ★
-                              </div>
-                            ))}
-                            <span className="text-sm text-gray-700 ml-2">
-                              {star === 1 ? '1 estrela ou mais' : `${star} estrelas ou mais`}
-                            </span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </FilterSection>
                 </div>
 
                 <Button

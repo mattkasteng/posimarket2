@@ -66,7 +66,8 @@ export async function POST(request: NextRequest) {
           bairro: validatedData.bairro,
           cidade: validatedData.cidade,
           estado: validatedData.estado,
-          tipo: 'RESIDENCIAL'
+          tipo: 'RESIDENCIAL',
+          padrao: true
         }
       })
       enderecoId = endereco.id

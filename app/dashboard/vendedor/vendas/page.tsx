@@ -64,12 +64,23 @@ export default function SalesOrdersPage() {
 
         if (isLoggedIn === 'true' && userData) {
           const parsedUser = JSON.parse(userData)
+          
+          // Verificar se o usuário é vendedor
+          if (parsedUser.tipoUsuario !== 'PAI_RESPONSAVEL' && parsedUser.tipoUsuario !== 'ESCOLA') {
+            alert('Acesso negado. Esta página é apenas para vendedores.')
+            window.location.href = '/'
+            return
+          }
+          
           setUser(parsedUser)
-          // Carregar pedidos reais do banco de dados
-          const response = await fetch(`/api/vendedor/vendas?vendedorId=${parsedUser.id}`)
+          // Carregar vendas reais do banco de dados via API
+          const response = await fetch(`/api/seller/sales?vendedorId=${parsedUser.id}`)
           const data = await response.json()
           if (data.success) {
+            console.log('📦 Vendas carregadas:', data.vendas.length)
             setOrders(data.vendas)
+          } else {
+            console.error('Erro ao carregar vendas:', data.error)
           }
         } else {
           window.location.href = '/login'

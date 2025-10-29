@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useRef } from 'react'
+import { Input } from '@/components/ui/Input'
 
 interface PriceRangeSliderProps {
   min: number
@@ -11,94 +11,109 @@ interface PriceRangeSliderProps {
   step?: number
 }
 
-export function PriceRangeSlider({ min, max, value, onChange, step = 1 }: PriceRangeSliderProps) {
+export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSliderProps) {
   const [localValue, setLocalValue] = useState<[number, number]>(value)
+  const minTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const maxTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     setLocalValue(value)
   }, [value])
 
-  const handleMinChange = (newMin: number) => {
-    const newValue: [number, number] = [Math.min(newMin, localValue[1]), localValue[1]]
-    setLocalValue(newValue)
-    onChange(newValue)
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value === '' ? min : Number(e.target.value)
+    const newMin = Math.max(min, Math.min(inputValue, localValue[1] || max))
+    
+    // Atualiza o valor local imediatamente (sem chamar onChange)
+    setLocalValue([newMin, localValue[1]])
+    
+    // Limpa o timeout anterior
+    if (minTimeoutRef.current) {
+      clearTimeout(minTimeoutRef.current)
+    }
+    
+    // Cria um novo timeout para chamar onChange após 800ms
+    minTimeoutRef.current = setTimeout(() => {
+      onChange([newMin, localValue[1]])
+    }, 800)
   }
 
-  const handleMaxChange = (newMax: number) => {
-    const newValue: [number, number] = [localValue[0], Math.max(newMax, localValue[0])]
-    setLocalValue(newValue)
-    onChange(newValue)
+  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value === '' ? max : Number(e.target.value)
+    const newMax = Math.min(max, Math.max(inputValue, localValue[0] || min))
+    
+    // Atualiza o valor local imediatamente (sem chamar onChange)
+    setLocalValue([localValue[0], newMax])
+    
+    // Limpa o timeout anterior
+    if (maxTimeoutRef.current) {
+      clearTimeout(maxTimeoutRef.current)
+    }
+    
+    // Cria um novo timeout para chamar onChange após 800ms
+    maxTimeoutRef.current = setTimeout(() => {
+      onChange([localValue[0], newMax])
+    }, 800)
   }
 
-  const getPercentage = (val: number) => ((val - min) / (max - min)) * 100
+  // Cleanup dos timeouts quando o componente é desmontado
+  useEffect(() => {
+    return () => {
+      if (minTimeoutRef.current) clearTimeout(minTimeoutRef.current)
+      if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current)
+    }
+  }, [])
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between text-sm text-gray-600">
-        <span>R$ {localValue[0].toLocaleString('pt-BR')}</span>
-        <span>R$ {localValue[1].toLocaleString('pt-BR')}</span>
+    <div className="space-y-3">
+      {/* Display dos valores */}
+      <div className="flex justify-between text-xs text-gray-600 mb-2">
+        <span>Mínimo: R$ {min.toLocaleString('pt-BR')}</span>
+        <span>Máximo: R$ {max.toLocaleString('pt-BR')}</span>
       </div>
       
-      <div className="relative">
-        <div className="h-2 bg-gray-200 rounded-lg relative">
-          <motion.div
-            className="absolute h-2 bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg"
-            style={{
-              left: `${getPercentage(localValue[0])}%`,
-              width: `${getPercentage(localValue[1]) - getPercentage(localValue[0])}%`
-            }}
-          />
+      {/* Inputs para min e max */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Preço Mínimo
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+              R$
+            </span>
+            <Input
+              type="number"
+              min={min}
+              max={localValue[1] || max}
+              value={localValue[0]}
+              onChange={handleMinChange}
+              placeholder={`Mín: ${min}`}
+              className="pl-10"
+            />
+          </div>
         </div>
         
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={localValue[0]}
-          onChange={(e) => handleMinChange(Number(e.target.value))}
-          className="absolute top-0 w-full h-2 bg-transparent appearance-none cursor-pointer slider-thumb"
-          style={{
-            background: `linear-gradient(to right, transparent ${getPercentage(localValue[0])}%, transparent ${getPercentage(localValue[0])}%)`
-          }}
-        />
-        
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={localValue[1]}
-          onChange={(e) => handleMaxChange(Number(e.target.value))}
-          className="absolute top-0 w-full h-2 bg-transparent appearance-none cursor-pointer slider-thumb"
-          style={{
-            background: `linear-gradient(to right, transparent ${getPercentage(localValue[1])}%, transparent ${getPercentage(localValue[1])}%)`
-          }}
-        />
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Preço Máximo
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+              R$
+            </span>
+            <Input
+              type="number"
+              min={localValue[0] || min}
+              max={max}
+              value={localValue[1]}
+              onChange={handleMaxChange}
+              placeholder={`Máx: ${max}`}
+              className="pl-10"
+            />
+          </div>
+        </div>
       </div>
-      
-      <style jsx>{`
-        .slider-thumb::-webkit-slider-thumb {
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #f97316;
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .slider-thumb::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #f97316;
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-      `}</style>
     </div>
   )
 }

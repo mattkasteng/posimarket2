@@ -54,6 +54,7 @@ export default function AddProductPage() {
   const [images, setImages] = useState<string[]>([])
   const [mainImage, setMainImage] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
+  const [dragActive, setDragActive] = useState(false)
   const [modelosUniformes, setModelosUniformes] = useState<any[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -98,6 +99,26 @@ export default function AddProductPage() {
     
     if (mainImage === images[index]) {
       setMainImage(newImages[0] || '')
+    }
+  }
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true)
+    } else if (e.type === 'dragleave') {
+      setDragActive(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleImageUpload(e.dataTransfer.files)
     }
   }
 
@@ -146,6 +167,7 @@ export default function AddProductPage() {
         },
         body: JSON.stringify({
           ...data,
+          modeloUniformeId: data.modeloUniformeId,
           images,
           mainImage,
           vendedorId: user.id,
@@ -433,8 +455,16 @@ export default function AddProductPage() {
 
                   {/* Área de Upload */}
                   <div
-                    className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary-500 transition-colors cursor-pointer"
+                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
+                      dragActive 
+                        ? 'border-primary-600 bg-primary-50' 
+                        : 'border-gray-300 hover:border-primary-500'
+                    }`}
                     onClick={() => fileInputRef.current?.click()}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
                   >
                     <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-600 mb-2">

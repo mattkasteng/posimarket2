@@ -10,6 +10,7 @@ import {
   Search, Filter, AlertCircle, User, Calendar
 } from 'lucide-react'
 import Image from 'next/image'
+import { normalizeImageUrl } from '@/lib/utils'
 
 interface ProdutoPendente {
   id: string
@@ -321,7 +322,7 @@ export default function AprovacaoProdutosPage() {
                       <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
                         {produto.imagens && produto.imagens.length > 0 ? (
                           <Image
-                            src={produto.imagens[0]}
+                            src={normalizeImageUrl(produto.imagens)}
                             alt={produto.nome}
                             fill
                             style={{ objectFit: 'cover' }}

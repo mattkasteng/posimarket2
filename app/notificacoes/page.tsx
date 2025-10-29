@@ -48,14 +48,25 @@ export default function NotificacoesPage() {
 
   // Carregar usuário logado
   useEffect(() => {
+    const isLoggedIn = localStorage.getItem('isLoggedIn')
     const userStr = localStorage.getItem('user')
-    if (!userStr) {
+    
+    if (isLoggedIn !== 'true' || !userStr) {
+      alert('Você precisa estar logado para acessar as notificações.')
       router.push('/login')
       return
     }
     
     try {
       const user = JSON.parse(userStr)
+      
+      // Verificar se o usuário é vendedor ou admin
+      if (user.tipoUsuario !== 'PAI_RESPONSAVEL' && user.tipoUsuario !== 'ESCOLA') {
+        alert('Acesso negado. Esta página é apenas para vendedores e administradores.')
+        router.push('/')
+        return
+      }
+      
       setCurrentUser(user)
     } catch (error) {
       console.error('Erro ao parsear usuário:', error)

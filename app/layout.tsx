@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import { Navigation } from '@/components/ui/Navigation'
+import { LGPDConsentBanner } from '@/components/compliance/LGPDConsentBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -22,6 +23,7 @@ export default function RootLayout({
         <Providers>
           <Navigation />
           {children}
+          <LGPDConsentBanner />
         </Providers>
       </body>
     </html>

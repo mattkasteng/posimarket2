@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Heart, ShoppingCart, Star, Eye, Share2 } from 'lucide-react'
+import { Heart, Eye, Share2, CheckCircle2 } from 'lucide-react'
 import { CondicaoProduto } from '@/types'
+import { normalizeImageUrl } from '@/lib/utils'
 
 interface ProductCardProps {
   id: string
@@ -18,11 +19,11 @@ interface ProductCardProps {
   condicao: CondicaoProduto
   vendedor: string
   escola: string
-  avaliacao: number
-  totalAvaliacoes: number
+  descricao?: string
   isFavorite?: boolean
   onToggleFavorite?: (id: string) => void
-  onAddToCart?: (id: string) => void
+  estoque?: number
+  vendedorTipo?: string
 }
 
 const condicaoColors = {
@@ -46,23 +47,75 @@ export function ProductCard({
   condicao,
   vendedor,
   escola,
-  avaliacao,
-  totalAvaliacoes,
+  descricao,
   isFavorite = false,
   onToggleFavorite,
-  onAddToCart
+  estoque,
+  vendedorTipo
 }: ProductCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
-  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [isInCart, setIsInCart] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
 
-  const handleAddToCart = async () => {
-    setIsAddingToCart(true)
+  const handleShare = async () => {
+    const productUrl = `${window.location.origin}/produtos/${id}`
+    
     try {
-      await onAddToCart?.(id)
+      // Tentar usar Web Share API se disponível (mobile)
+      if (navigator.share) {
+        await navigator.share({
+          title: nome,
+          text: `Confira este produto: ${nome}`,
+          url: productUrl
+        })
+      } else {
+        // Fallback: copiar para área de transferência
+        await navigator.clipboard.writeText(productUrl)
+        alert('Link do produto copiado para a área de transferência!')
+      }
+    } catch (error) {
+      // Usuário cancelou o compartilhamento ou erro ao copiar
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Erro ao compartilhar:', error)
+        // Tentar fallback para copiar
+        try {
+          await navigator.clipboard.writeText(productUrl)
+          alert('Link do produto copiado para a área de transferência!')
+        } catch (copyError) {
+          alert('Erro ao compartilhar. Por favor, copie o link manualmente.')
+        }
+      }
     } finally {
-      setIsAddingToCart(false)
+      setIsSharing(false)
     }
   }
+
+  // Verificar se está no carrinho
+  useEffect(() => {
+    const checkCart = () => {
+      try {
+        const cartData = localStorage.getItem('posimarket_cart')
+        if (cartData) {
+          const cart = JSON.parse(cartData)
+          const isInCartNow = cart.items?.some((item: any) => item.produtoId === id) || false
+          setIsInCart(isInCartNow)
+        }
+      } catch (error) {
+        console.error('Erro ao verificar carrinho:', error)
+      }
+    }
+
+    checkCart()
+    
+    // Escutar eventos de atualização do carrinho
+    window.addEventListener('cartUpdated', checkCart)
+    return () => window.removeEventListener('cartUpdated', checkCart)
+  }, [id])
+
+  // Verificar se é produto único de vendedor individual que já está no carrinho
+  const isProdutoUnico = estoque === 1
+  const isVendedorIndividual = vendedorTipo === 'PAI_RESPONSAVEL'
+  const shouldDisableButton = isInCart && isProdutoUnico && isVendedorIndividual
 
   const discount = precoOriginal ? Math.round(((precoOriginal - preco) / precoOriginal) * 100) : 0
 
@@ -74,11 +127,11 @@ export function ProductCard({
       transition={{ duration: 0.3 }}
       className="group"
     >
-      <Card className="h-full glass-card-weak overflow-hidden hover:glass-card transition-all duration-300">
+      <Card className="h-full min-h-[500px] flex flex-col glass-card-weak overflow-hidden hover:glass-card transition-all duration-300">
         <div className="relative">
           <div className="aspect-square relative overflow-hidden">
             <Image
-              src={imagem}
+              src={normalizeImageUrl(imagem, 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop')}
               alt={nome}
               fill
               className={`object-cover transition-transform duration-500 group-hover:scale-110 ${
@@ -126,6 +179,11 @@ export function ProductCard({
                 variant="ghost"
                 size="sm"
                 className="w-8 h-8 p-0 bg-white/80 backdrop-blur-sm hover:bg-white"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleShare()
+                }}
+                title="Compartilhar produto"
               >
                 <Share2 className="h-4 w-4 text-gray-600" />
               </Button>
@@ -133,58 +191,48 @@ export function ProductCard({
           </div>
         </div>
 
-        <CardContent className="p-4 flex flex-col flex-1">
-          <div className="flex-1">
-            <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
-              {nome}
-            </h3>
-            
-            <div className="flex items-center space-x-1 mb-2">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${
-                    i < Math.floor(avaliacao) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                  }`}
-                />
-              ))}
-              <span className="text-sm text-gray-600 ml-1">
-                ({totalAvaliacoes})
+        <CardContent className="p-4 flex flex-col h-full">
+          <h3 className="font-medium text-gray-900 mb-3 min-h-[3rem] line-clamp-2 group-hover:text-primary-600 transition-colors">
+            {nome}
+          </h3>
+
+          <div className="flex items-center justify-between mb-3 min-h-[2rem]">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xl font-bold text-gray-900">
+                R$ {preco.toLocaleString('pt-BR')}
               </span>
-            </div>
-
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <span className="text-xl font-bold text-gray-900">
-                  R$ {preco.toLocaleString('pt-BR')}
+              {precoOriginal && precoOriginal > preco && (
+                <span className="text-sm text-gray-500 line-through">
+                  R$ {precoOriginal.toLocaleString('pt-BR')}
                 </span>
-                {precoOriginal && precoOriginal > preco && (
-                  <span className="text-sm text-gray-500 line-through ml-2">
-                    R$ {precoOriginal.toLocaleString('pt-BR')}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="text-sm text-gray-600 space-y-1">
-              <p className="truncate">
-                <span className="font-medium">Vendedor:</span> {vendedor}
-              </p>
-              <p className="truncate">
-                <span className="font-medium">Escola:</span> {escola}
-              </p>
+              )}
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <Button
-              className="w-full glass-button-primary"
-              onClick={handleAddToCart}
-              disabled={isAddingToCart}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              {isAddingToCart ? 'Adicionando...' : 'Adicionar ao Carrinho'}
-            </Button>
+          <div className="text-sm text-gray-600 line-clamp-2 min-h-[2.5rem] mb-4">
+            {descricao || '\u00A0'}
+          </div>
+
+          <div className="mt-auto pt-4 border-t border-gray-200">
+            {shouldDisableButton ? (
+              <Link href={`/produtos/${id}`} className="block w-full">
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Já está no carrinho - Ver Detalhes
+                </Button>
+              </Link>
+            ) : (
+              <Link href={`/produtos/${id}`} className="block w-full">
+                <Button
+                  className="w-full glass-button-primary"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver Detalhes
+                </Button>
+              </Link>
+            )}
           </div>
         </CardContent>
       </Card>

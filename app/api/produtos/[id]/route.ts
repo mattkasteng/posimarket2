@@ -24,15 +24,43 @@ export async function PUT(
       )
     }
 
-    // Preparar dados para atualização
+    // Preparar dados para atualização - filtrar apenas campos válidos do schema
+    const validFields = [
+      'nome', 'descricao', 'preco', 'precoOriginal', 'categoria', 'condicao',
+      'tamanho', 'cor', 'material', 'marca', 'modeloId', 'ativo', 'statusAprovacao',
+      'estoque', 'alertaEstoqueBaixo', 'desconto', 'promocaoAtiva',
+      'peso', 'altura', 'largura', 'profundidade'
+    ]
+    
     const updateData: any = {
-      ...updates,
       updatedAt: new Date()
     }
 
+    // Filtrar apenas campos válidos
+    for (const field of validFields) {
+      if (updates[field] !== undefined) {
+        updateData[field] = updates[field]
+      }
+    }
+
     // Se imagens foram enviadas, converter para JSON
-    if (updates.imagens) {
-      updateData.imagens = JSON.stringify(updates.imagens)
+    if (updates.imagens !== undefined) {
+      console.log('📸 Imagens recebidas:', typeof updates.imagens, updates.imagens)
+      
+      if (typeof updates.imagens === 'string') {
+        // Já é uma string JSON, usar diretamente
+        console.log('✅ Imagens já estão em formato JSON string')
+        updateData.imagens = updates.imagens
+      } else if (Array.isArray(updates.imagens)) {
+        // É um array, converter para JSON string
+        console.log('✅ Convertendo array de imagens para JSON string')
+        updateData.imagens = JSON.stringify(updates.imagens)
+      } else {
+        console.log('⚠️ Formato de imagens não reconhecido, armazenando como JSON')
+        updateData.imagens = JSON.stringify(updates.imagens)
+      }
+      
+      console.log('📦 Imagens que serão salvas no banco:', updateData.imagens)
     }
 
     // Atualizar o produto no banco
@@ -50,6 +78,17 @@ export async function PUT(
           select: {
             nome: true
           }
+        },
+        modelo: {
+          select: {
+            id: true,
+            serie: true,
+            descricao: true,
+            tipo: true,
+            cor: true,
+            material: true,
+            genero: true
+          }
         }
       }
     })
@@ -64,6 +103,17 @@ export async function PUT(
       cor: produtoAtualizado.cor,
       condicao: produtoAtualizado.condicao
     }, null, 2))
+    console.log('📸 Imagens armazenadas no banco (string):', produtoAtualizado.imagens)
+    
+    // Parse das imagens para verificar
+    try {
+      const imagensParsed = typeof produtoAtualizado.imagens === 'string' 
+        ? JSON.parse(produtoAtualizado.imagens) 
+        : produtoAtualizado.imagens
+      console.log('📸 Imagens parseadas (array):', imagensParsed)
+    } catch (e) {
+      console.log('❌ Erro ao parsear imagens:', e)
+    }
 
     // Buscar tipo do vendedor
     const vendedorInfo = await prisma.usuario.findUnique({
@@ -84,7 +134,25 @@ export async function PUT(
       cor: produtoAtualizado.cor,
       material: produtoAtualizado.material,
       marca: produtoAtualizado.marca,
-      imagens: produtoAtualizado.imagens ? JSON.parse(produtoAtualizado.imagens) : [],
+      modeloId: produtoAtualizado.modeloId,
+      modelo: produtoAtualizado.modelo ? {
+        id: produtoAtualizado.modelo.id,
+        serie: produtoAtualizado.modelo.serie,
+        descricao: produtoAtualizado.modelo.descricao,
+        tipo: produtoAtualizado.modelo.tipo,
+        cor: produtoAtualizado.modelo.cor,
+        material: produtoAtualizado.modelo.material,
+        genero: produtoAtualizado.modelo.genero
+      } : null,
+      imagens: (() => {
+        try {
+          if (!produtoAtualizado.imagens) return [];
+          const parsed = typeof produtoAtualizado.imagens === 'string' ? JSON.parse(produtoAtualizado.imagens) : produtoAtualizado.imagens;
+          return Array.isArray(parsed) ? parsed.filter(img => img && typeof img === 'string') : [];
+        } catch {
+          return [];
+        }
+      })(),
       vendedorId: produtoAtualizado.vendedorId,
       vendedorNome: produtoAtualizado.vendedorNome || produtoAtualizado.vendedor?.nome,
       vendedorTipo: vendedorInfo?.tipoUsuario, // ESCOLA ou PAI_RESPONSAVEL
@@ -130,6 +198,17 @@ export async function GET(
           select: {
             nome: true
           }
+        },
+        modelo: {
+          select: {
+            id: true,
+            serie: true,
+            descricao: true,
+            tipo: true,
+            cor: true,
+            material: true,
+            genero: true
+          }
         }
       }
     })
@@ -160,12 +239,38 @@ export async function GET(
       cor: produto.cor,
       material: produto.material,
       marca: produto.marca,
-      imagens: produto.imagens ? JSON.parse(produto.imagens) : [],
+      modeloId: produto.modeloId,
+      modelo: produto.modelo ? {
+        id: produto.modelo.id,
+        serie: produto.modelo.serie,
+        descricao: produto.modelo.descricao,
+        tipo: produto.modelo.tipo,
+        cor: produto.modelo.cor,
+        material: produto.modelo.material,
+        genero: produto.modelo.genero
+      } : null,
+      imagens: (() => {
+        try {
+          console.log(`📸 Parsing imagens para produto ${produto.id}:`, produto.imagens)
+          if (!produto.imagens) {
+            console.log(`⚠️ Produto ${produto.id} não tem imagens`)
+            return [];
+          }
+          const parsed = typeof produto.imagens === 'string' ? JSON.parse(produto.imagens) : produto.imagens;
+          const result = Array.isArray(parsed) ? parsed.filter(img => img && typeof img === 'string') : [];
+          console.log(`✅ Produto ${produto.id} tem ${result.length} imagem(ns) parseada(s):`, result)
+          return result;
+        } catch (error) {
+          console.error(`❌ Erro ao parsear imagens do produto ${produto.id}:`, error)
+          return [];
+        }
+      })(),
       vendedorId: produto.vendedorId,
       vendedorNome: produto.vendedorNome || produto.vendedor?.nome,
       vendedorTipo: vendedorInfo?.tipoUsuario, // ESCOLA ou PAI_RESPONSAVEL
       escolaId: produto.escolaId,
       escolaNome: produto.escolaNome || produto.escola?.nome,
+      estoque: produto.estoque || 0,
       ativo: produto.ativo,
       statusAprovacao: produto.statusAprovacao,
       createdAt: produto.createdAt.toISOString(),

@@ -11,7 +11,7 @@ import { useCart } from '@/hooks/useCart'
 
 export default function CartPage() {
   const router = useRouter()
-  const { items, updateQuantity, removeItem, subtotal, serviceFee, cleaningFee } = useCart()
+  const { items, updateQuantity, removeItem, subtotal, serviceFee } = useCart()
 
   const handleCheckout = () => {
     if (items.length === 0) {
@@ -50,7 +50,7 @@ export default function CartPage() {
         </motion.div>
         
         {/* Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-screen">
           {/* Lista de Itens */}
           <div className="lg:col-span-2">
             <motion.div
@@ -67,16 +67,17 @@ export default function CartPage() {
           </div>
           
           {/* Resumo do Pedido */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 flex flex-col">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
+              className="flex-1"
             >
               <CartSummary
                 subtotal={subtotal}
                 serviceFee={serviceFee}
-                cleaningFee={cleaningFee}
+                items={items}
                 onCheckout={handleCheckout}
               />
             </motion.div>
