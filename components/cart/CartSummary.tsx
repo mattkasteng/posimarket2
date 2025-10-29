@@ -90,7 +90,8 @@ export function CartSummary({ subtotal, serviceFee, items, onCheckout }: CartSum
   // Check if CEP is in metropolitan Curitiba (80000-82999)
   const isMetropolitanCuritiba = (cep: string) => {
     const cepNum = parseInt(cep.replace(/\D/g, ''))
-    return cepNum >= 80000000 && cepNum <= 82999999
+    const prefix3 = Math.floor(cepNum / 100000) // primeiros 3 dígitos
+    return prefix3 >= 800 && prefix3 <= 829
   }
 
   // Group items by seller
@@ -140,11 +141,13 @@ export function CartSummary({ subtotal, serviceFee, items, onCheckout }: CartSum
     
     const options: ShippingOption[] = []
     
-    // Check if destination is Curitiba
-    const isCuritiba = destinationCep.startsWith('812') || destinationCep.startsWith('800')
-    const isSaoPaulo = destinationCep.startsWith('010') || destinationCep.startsWith('011')
+    // Check if destination is Curitiba (CEP entre 80000-001 e 82999-999)
+    const cepNum = parseInt(destinationCep.replace(/\D/g, ''))
+    const prefix3 = Math.floor(cepNum / 100000)
+    const isCuritiba = prefix3 >= 800 && prefix3 <= 829
+    const isSaoPaulo = destinationCep.replace(/\D/g, '').startsWith('010') || destinationCep.replace(/\D/g, '').startsWith('011')
     
-    console.log(`🗺️ DESTINO: ${isCuritiba ? 'CURITIBA' : isSaoPaulo ? 'SÃO PAULO' : 'OUTRO'}`)
+    console.log(`🗺️ DESTINO: ${isCuritiba ? 'CURITIBA/REGIÃO' : isSaoPaulo ? 'SÃO PAULO' : 'OUTRO'}`)
     
     // Calculate different prices based on destination
     let pacPrice, sedexPrice
@@ -160,41 +163,18 @@ export function CartSummary({ subtotal, serviceFee, items, onCheckout }: CartSum
       sedexPrice = 80
     }
     
-    // Always add PAC and SEDEX
-    options.push({
-      method: 'PAC',
-      name: 'PAC',
-      company: 'Correios',
-      cost: pacPrice,
-      days: '7-10 dias úteis'
-    })
-    
-    options.push({
-      method: 'SEDEX',
-      name: 'SEDEX',
-      company: 'Correios',
-      cost: sedexPrice,
-      days: '3-5 dias úteis'
-    })
-    
-    // Add Posilog ONLY if destination is Curitiba
+    // Add Posilog first if available (for Curitiba)
     if (isCuritiba) {
-      console.log(`✅ ADICIONANDO POSILOG PARA CURITIBA`)
-      options.push({
-        method: 'POSILOG',
-        name: 'Posilog',
-        company: 'Posilog Curitiba',
-        cost: 15.00,
-        days: '5-7 dias úteis',
-        includesHygiene: true,
-        includesPickup: true
-      })
+      console.log(`✅ ADICIONANDO POSILOG PARA CURITIBA (PRIMEIRA OPÇÃO)`)
+      options.push({ method: 'POSILOG', name: 'Posilog', company: 'Posilog Curitiba', cost: 15.0, days: '5-7 dias úteis', includesHygiene: true, includesPickup: true })
     } else {
       console.log(`❌ POSILOG NÃO DISPONÍVEL PARA ${isSaoPaulo ? 'SÃO PAULO' : 'OUTRO DESTINO'}`)
     }
     
-    console.log(`📦 OPÇÕES FINAIS:`, options.map(o => `${o.name}: R$ ${o.cost}`))
-    
+    // Add standard shipping options
+    options.push({ method: 'PAC', name: 'PAC', company: 'Correios', cost: pacPrice, days: '7-10 dias úteis' })
+    options.push({ method: 'SEDEX', name: 'SEDEX', company: 'Correios', cost: sedexPrice, days: '3-5 dias úteis' })
+
     return options
   }
 

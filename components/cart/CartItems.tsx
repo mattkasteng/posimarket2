@@ -72,11 +72,13 @@ export function CartItems({ items, onQuantityChange, onRemoveItem }: CartItemsPr
     
     const options: ShippingOption[] = []
     
-    // Check if destination is Curitiba
-    const isCuritiba = destinationCep.startsWith('812') || destinationCep.startsWith('800')
-    const isSaoPaulo = destinationCep.startsWith('010') || destinationCep.startsWith('011')
+    // Check if destination is Curitiba (CEP entre 80000-001 e 82999-999)
+    const cepNum = parseInt(destinationCep.replace(/\D/g, ''))
+    const prefix3 = Math.floor(cepNum / 100000) // primeiros 3 dígitos
+    const isCuritiba = prefix3 >= 800 && prefix3 <= 829
+    const isSaoPaulo = destinationCep.replace(/\D/g, '').startsWith('010') || destinationCep.replace(/\D/g, '').startsWith('011')
     
-    console.log(`🗺️ DESTINO: ${isCuritiba ? 'CURITIBA' : isSaoPaulo ? 'SÃO PAULO' : 'OUTRO'}`)
+    console.log(`🗺️ DESTINO: ${isCuritiba ? 'CURITIBA/REGIÃO' : isSaoPaulo ? 'SÃO PAULO' : 'OUTRO'}`)
     
     // Calculate different prices based on destination
     let pacPrice, sedexPrice
