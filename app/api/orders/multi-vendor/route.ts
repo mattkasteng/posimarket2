@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
         data: {
           pedidoId: pedidoVendedor.id,
           status: 'PENDENTE_PAGAMENTO',
-          observacoes: 'Pedido criado - aguardando pagamento'
+          observacao: 'Pedido criado - aguardando pagamento'
         }
       })
 
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
       data: {
         pedidoId: pedido.id,
         status: 'PENDENTE_PAGAMENTO',
-        observacoes: `Pedido multi-vendor criado com ${numVendedores} sub-pedidos`
+        observacao: `Pedido multi-vendor criado com ${numVendedores} sub-pedidos`
       }
     })
 
