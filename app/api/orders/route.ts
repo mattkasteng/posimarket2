@@ -139,11 +139,10 @@ export async function POST(request: NextRequest) {
         prazoEntrega,
         custoEnvio: custoEnvio || frete,
         pontoColeta: pontoColeta ? JSON.stringify(pontoColeta) : null,
-        subtotal,
-        taxaServico,
+        valorSubtotal: subtotal,
+        taxaPlataforma: taxaServico,
         taxaHigienizacao: taxaHigienizacao || 0,
-        frete,
-        total,
+        valorTotal: total,
         enderecoEntrega: JSON.stringify(enderecoEntrega),
         itens: {
           create: itens.map((item: any) => ({
