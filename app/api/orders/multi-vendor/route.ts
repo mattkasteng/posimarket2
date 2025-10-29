@@ -121,9 +121,13 @@ export async function POST(request: NextRequest) {
       numVendedores
     })
 
+    // Gerar número único para o pedido principal
+    const numeroPedidoPrincipal = `PED-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+    
     // Criar pedido principal
     const pedido = await prisma.pedido.create({
       data: {
+        numero: numeroPedidoPrincipal,
         compradorId,
         status: 'PENDENTE_PAGAMENTO',
         valorTotal: totalFinal,
@@ -145,9 +149,13 @@ export async function POST(request: NextRequest) {
     const pedidosVendedores = []
 
     for (const [vendedorId, dados] of Array.from(itemsPorVendedor)) {
+      // Gerar número único para cada sub-pedido
+      const numeroSubPedido = `PED-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}-SUB${pedidosVendedores.length + 1}`
+      
       // Criar pedido específico para o vendedor
       const pedidoVendedor = await prisma.pedido.create({
         data: {
+          numero: numeroSubPedido,
           compradorId,
           status: 'PENDENTE_PAGAMENTO',
           valorTotal: dados.subtotal + dados.frete + (dados.subtotal * 0.10), // subtotal + frete + taxa plataforma
