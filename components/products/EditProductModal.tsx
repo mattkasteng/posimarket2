@@ -409,7 +409,7 @@ export default function EditProductModal({
                         )
                       })}
                     </div>
-                  )}
+                  ) : null}
                   {console.log('🖼️ Renderizando ImageUpload com imagens:', images)}
                 </div>
 
