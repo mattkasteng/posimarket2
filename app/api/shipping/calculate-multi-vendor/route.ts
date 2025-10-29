@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     // Calcular frete para cada vendedor
     const fretesPorVendedor = []
     
-    for (const [vendedorId, grupo] of produtosPorVendedor) {
+    for (const [vendedorId, grupo] of Array.from(produtosPorVendedor.entries())) {
       const vendedor = grupo.vendedor
       const produtosVendedor = grupo.produtos
       
