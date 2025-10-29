@@ -118,9 +118,7 @@ export async function GET(request: NextRequest) {
           condicao: true,
           tamanho: true,
           desconto: true,
-          promocaoAtiva: true
-        },
-        include: {
+          promocaoAtiva: true,
           vendedor: {
             select: {
               tipoUsuario: true
