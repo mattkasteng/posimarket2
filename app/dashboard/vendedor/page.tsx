@@ -197,7 +197,8 @@ export default function VendedorDashboard() {
       }
     } catch (error) {
       console.error('❌ Erro ao salvar:', error)
-      alert(`Erro ao salvar as informações: ${error.message || 'Tente novamente.'}`)
+      const errorMessage = error instanceof Error ? error.message : 'Tente novamente.'
+      alert(`Erro ao salvar as informações: ${errorMessage}`)
     } finally {
       setIsSaving(false)
     }
