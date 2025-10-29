@@ -34,9 +34,7 @@ export async function POST(request: NextRequest) {
         estoque: true,
         ativo: true,
         statusAprovacao: true,
-        vendedorId: true
-      },
-      include: {
+        vendedorId: true,
         vendedor: {
           select: {
             tipoUsuario: true
