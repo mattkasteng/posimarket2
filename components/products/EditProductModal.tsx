@@ -321,41 +321,43 @@ export default function EditProductModal({
                       type="file"
                       multiple
                       accept="image/*"
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         if (e.target.files && e.target.files.length > 0) {
-                          try {
-                            console.log('📤 Fazendo upload de', e.target.files.length, 'imagem(ns)')
-                            
-                            const uploadPromises = Array.from(e.target.files).map(async (file) => {
-                              const formData = new FormData()
-                              formData.append('file', file)
-                              formData.append('tipo', 'produto')
-
-                              console.log('📤 Enviando arquivo para /api/upload:', file.name)
+                          (async () => {
+                            try {
+                              console.log('📤 Fazendo upload de', e.target.files!.length, 'imagem(ns)')
                               
-                              const response = await fetch('/api/upload', {
-                                method: 'POST',
-                                body: formData
+                              const uploadPromises = Array.from(e.target.files!).map(async (file) => {
+                                const formData = new FormData()
+                                formData.append('file', file)
+                                formData.append('tipo', 'produto')
+
+                                console.log('📤 Enviando arquivo para /api/upload:', file.name)
+                                
+                                const response = await fetch('/api/upload', {
+                                  method: 'POST',
+                                  body: formData
+                                })
+
+                                if (!response.ok) {
+                                  const error = await response.json()
+                                  throw new Error(error.error || 'Erro no upload')
+                                }
+
+                                const result = await response.json()
+                                console.log('✅ Upload concluído:', result.url)
+                                return result.url
                               })
 
-                              if (!response.ok) {
-                                const error = await response.json()
-                                throw new Error(error.error || 'Erro no upload')
-                              }
-
-                              const result = await response.json()
-                              console.log('✅ Upload concluído:', result.url)
-                              return result.url
-                            })
-
-                            const uploadedUrls = await Promise.all(uploadPromises)
-                            console.log('🎉 Todas as imagens foram carregadas:', uploadedUrls)
-                            
-                            handleImagesChange([...images, ...uploadedUrls])
-                          } catch (error) {
-                            console.error('❌ Erro ao fazer upload:', error)
-                            alert('Erro ao fazer upload das imagens. Por favor, tente novamente.')
-                          }
+                              const uploadedUrls = await Promise.all(uploadPromises)
+                              console.log('🎉 Todas as imagens foram carregadas:', uploadedUrls)
+                              
+                              handleImagesChange([...images, ...uploadedUrls])
+                            } catch (error) {
+                              console.error('❌ Erro ao fazer upload:', error)
+                              alert('Erro ao fazer upload das imagens. Por favor, tente novamente.')
+                            }
+                          })()
                         }
                       }}
                       className="hidden"
