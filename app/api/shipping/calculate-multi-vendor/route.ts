@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       let pesoTotal = 0
       let volumeTotal = 0
 
-      produtosVendedor.forEach(produto => {
+      produtosVendedor.forEach((produto: any) => {
         const peso = produto.peso || 0.5 // kg
         const altura = produto.altura || 10 // cm
         const largura = produto.largura || 20 // cm
