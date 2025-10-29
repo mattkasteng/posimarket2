@@ -11,64 +11,61 @@ async function main() {
 
   // Verificar se já existem produtos no banco
   const existingProducts = await prisma.produto.count()
-  if (existingProducts > 0) {
+  if (existingProducts >= 24) {
     console.log(`✅ Já existem ${existingProducts} produtos no banco. Pulando migração.`)
     return
   }
 
   // Ler produtos do arquivo JSON
-  let products = []
+  let products: any[] = []
   try {
     if (fs.existsSync(DATA_FILE)) {
       const data = fs.readFileSync(DATA_FILE, 'utf8')
       products = JSON.parse(data)
       console.log(`📦 Encontrados ${products.length} produtos no arquivo JSON`)
     } else {
-      console.log('⚠️ Arquivo products.json não encontrado, usando produtos de exemplo')
-      products = [
-        {
-          id: 'prod_example_1',
-          nome: 'Uniforme Escolar Masculino - Camisa Polo',
-          descricao: 'Uniforme escolar masculino em camisa polo de algodão',
-          categoria: 'UNIFORME',
-          condicao: 'NOVO',
-          preco: 89.90,
-          precoOriginal: 120.00,
-          tamanho: 'M',
-          cor: 'Azul',
-          material: 'Algodão',
-          marca: 'Escolar',
-          imagens: ['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop'],
-          vendedorId: 'vendor-456',
-          vendedorNome: 'Usuário Vendedor',
-          escolaNome: 'Colégio Positivo',
-          ativo: true,
-          statusAprovacao: 'APROVADO',
-          createdAt: '2023-11-15T10:00:00Z',
-          updatedAt: '2023-11-15T10:00:00Z'
-        },
-        {
-          id: 'prod_example_2',
-          nome: 'Caderno Universitário 200 folhas',
-          descricao: 'Caderno universitário com 200 folhas pautadas',
-          categoria: 'MATERIAL_ESCOLAR',
-          condicao: 'NOVO',
-          preco: 25.50,
-          precoOriginal: null,
-          tamanho: 'A4',
-          cor: 'Branco',
-          material: 'Papel',
-          marca: 'Tilibra',
-          imagens: ['https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop'],
-          vendedorId: 'vendor-456',
-          vendedorNome: 'Usuário Vendedor',
-          escolaNome: 'Colégio Positivo',
-          ativo: true,
-          statusAprovacao: 'APROVADO',
-          createdAt: '2023-11-20T10:00:00Z',
-          updatedAt: '2023-11-20T10:00:00Z'
-        }
+      console.log('⚠️ Arquivo products.json não encontrado, gerando 24 produtos de exemplo')
+      const categorias = ['UNIFORME', 'MATERIAL_ESCOLAR']
+      const condicoes = ['NOVO', 'USADO']
+      const tamanhos = ['PP', 'P', 'M', 'G', 'GG', 'A4', 'A5']
+      const cores = ['Azul', 'Branco', 'Preto', 'Cinza', 'Vermelho', 'Verde']
+      const materiais = ['Algodão', 'Poliéster', 'Papel']
+      const marcas = ['Escolar', 'Posi', 'Tilibra', 'Bic']
+      const images = [
+        'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=400&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1478145046317-39f10e56b5e9?w=400&h=400&fit=crop'
       ]
+
+      const now = new Date()
+      for (let i = 1; i <= 24; i++) {
+        const isUniforme = i % 2 === 1
+        products.push({
+          id: `prod_example_${i}`,
+          nome: isUniforme
+            ? `Uniforme Escolar ${i}`
+            : `Material Escolar ${i}`,
+          descricao: isUniforme
+            ? 'Peça de uniforme escolar confortável e resistente'
+            : 'Material escolar de alta qualidade para o dia a dia',
+          categoria: categorias[isUniforme ? 0 : 1],
+          condicao: condicoes[i % condicoes.length],
+          preco: Number((isUniforme ? 59.9 + i : 9.9 + i).toFixed(2)),
+          precoOriginal: isUniforme ? Number((79.9 + i).toFixed(2)) : null,
+          tamanho: tamanhos[i % tamanhos.length],
+          cor: cores[i % cores.length],
+          material: materiais[i % materiais.length],
+          marca: marcas[i % marcas.length],
+          imagens: [images[i % images.length]],
+          vendedorNome: 'Usuário Vendedor',
+          escolaNome: 'Colégio Positivo',
+          ativo: true,
+          statusAprovacao: 'APROVADO',
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString()
+        })
+      }
     }
   } catch (error) {
     console.error('❌ Erro ao ler arquivo JSON:', error)
@@ -99,8 +96,10 @@ async function main() {
 
   for (const product of products) {
     try {
-      await prisma.produto.create({
-        data: {
+      await prisma.produto.upsert({
+        where: { id: product.id },
+        update: {},
+        create: {
           id: product.id,
           nome: product.nome,
           descricao: product.descricao,
