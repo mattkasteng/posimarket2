@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
           id: pagamentoExistente.id
         },
         data: {
-          valor: pedido.total,
+          valor: pedido.valorTotal,
           metodo,
           status: statusPagamento,
           transacaoId,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       pagamento = await prisma.pagamento.create({
         data: {
           pedidoId,
-          valor: pedido.total,
+          valor: pedido.valorTotal,
           metodo,
           status: statusPagamento,
           transacaoId,
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
           data: {
             usuarioId: vendedorId,
             titulo: 'Pagamento Recebido! 💰',
-            mensagem: `Pagamento do pedido ${pedido.numero} foi aprovado! Produtos: ${nomesProdutos}. Valor: R$ ${pedido.total.toFixed(2)}`,
+            mensagem: `Pagamento do pedido ${pedido.numero} foi aprovado! Produtos: ${nomesProdutos}. Valor: R$ ${pedido.valorTotal.toFixed(2)}`,
             tipo: 'SUCESSO',
             link: `/dashboard/vendedor/vendas`
           }
