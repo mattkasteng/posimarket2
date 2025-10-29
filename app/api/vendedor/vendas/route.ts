@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const pedido = await prisma.pedido.findFirst({
       where: {
         id: pedidoId,
-        vendedorId: parseInt(vendedorId)
+        vendedorId: vendedorId
       }
     })
 
