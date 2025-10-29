@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
           gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Últimos 7 dias
         }
       },
-      select: { total: true, dataPedido: true }
+      select: { valorTotal: true, dataPedido: true }
     })
 
     const ordersLast24h = recentOrders.filter(
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     transactionAnalysis.ordersInLastWeek = recentOrders.length
 
     if (recentOrders.length > 0) {
-      const avgOrderValue = recentOrders.reduce((sum, o) => sum + o.total, 0) / recentOrders.length
+      const avgOrderValue = recentOrders.reduce((sum, o) => sum + o.valorTotal, 0) / recentOrders.length
       transactionAnalysis.averageOrderValue = avgOrderValue
     }
 
