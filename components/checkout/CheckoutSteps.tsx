@@ -320,11 +320,14 @@ export function CheckoutSteps({ onComplete }: CheckoutStepsProps) {
                 <div className="md:col-span-1">
                   <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
                     CEP
-                    <Info 
-                      className="inline-block ml-2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" 
+                    <button
+                      type="button"
                       onClick={handleCepInfoClick}
                       title="Clique para mais informações"
-                    />
+                      className="inline-block ml-2 h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
                   </label>
                   <Input
                     id="zipCode"
