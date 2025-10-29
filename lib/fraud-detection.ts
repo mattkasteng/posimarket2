@@ -83,7 +83,7 @@ export async function calculateFraudScore(
 
   // 4. Padrão anômalo de comportamento
   if (user && user.pedidos.length > 0) {
-    const avgOrderValue = user.pedidos.reduce((sum, o) => sum + o.total, 0) / user.pedidos.length
+    const avgOrderValue = user.pedidos.reduce((sum, o) => sum + (o.valorTotal || 0), 0) / user.pedidos.length
     if (transaction.amount > avgOrderValue * 3) {
       score += 20
       reasons.push('Valor muito acima da média do usuário')
