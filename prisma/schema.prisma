@@ -43,6 +43,7 @@ model Usuario {
   mensagensEnviadas    Mensagem[] @relation("Remetente")
   mensagensRecebidas   Mensagem[] @relation("Destinatario")
   carrinho        Carrinho?
+  transacoesFinanceiras TransacaoFinanceira[]
 
   @@map("usuarios")
 }
@@ -354,4 +355,20 @@ model HistoricoStatus {
   pedido      Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
 
   @@map("historico_status")
+}
+
+model TransacaoFinanceira {
+  id              String    @id @default(cuid())
+  vendedorId      String
+  tipo            String    // VENDA, SAQUE
+  valor           Float
+  status          String    // PROCESSANDO, CONCLUIDO, CANCELADO
+  descricao       String?
+  dataTransacao   DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  vendedor        Usuario   @relation(fields: [vendedorId], references: [id], onDelete: Cascade)
+
+  @@map("transacoes_financeiras")
 }

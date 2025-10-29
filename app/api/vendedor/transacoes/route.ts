@@ -34,21 +34,29 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar transações do vendedor
-    // TODO: Modelo TransacaoFinanceira não existe no schema ainda
-    // Retornando array vazio temporariamente
-    const transacoes: any[] = []
+    const transacoes = await prisma.transacaoFinanceira.findMany({
+      where: {
+        vendedorId: vendedorId,
+        dataTransacao: {
+          gte: dataInicio
+        }
+      },
+      orderBy: {
+        dataTransacao: 'desc'
+      }
+    })
 
     // Calcular estatísticas
     const totalVendas = transacoes
-      .filter(t => t.tipo === 'VENDA' && t.status === 'CONCLUIDO')
-      .reduce((acc, t) => acc + t.valor, 0)
+      .filter((t: any) => t.tipo === 'VENDA' && t.status === 'CONCLUIDO')
+      .reduce((acc: number, t: any) => acc + t.valor, 0)
 
     const totalSaques = transacoes
-      .filter(t => t.tipo === 'SAQUE')
-      .reduce((acc, t) => acc + Math.abs(t.valor), 0)
+      .filter((t: any) => t.tipo === 'SAQUE')
+      .reduce((acc: number, t: any) => acc + Math.abs(t.valor), 0)
 
     const saldoDisponivel = totalVendas - totalSaques
-    const transacoesPendentes = transacoes.filter(t => t.status === 'PROCESSANDO')
+    const transacoesPendentes = transacoes.filter((t: any) => t.status === 'PROCESSANDO')
 
     return NextResponse.json({
       success: true,
@@ -58,7 +66,7 @@ export async function GET(request: NextRequest) {
         totalSaques,
         saldoDisponivel,
         transacoesPendentes: transacoesPendentes.length,
-        valorPendente: transacoesPendentes.reduce((acc, t) => acc + t.valor, 0)
+        valorPendente: transacoesPendentes.reduce((acc: number, t: any) => acc + t.valor, 0)
       }
     })
   } catch (error) {
@@ -94,14 +102,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar transação
-    // TODO: Modelo TransacaoFinanceira não existe no schema ainda
-    // Retornando erro temporariamente
-    return NextResponse.json(
-      { success: false, error: 'Funcionalidade de transações financeiras não implementada ainda' },
-      { status: 501 }
-    )
-    
-    /* Código comentado até que o modelo seja criado:
     const transacao = await prisma.transacaoFinanceira.create({
       data: {
         vendedorId: vendedorId,
@@ -112,7 +112,12 @@ export async function POST(request: NextRequest) {
         dataTransacao: new Date()
       }
     })
-    */
+
+    return NextResponse.json({
+      success: true,
+      transacao,
+      message: tipo === 'SAQUE' ? 'Solicitação de saque criada com sucesso' : 'Transação criada com sucesso'
+    })
   } catch (error) {
     console.error('❌ Erro ao criar transação:', error)
     return NextResponse.json(
@@ -123,15 +128,9 @@ export async function POST(request: NextRequest) {
 }
 
 async function calcularSaldoVendedor(vendedorId: string): Promise<number> {
-  // TODO: Modelo TransacaoFinanceira não existe no schema ainda
-  // Retornando 0 temporariamente
-  return 0
-  
-  /* Código comentado até que o modelo seja criado:
   const transacoes = await prisma.transacaoFinanceira.findMany({
     where: { vendedorId }
   })
 
-  return transacoes.reduce((acc, t) => acc + t.valor, 0)
-  */
+  return transacoes.reduce((acc: number, t: any) => acc + t.valor, 0)
 }
