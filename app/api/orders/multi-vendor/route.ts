@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
     const subPedidos = await prisma.pedido.findMany({
       where: { pedidoPaiId: pedidoId },
       include: {
-        items: {
+        itens: {
           include: {
             produto: {
               select: {
