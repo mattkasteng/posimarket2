@@ -282,7 +282,7 @@ export default function VendedoresPage() {
                       <div className="flex items-center">
                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                           <span className="text-sm font-medium text-gray-600">
-                            {vendedor.nome.split(' ').map(n => n[0]).join('')}
+                            {vendedor.nome.split(' ').map((n: string) => n[0]).join('')}
                           </span>
                         </div>
                         <div className="ml-4">
