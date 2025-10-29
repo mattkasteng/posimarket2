@@ -106,12 +106,14 @@ export async function GET(request: NextRequest) {
 
         // Filtrar vendedores por período se necessário
         let vendedoresFiltrados = vendedores
-        if (whereClause.dataPedido) {
+        if (whereClause.dataPedido && dataInicio && dataFim) {
+          const inicioDate = new Date(dataInicio)
+          const fimDate = new Date(dataFim)
           vendedoresFiltrados = vendedores.filter(vendedor => 
             vendedor.produtos.some(produto => 
               produto.itensPedido.some(item => {
                 const dataPedido = new Date(item.pedido.dataPedido)
-                return dataPedido >= new Date(dataInicio) && dataPedido <= new Date(dataFim)
+                return dataPedido >= inicioDate && dataPedido <= fimDate
               })
             )
           )
