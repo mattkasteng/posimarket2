@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
         dados = {
           totalPedidos: pedidos.length,
-          valorTotal: pedidos.reduce((acc, p) => acc + p.total, 0),
+          valorTotal: pedidos.reduce((acc, p) => acc + (p.valorTotal || 0), 0),
           vendasPorCategoria: await getVendasPorCategoria(pedidos),
           topVendedores: await getTopVendedores(pedidos),
           produtosMaisVendidos: await getProdutosMaisVendidos(pedidos)
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
           totalPagamentosAprovados: pagamentosAprovados.length,
           valorTotalVendas: pagamentosAprovados.reduce((acc, p) => acc + p.valor, 0),
           valorMedioPedido: pedidosFinanceiros.length > 0 
-            ? pedidosFinanceiros.reduce((acc, p) => acc + p.total, 0) / pedidosFinanceiros.length 
+            ? pedidosFinanceiros.reduce((acc, p) => acc + (p.valorTotal || 0), 0) / pedidosFinanceiros.length 
             : 0,
           comissoesPlataforma: await getComissoesPlataforma(pedidosFinanceiros)
         }
@@ -328,7 +328,7 @@ async function getProdutosPorCategoria(produtos: any[]) {
 async function getComissoesPlataforma(pedidos: any[]) {
   try {
     // Calcular comissão de 5% sobre o valor total dos pedidos
-    const valorTotal = pedidos.reduce((acc, pedido) => acc + pedido.total, 0)
+    const valorTotal = pedidos.reduce((acc, pedido) => acc + (pedido.valorTotal || 0), 0)
     const comissaoPercentual = 0.05 // 5%
     return valorTotal * comissaoPercentual
   } catch (error) {
