@@ -21,7 +21,11 @@ export async function GET(request: NextRequest) {
         ...(status && status !== 'all' ? { status } : {})
       },
       include: {
-        produto: true,
+        itens: {
+          include: {
+            produto: true
+          }
+        },
         vendedor: {
           select: {
             id: true,
