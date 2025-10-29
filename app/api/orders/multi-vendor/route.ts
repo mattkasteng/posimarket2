@@ -148,9 +148,10 @@ export async function POST(request: NextRequest) {
     // Criar itens do pedido e pedidos por vendedor
     const pedidosVendedores = []
 
+    let subPedidoIndex = 1
     for (const [vendedorId, dados] of Array.from(itemsPorVendedor)) {
       // Gerar número único para cada sub-pedido
-      const numeroSubPedido: string = `PED-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}-SUB${pedidosVendedores.length + 1}`
+      const numeroSubPedido = `PED-${Date.now()}-${Math.random().toString(36).substring(2, 11).toUpperCase()}-SUB${subPedidoIndex++}`
       
       // Criar pedido específico para o vendedor
       const pedidoVendedor = await prisma.pedido.create({
