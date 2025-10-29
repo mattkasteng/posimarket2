@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
         pedido: {
           select: {
             numero: true,
-            total: true,
+            valorTotal: true,
             comprador: {
               select: {
                 nome: true,
