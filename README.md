@@ -215,6 +215,8 @@ npm run db:generate      # Gera cliente Prisma
 npm run db:seed          # Popula banco com dados de exemplo
 npm run db:reset         # Reseta banco e popula novamente
 npm run db:setup         # Configura dados iniciais
+npm run db:backup        # Gera backup lógico do banco (JSON)
+npm run db:restore       # Restaura backup lógico (informe o arquivo)
 
 # Testes
 npm test                 # Executa testes unitários
@@ -228,6 +230,11 @@ npm run test:e2e:ui      # Interface gráfica para testes E2E
 npm run deploy           # Deploy para produção na Vercel
 npm run deploy:preview   # Deploy de preview na Vercel
 npm run analyze          # Analisa bundle da aplicação
+
+# Segurança
+npm run security:scan    # Executa lint, type-check e npm audit (uso em CI/CD)
+npm run sbom:generate    # Gera SBOM CycloneDX (sbom.json)
+npm run compliance:report # Gera relatório (security scan + SBOM) em docs/auditoria/
 ```
 
 ## 📁 Estrutura do Projeto
@@ -264,6 +271,15 @@ posimarket/
 - ✅ CORS configurado
 - ✅ Autenticação com NextAuth.js
 - ✅ Proteção de rotas sensíveis
+- ✅ MFA obrigatório para administradores (TOTP + códigos de backup)
+- ✅ Gestão segura de API keys com rotação e revogação
+- ✅ Política de backup/DR automatizada (`npm run db:backup` / `npm run db:restore`)
+- ✅ Varredura de segurança contínua (`npm run security:scan`)
+- ✅ SSO via Google (OIDC) opcional para usuários existentes
+- ✅ WAF & detecção de padrões maliciosos com envio para SIEM webhook
+- ✅ Allowlist de IP para endpoints administrativos (`ADMIN_API_IP_ALLOWLIST`)
+- ✅ SLA formal documentado (`docs/SLA.md`) com créditos e RTO/RPO definidos
+- ✅ Guia de segurança de email (SPF/DKIM/DMARC) em `docs/EMAIL-SECURITY.md`
 
 ## ♿ Acessibilidade
 

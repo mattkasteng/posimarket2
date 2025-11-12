@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button'
 import { 
   Facebook, 
   Instagram, 
-  Twitter, 
   Linkedin,
   Mail, 
   Phone, 
@@ -14,8 +13,10 @@ import {
   Heart,
   Shield,
   Truck,
-  Clock
+  Clock,
+  LucideIcon
 } from 'lucide-react'
+import Image from 'next/image'
 
 const footerLinks = {
   empresa: [
@@ -38,11 +39,14 @@ const footerLinks = {
   ]
 }
 
-const socialLinks = [
-  { icon: Facebook, href: '#', label: 'Facebook' },
-  { icon: Instagram, href: '#', label: 'Instagram' },
-  { icon: Twitter, href: '#', label: 'Twitter' },
-  { icon: Linkedin, href: '#', label: 'LinkedIn' }
+const socialLinks: Array<
+  { icon: LucideIcon; href: string; label: string; type?: 'icon' } |
+  { custom: 'image'; href: string; label: string; src: string }
+> = [
+  { icon: Facebook, href: 'https://www.facebook.com/GPositivo', label: 'Facebook' },
+  { icon: Instagram, href: 'https://www.instagram.com/grupopositivo/', label: 'Instagram' },
+  { custom: 'image', href: 'https://x.com/CursoPositivo', label: 'X (Twitter)', src: '/x-logo.svg' },
+  { icon: Linkedin, href: 'https://br.linkedin.com/company/grupo-positivo', label: 'LinkedIn' }
 ]
 
 const features = [
@@ -90,21 +94,30 @@ export function Footer() {
               
               {/* Social links */}
               <div className="flex space-x-4">
-                {socialLinks.map((social, index) => {
-                  const Icon = social.icon
-                  return (
-                    <motion.a
-                      key={index}
-                      href={social.href}
-                      whileHover={{ scale: 1.1, y: -2 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-10 h-10 bg-gray-700/50 hover:bg-primary-500 rounded-lg flex items-center justify-center transition-colors duration-300"
-                      aria-label={social.label}
-                    >
-                      <Icon className="h-5 w-5 text-gray-300 hover:text-white" />
-                    </motion.a>
-                  )
-                })}
+                {socialLinks.map((social, index) => (
+                  <motion.a
+                    key={index}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="w-10 h-10 bg-gray-700/50 hover:bg-primary-500 rounded-lg flex items-center justify-center transition-colors duration-300"
+                    aria-label={social.label}
+                  >
+                    {'custom' in social ? (
+                      <Image
+                        src={social.src}
+                        alt={social.label}
+                        width={20}
+                        height={20}
+                        className="w-5 h-5"
+                      />
+                    ) : (
+                      <social.icon className="h-5 w-5 text-gray-300 hover:text-white" />
+                    )}
+                  </motion.a>
+                ))}
               </div>
             </motion.div>
 

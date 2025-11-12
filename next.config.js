@@ -12,7 +12,9 @@ const nextConfig = {
       'images.unsplash.com',
       'via.placeholder.com',
       'res.cloudinary.com',
-      'localhost'
+      'localhost',
+      'i.imgur.com',
+      'imgur.com'
     ],
     // Permitir imagens locais da pasta public
     unoptimized: process.env.NODE_ENV === 'development',

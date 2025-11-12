@@ -26,6 +26,10 @@ export async function requireAdmin() {
   if (user.tipoUsuario !== 'ESCOLA' && user.tipoUsuario !== 'ADMIN_ESCOLA') {
     throw new Error('Acesso negado - apenas administradores')
   }
+
+  if (user.mfaEnabled && !user.mfaVerified) {
+    throw new Error('Autenticação de dois fatores pendente')
+  }
   
   return user
 }

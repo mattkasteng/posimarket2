@@ -131,11 +131,12 @@ export async function GET(request: NextRequest) {
     })
 
     // Buscar nomes dos produtos (apenas ativos)
-    const produtoIds = conversas.map(c => c.produtoId)
+    const produtoIds = conversas
+      .map(c => c.produtoId)
+      .filter((id): id is string => Boolean(id))
     const produtos = await prisma.produto.findMany({
-      where: { 
-        id: { in: produtoIds },
-        ativo: true
+      where: {
+        id: { in: produtoIds }
       },
       select: { id: true, nome: true }
     })

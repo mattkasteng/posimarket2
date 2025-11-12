@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
+import Image from 'next/image'
 
 const navigation = [
   { name: 'Início', href: '/', icon: Home },
@@ -225,7 +226,14 @@ export function MobileNavigation() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="text-xl md:text-2xl font-bold text-primary-600">
+          <Link href="/" className="flex items-center gap-2 text-xl md:text-2xl font-bold text-primary-600">
+            <Image
+              src="https://i.imgur.com/vfw3Ugh.png"
+              alt="Grupo Positivo"
+              width={28}
+              height={28}
+              className="w-7 h-7 rounded-md drop-shadow-sm"
+            />
             PosiMarket
           </Link>
           

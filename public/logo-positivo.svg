@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <title>Grupo Positivo</title>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 104 C20 75 24 52 44 40 C60 30 80 28 88 16" stroke="#0f67bd" stroke-width="7"/>
+    <path d="M32 78 C22 54 35 32 58 30 C70 29 78 33 82 38" stroke="#56b948" stroke-width="7"/>
+    <path d="M54 80 C58 74 58 64 52 58 C48 54 48 48 54 44" stroke="#f28c1a" stroke-width="7"/>
+    <path d="M68 96 C84 108 102 104 108 90" stroke="#e6312b" stroke-width="7"/>
+    <path d="M70 72 C82 80 96 78 102 66" stroke="#e6312b" stroke-width="7"/>
+    <path d="M72 52 C84 60 100 58 106 46" stroke="#e6312b" stroke-width="7"/>
+  </g>
+</svg>

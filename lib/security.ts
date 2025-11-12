@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
+import { createSecurityEvent, logSecurityEvent } from './security-logger'
 
 // Rate limiting store (em produção, use Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
@@ -11,6 +12,54 @@ export const rateLimitConfig = {
   message: 'Muitas requisições. Tente novamente em 15 minutos.',
   skipSuccessfulRequests: false,
   skipFailedRequests: false,
+}
+
+const WAF_PATTERNS: Array<{ name: string; regex: RegExp }> = [
+  { name: 'SQL Injection - UNION', regex: /\bunion(\s+all)?\s+select\b/i },
+  { name: 'SQL Injection - DROP', regex: /\bdrop\s+table\b/i },
+  { name: 'SQL Injection - Comment', regex: /--|\/\*/ },
+  { name: 'SQL Injection - Boolean', regex: /\b1=1\b/i },
+  { name: 'XSS - Script Tag', regex: /<\s*script/gi },
+  { name: 'XSS - Event Handler', regex: /on\w+=/i },
+  { name: 'Path Traversal', regex: /\.\.\/|\.\.\\|\%2e\%2e\//i },
+  { name: 'Shell Injection', regex: /(;|\|\||&&)\s*(rm|ls|cat|bash|sh)\b/i },
+  { name: 'Command Injection', regex: /\b(exec|system|eval|ping|sleep)\b/i },
+  { name: 'LDAP Injection', regex: /\(\|\(.*=\*\)\)/i }
+]
+
+const ADMIN_IP_ALLOWLIST = (process.env.ADMIN_API_IP_ALLOWLIST ?? '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean)
+
+function getClientIp(req: NextRequest): string | null {
+  return req.ip ?? req.headers.get('x-forwarded-for') ?? null
+}
+
+function detectMaliciousRequest(req: NextRequest): { pattern: string; value: string } | null {
+  const url = req.nextUrl
+  const segmentsToInspect = [
+    url.pathname,
+    url.search,
+    url.hash,
+    Array.from(url.searchParams.values()).join(' '),
+    req.headers.get('user-agent') ?? '',
+    req.headers.get('referer') ?? ''
+  ]
+
+  for (const segment of segmentsToInspect) {
+    if (!segment) continue
+    for (const pattern of WAF_PATTERNS) {
+      if (pattern.regex.test(segment)) {
+        return {
+          pattern: pattern.name,
+          value: segment.slice(0, 200)
+        }
+      }
+    }
+  }
+
+  return null
 }
 
 // Rate limiting por IP
@@ -291,13 +340,95 @@ export function securityMiddleware(req: NextRequest): NextResponse | null {
   // Rate limiting
   const rateLimitResponse = rateLimit(req)
   if (rateLimitResponse) {
+    logSecurityEvent(
+      createSecurityEvent(
+        'RATE_LIMIT_BLOCK',
+        'medium',
+        {
+          ip: getClientIp(req),
+          userAgent: req.headers.get('user-agent'),
+          path: req.nextUrl.pathname,
+          method: req.method
+        },
+        {
+          reason: 'rate_limit_exceeded'
+        }
+      )
+    )
     return rateLimitResponse
+  }
+
+  const wafDetection = detectMaliciousRequest(req)
+  if (wafDetection) {
+    logSecurityEvent(
+      createSecurityEvent(
+        'WAF_BLOCK',
+        'high',
+        {
+          ip: getClientIp(req),
+          userAgent: req.headers.get('user-agent'),
+          path: req.nextUrl.pathname,
+          method: req.method
+        },
+        {
+          pattern: wafDetection.pattern,
+          sample: wafDetection.value
+        }
+      )
+    )
+
+    return new NextResponse(
+      JSON.stringify({ error: 'Requisição bloqueada pelo WAF.' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 
   // Validação de CORS
   const origin = req.headers.get('origin')
   if (origin && !validateCORS(origin)) {
+    logSecurityEvent(
+      createSecurityEvent(
+        'CORS_BLOCK',
+        'medium',
+        {
+          ip: getClientIp(req),
+          userAgent: req.headers.get('user-agent'),
+          path: req.nextUrl.pathname,
+          method: req.method
+        },
+        { origin }
+      )
+    )
     return new NextResponse('CORS Error', { status: 403 })
+  }
+
+  if (ADMIN_IP_ALLOWLIST.length > 0 && req.nextUrl.pathname.startsWith('/api/admin')) {
+    const clientIp = getClientIp(req)
+    const allowed = clientIp ? ADMIN_IP_ALLOWLIST.includes(clientIp) : false
+
+    if (!allowed) {
+      logSecurityEvent(
+        createSecurityEvent(
+          'ADMIN_IP_BLOCK',
+          'high',
+          {
+            ip: clientIp,
+            userAgent: req.headers.get('user-agent'),
+            path: req.nextUrl.pathname,
+            method: req.method
+          },
+          {
+            allowlist: ADMIN_IP_ALLOWLIST,
+            message: 'IP não permitido na lista de acesso administrativo'
+          }
+        )
+      )
+
+      return new NextResponse(
+        JSON.stringify({ error: 'IP não autorizado para endpoints administrativos.' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
   }
 
   return null

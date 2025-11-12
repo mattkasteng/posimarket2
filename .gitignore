@@ -42,6 +42,8 @@ next-env.d.ts
 *.db-journal
 /prisma/dev.db
 /prisma/dev.db-journal
+# Backups
+/backups
 
 # IDE
 .vscode

@@ -8,6 +8,7 @@ import { ShoppingCart, User, BookOpen, Home, LogOut, LayoutDashboard, Bell, Mail
 import { useState, useEffect } from 'react'
 import { MobileNavigation } from './MobileNavigation'
 import { useSession, signOut } from 'next-auth/react'
+import Image from 'next/image'
 
 const navigation = [
   { name: 'Início', href: '/', icon: Home },
@@ -279,7 +280,14 @@ export function Navigation() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="text-2xl font-bold text-primary-600">
+            <Link href="/" className="flex items-center gap-3 text-2xl font-bold text-primary-600">
+              <Image
+                src="https://i.imgur.com/vfw3Ugh.png"
+                alt="Grupo Positivo"
+                width={36}
+                height={36}
+                className="w-9 h-9 rounded-md drop-shadow-sm"
+              />
               PosiMarket
             </Link>
             

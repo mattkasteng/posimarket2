@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { MapPin, Clock, ShoppingBag, Package, CheckCircle } from 'lucide-react'
+import { MapPin, Clock, ShoppingBag, Package, CheckCircle, RefreshCcw } from 'lucide-react'
 
 export default function ProvaDeUniformesPage() {
   return (
@@ -161,6 +161,46 @@ export default function ProvaDeUniformesPage() {
                 </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Trocas e Devoluções */}
+        <Card className="glass-card-weak mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCcw className="h-6 w-6 text-primary-500" />
+              Trocas e Devoluções
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 text-gray-700">
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">Devoluções por defeito de fabricação</h3>
+              <p>
+                Leve o uniforme a uma das unidades selecionadas do Grupo Positivo. Nós cuidamos do encaminhamento ao fabricante
+                e, assim que o item correto chegar, disponibilizaremos a retirada na mesma unidade. Se preferir reembolso,
+                encaminhe o uniforme diretamente ao fabricante; após confirmação de recebimento, faremos a devolução do valor.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">Trocas por envio incorreto</h3>
+              <p>
+                Recebeu um item diferente do solicitado? Entregue o uniforme em uma unidade credenciada. Nós solicitamos o produto
+                correto ao fornecedor e avisamos quando estiver disponível para pick-up no mesmo local.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">Trocas por tamanho inadequado</h3>
+              <p>
+                Caso o tamanho não sirva, basta devolver o uniforme em uma unidade selecionada do Grupo Positivo. Você receberá
+                o reembolso integral para realizar um novo pedido com o tamanho adequado no marketplace.
+              </p>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              Em todos os casos, lembre-se de levar o comprovante de compra e o uniforme em bom estado para agilizar o atendimento.
+            </p>
           </CardContent>
         </Card>
 

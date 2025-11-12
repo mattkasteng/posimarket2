@@ -18,6 +18,8 @@ declare module 'next-auth' {
       endereco?: any
       pixKey: string | null
       pixType: string | null
+      mfaEnabled?: boolean
+      mfaVerified?: boolean
     }
   }
 
@@ -37,12 +39,15 @@ declare module 'next-auth' {
     endereco?: any
     pixKey: string | null
     pixType: string | null
+    mfaEnabled?: boolean
+    mfaVerified?: boolean
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string
+    email: string
     nome: string
     cpf: string | null
     telefone: string | null
@@ -56,5 +61,7 @@ declare module 'next-auth/jwt' {
     endereco?: any
     pixKey: string | null
     pixType: string | null
+    mfaEnabled?: boolean
+    mfaVerified?: boolean
   }
 }

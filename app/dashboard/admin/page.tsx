@@ -361,6 +361,18 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </a>
+
+            <a href="/dashboard/admin/security" className="block">
+              <div className="bg-red-50 hover:bg-red-100 p-4 rounded-lg border border-red-200 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">🔐</span>
+                  <div>
+                    <p className="font-semibold text-gray-900">Segurança & MFA</p>
+                    <p className="text-sm text-gray-600">Gerenciar MFA e chaves de API</p>
+                  </div>
+                </div>
+              </div>
+            </a>
           </div>
         </div>
 

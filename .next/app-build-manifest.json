@@ -16,15 +16,50 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(auth)/login/page.js"
     ],
+    "/(marketplace)/produtos/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(marketplace)/produtos/page.js"
+    ],
     "/dashboard/vendedor/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/vendedor/page.js"
     ],
-    "/dashboard/vendedor/financeiro/page": [
+    "/mensagens/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/vendedor/financeiro/page.js"
+      "static/chunks/app/mensagens/page.js"
+    ],
+    "/(marketplace)/carrinho/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(marketplace)/carrinho/page.js"
+    ],
+    "/(marketplace)/produtos/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(marketplace)/produtos/[id]/page.js"
+    ],
+    "/prova-de-uniformes/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/prova-de-uniformes/page.js"
+    ],
+    "/(auth)/cadastro/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(auth)/cadastro/page.js"
+    ],
+    "/dashboard/vendedor/produtos/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/vendedor/produtos/page.js"
+    ],
+    "/dashboard/vendedor/produtos/novo/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/vendedor/produtos/novo/page.js"
     ]
   }
 }

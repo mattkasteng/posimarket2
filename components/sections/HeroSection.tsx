@@ -2,10 +2,11 @@
 
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
-import { ShoppingCart, Recycle, ShieldCheck } from 'lucide-react'
+import { ShoppingCart, Recycle } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 
 export function HeroSection() {
   const router = useRouter()
@@ -62,6 +63,22 @@ export function HeroSection() {
               boxShadow: '0 20px 40px rgba(249, 115, 22, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.3)'
             }}
           >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.15 }}
+              className="flex justify-center mb-6"
+            >
+              <Image
+                src="https://i.imgur.com/vfw3Ugh.png"
+                alt="Grupo Positivo"
+                width={200}
+                height={200}
+                className="w-28 sm:w-32 md:w-40 h-auto drop-shadow-lg"
+                priority
+              />
+            </motion.div>
+
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}

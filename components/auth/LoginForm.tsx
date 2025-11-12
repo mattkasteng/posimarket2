@@ -7,12 +7,33 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
 
+const enableGoogleSSO = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_SSO === 'true'
+
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
+  const [backupCode, setBackupCode] = useState('')
+  const [useBackupCode, setUseBackupCode] = useState(false)
+  const [mfaRequired, setMfaRequired] = useState(false)
+  const [challengeId, setChallengeId] = useState<string | null>(null)
   const router = useRouter()
+
+  const handleGoogleLogin = async () => {
+    try {
+      setError(null)
+      setIsLoading(true)
+      await signIn('google', {
+        callbackUrl: '/dashboard'
+      })
+    } catch (err) {
+      console.error('❌ Erro ao iniciar login Google SSO:', err)
+      setError('Não foi possível iniciar o login com Google. Tente novamente.')
+      setIsLoading(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,6 +49,9 @@ export function LoginForm() {
       const result = await signIn('credentials', {
         email,
         password,
+        otp: mfaRequired && !useBackupCode ? otp : undefined,
+        backupCode: mfaRequired && useBackupCode ? backupCode : undefined,
+        challengeId: mfaRequired ? challengeId ?? undefined : undefined,
         redirect: false,
       })
 
@@ -35,6 +59,38 @@ export function LoginForm() {
 
       if (result?.error) {
         console.log('❌ Login falhou:', result.error)
+
+        if (result.error.startsWith('MFA_REQUIRED')) {
+          const [, newChallengeId] = result.error.split(':')
+          setMfaRequired(true)
+          setChallengeId(newChallengeId ?? null)
+          setError('Autenticação em duas etapas necessária. Informe o código do aplicativo autenticador.')
+          return
+        }
+
+        if (result.error === 'MFA_INVALID_CODE') {
+          setError('Código MFA inválido. Verifique o código do aplicativo autenticador ou utilize um código de backup.')
+          return
+        }
+
+        if (result.error === 'MFA_CHALLENGE_EXPIRED') {
+          setError('O código informado expirou. Gere um novo código no aplicativo autenticador.')
+          setChallengeId(null)
+          setOtp('')
+          setBackupCode('')
+          setMfaRequired(false)
+          return
+        }
+
+        if (result.error === 'MFA_CHALLENGE_CONSUMED') {
+          setError('O código informado já foi utilizado. Gere um novo código no aplicativo autenticador.')
+          setChallengeId(null)
+          setOtp('')
+          setBackupCode('')
+          setMfaRequired(false)
+          return
+        }
+
         setError(result.error)
         return
       }
@@ -45,15 +101,14 @@ export function LoginForm() {
         // SOLUÇÃO HÍBRIDA: Buscar dados do usuário diretamente da API
         console.log('🔍 Buscando dados do usuário da API...')
         try {
-          const userResponse = await fetch('/api/auth/simple-login', {
-            method: 'POST',
+          const userResponse = await fetch('/api/auth/me', {
+            method: 'GET',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
           })
           
           const userData = await userResponse.json()
           
-          if (userData.success) {
+          if (userData.success && userData.user) {
             console.log('✅ Dados do usuário obtidos:', userData.user.email)
             
             // Salvar no localStorage como backup
@@ -77,12 +132,18 @@ export function LoginForm() {
             }
           } else {
             console.log('❌ Erro ao buscar dados do usuário:', userData.error)
-            setError('Erro ao carregar dados do usuário')
+            setError(userData.error ?? 'Erro ao carregar dados do usuário')
           }
         } catch (apiError) {
           console.error('❌ Erro na API:', apiError)
           setError('Erro ao carregar dados do usuário')
         }
+        
+        setOtp('')
+        setBackupCode('')
+        setChallengeId(null)
+        setMfaRequired(false)
+        setUseBackupCode(false)
       } else {
         console.log('❌ Login falhou - result.ok = false')
         setError('Email ou senha incorretos')
@@ -108,6 +169,10 @@ export function LoginForm() {
   const testLoginAdmin = async () => {
     setEmail('funcional@teste.com')
     setPassword('123456')
+    setOtp('')
+    setBackupCode('')
+    setMfaRequired(false)
+    setChallengeId(null)
     setTimeout(() => {
       const form = document.querySelector('form')
       if (form) form.requestSubmit()
@@ -152,6 +217,61 @@ export function LoginForm() {
           />
         </div>
 
+        {mfaRequired && (
+          <div className="space-y-2">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-md p-3 text-sm">
+              <p>
+                Confirme sua identidade com o código gerado pelo aplicativo autenticador
+                (ex: Google Authenticator, Microsoft Authenticator) ou utilize um código de
+                backup válido.
+              </p>
+            </div>
+            {!useBackupCode ? (
+              <div>
+                <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+                  Código do aplicativo autenticador
+                </label>
+                <Input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\\d{6}"
+                  placeholder="000000"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  required={!useBackupCode}
+                />
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="backupCode" className="block text-sm font-medium text-gray-700 mb-2">
+                  Código de backup
+                </label>
+                <Input
+                  id="backupCode"
+                  type="text"
+                  placeholder="XXXX-XXXX"
+                  value={backupCode}
+                  onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
+                  required={useBackupCode}
+                />
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              onClick={() => {
+                setUseBackupCode(!useBackupCode)
+                setOtp('')
+                setBackupCode('')
+              }}
+            >
+              {useBackupCode ? 'Usar código do aplicativo autenticador' : 'Usar código de backup'}
+            </button>
+          </div>
+        )}
+
         <Button
           type="submit"
           className="w-full"
@@ -159,6 +279,25 @@ export function LoginForm() {
         >
           {isLoading ? 'Entrando...' : 'Entrar'}
         </Button>
+
+        {enableGoogleSSO && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span className="flex-1 border-t border-gray-200" />
+              <span>ou continue com</span>
+              <span className="flex-1 border-t border-gray-200" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isLoading}
+              onClick={handleGoogleLogin}
+            >
+              {isLoading ? 'Redirecionando...' : 'Entrar com Google'}
+            </Button>
+          </div>
+        )}
 
         <div className="text-center space-y-2">
           <Link 

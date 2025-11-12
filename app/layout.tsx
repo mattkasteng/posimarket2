@@ -10,6 +10,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'PosiMarket',
   description: 'Plataforma de cursos e materiais educacionais',
+  icons: {
+    icon: 'https://i.imgur.com/vfw3Ugh.png',
+    shortcut: 'https://i.imgur.com/vfw3Ugh.png',
+    apple: 'https://i.imgur.com/vfw3Ugh.png',
+  },
 }
 
 export default function RootLayout({

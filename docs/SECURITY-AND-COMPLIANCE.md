@@ -113,6 +113,81 @@ const decrypted = decrypt(encrypted)
 const masked = maskSensitiveData('usuario@email.com', 'email')
 ```
 
+### 5. Autenticação MFA para Administradores (`app/api/admin/mfa/*`)
+
+Autenticação em dois fatores obrigatória para contas administrativas.
+
+#### Recursos
+- Geração de segredo TOTP (`POST /api/admin/mfa/setup`)
+- Confirmação de MFA (`POST /api/admin/mfa/verify`)
+- Regeneração de códigos de backup (`POST /api/admin/mfa/backup-codes`)
+- Desativação controlada com auditoria (`POST /api/admin/mfa/disable`)
+
+#### UI
+- Página dedicada em `/dashboard/admin/security` com QR Code, códigos de backup e fluxos de confirmação.
+
+### 6. Gestão Segura de API Keys (`lib/api-keys.ts`)
+
+Sistema completo de criação, rotação e revogação de chaves de API.
+
+#### Recursos
+- Criação de chaves com hash (SHA-256 + salt) (`POST /api/admin/api-keys`)
+- Revogação e atualização de metadados (`DELETE`/`PATCH /api/admin/api-keys/[id]`)
+- Registro em auditoria (`logAdminAction`)
+- Painel de gestão em `/dashboard/admin/security`
+
+### 7. Backup & Disaster Recovery (`docs/BACKUP-DR.md`)
+
+Política formal de backup com RPO/RTO definidos.
+
+#### Recursos
+- Integração opcional com Google (OIDC) para usuários existentes (não cria contas automaticamente)
+- Validação no callback `signIn` garantindo que apenas emails cadastrados podem autenticar
+- Admins com MFA obrigatório continuam utilizando login de credenciais
+
+### 9. WAF & Integração com SIEM (`lib/security.ts`, `lib/security-logger.ts`)
+
+Camada adicional de proteção contra requisições maliciosas com alertas externos.
+
+#### Recursos
+- Bloqueio de padrões comuns (SQLi, XSS, Path Traversal, Command Injection)
+- Logs enviados para webhook configurável (`SECURITY_LOG_WEBHOOK`, `SECURITY_LOG_TOKEN`)
+- Rate limiting e violações CORS também geram eventos
+- Integração transparente com soluções SIEM (Splunk, Datadog, Sentinel, etc.)
+
+### 10. Segurança de Email (`docs/EMAIL-SECURITY.md`)
+
+Política documentada para SPF, DKIM e DMARC garantindo autenticidade de mensagens.
+
+#### Recursos
+- Registro SPF com provedores autorizados
+- Configuração de chaves DKIM por provedor
+- Política DMARC com relatórios agregados (`rua`/`ruf`)
+- Rotina de monitoramento e evidências para auditoria
+
+### 11. SBOM & Licenciamento (`npm run sbom:generate`)
+
+Inventário formal dos componentes do projeto no formato CycloneDX.
+
+#### Recursos
+- Script `npm run sbom:generate` gera `sbom.json` (JSON CycloneDX v1.5)
+- Dependência `@cyclonedx/cyclonedx-npm` integrada ao projeto
+- Recomendação: anexar SBOM a auditorias e monitorar vulnerabilidades (SCA)
+
+### 12. SLA & Continuidade (`docs/SLA.md`)
+
+Documento formal com metas de disponibilidade, créditos e processos de incidente.
+
+#### Recursos
+- Uptime alvo de 99.7% com créditos graduais
+- RTO/RPO alinhados à política de backup (`docs/BACKUP-DR.md`)
+- Fluxo de comunicação de incidentes e responsabilidades definidas
+
+- Script de backup lógico (`npm run db:backup`) – exporta todas as tabelas para JSON
+- Script de restauração (`npm run db:restore ./backups/arquivo.json`)
+- Documentação completa com cronograma, responsabilidades e checklist
+- Backup criptografado recomendado via KMS (S3/GCS/Azure)
+
 ## 🛡️ Criptografia
 
 ### Em Trânsito (HTTPS)
