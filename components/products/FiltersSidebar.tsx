@@ -159,7 +159,7 @@ export function FiltersSidebar({ isOpen, onClose, filters, onFiltersChange }: Fi
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 lg:relative lg:shadow-none lg:w-full lg:h-auto lg:transform-none"
+            className="fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 lg:relative lg:shadow-none lg:w-full lg:h-auto lg:transform-none lg:sticky lg:top-24 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
           >
             <Card className="h-full glass-card-weak border-0 rounded-none lg:rounded-2xl">
               <CardContent className="p-6 h-full overflow-y-auto">
