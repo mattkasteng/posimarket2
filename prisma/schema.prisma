@@ -42,6 +42,7 @@ model Usuario {
   mensagensEnviadas     Mensagem[]            @relation("Remetente")
   mfa_challenges        MfaChallenge[]
   pedidos               Pedido[]              @relation("Comprador")
+  vendas                Pedido[]              @relation("VendedorPedido")
   produtos              Produto[]             @relation("Vendedor")
   transacoesFinanceiras TransacaoFinanceira[]
   carrinho              Carrinho?
@@ -187,6 +188,7 @@ model Pedido {
   pagamentos         Pagamento[]
   comprador          Usuario      @relation("Comprador", fields: [compradorId], references: [id])
   historico          HistoricoStatus[]
+  vendedor           Usuario?      @relation("VendedorPedido", fields: [vendedorId], references: [id])
 
   @@map("pedidos")
 }

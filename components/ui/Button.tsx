@@ -12,6 +12,7 @@ const buttonVariants = cva(
         outline: 'glass-button border-2 border-primary-500 text-primary-600 hover:bg-primary-50',
         ghost: 'glass-button border-0 hover:bg-primary-50',
         destructive: 'glass-button bg-red-500 text-white border-0 hover:bg-red-600',
+        secondary: 'glass-button border border-gray-200 text-gray-700 hover:bg-gray-100',
       },
       size: {
         sm: 'h-11 px-4 text-sm min-h-[44px]',
