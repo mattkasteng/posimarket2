@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/Input'
 
 interface PriceRangeSliderProps {
@@ -12,57 +12,78 @@ interface PriceRangeSliderProps {
 }
 
 export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSliderProps) {
-  const [localValue, setLocalValue] = useState<[number, number]>(value)
-  const minTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const maxTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [inputs, setInputs] = useState<{ min: string; max: string }>({
+    min: value[0].toString(),
+    max: value[1].toString()
+  })
 
   useEffect(() => {
-    setLocalValue(value)
+    setInputs({
+      min: value[0].toString(),
+      max: value[1].toString()
+    })
   }, [value])
 
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value === '' ? min : Number(e.target.value)
-    const newMin = Math.max(min, Math.min(inputValue, localValue[1] || max))
-    
-    // Atualiza o valor local imediatamente (sem chamar onChange)
-    setLocalValue([newMin, localValue[1]])
-    
-    // Limpa o timeout anterior
-    if (minTimeoutRef.current) {
-      clearTimeout(minTimeoutRef.current)
+  const clampValues = (rawMin: string, rawMax: string): [number, number] => {
+    let parsedMin = Number(rawMin)
+    let parsedMax = Number(rawMax)
+
+    if (rawMin === '' || Number.isNaN(parsedMin)) {
+      parsedMin = min
     }
-    
-    // Cria um novo timeout para chamar onChange após 800ms
-    minTimeoutRef.current = setTimeout(() => {
-      onChange([newMin, localValue[1]])
-    }, 800)
+
+    if (rawMax === '' || Number.isNaN(parsedMax)) {
+      parsedMax = max
+    }
+
+    // Garante ordem correta e respeito aos limites
+    const clampedMin = Math.max(min, Math.min(parsedMin, parsedMax))
+    const clampedMax = Math.min(max, Math.max(parsedMax, clampedMin))
+
+    return [clampedMin, clampedMax]
+  }
+
+  const commitValues = (next: { min?: string; max?: string }) => {
+    const rawMin = next.min ?? inputs.min
+    const rawMax = next.max ?? inputs.max
+    const [nextMin, nextMax] = clampValues(rawMin, rawMax)
+
+    setInputs({
+      min: nextMin.toString(),
+      max: nextMax.toString()
+    })
+    onChange([nextMin, nextMax])
+  }
+
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    setInputs((prev) => ({ ...prev, min: raw }))
   }
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value === '' ? max : Number(e.target.value)
-    const newMax = Math.min(max, Math.max(inputValue, localValue[0] || min))
-    
-    // Atualiza o valor local imediatamente (sem chamar onChange)
-    setLocalValue([localValue[0], newMax])
-    
-    // Limpa o timeout anterior
-    if (maxTimeoutRef.current) {
-      clearTimeout(maxTimeoutRef.current)
-    }
-    
-    // Cria um novo timeout para chamar onChange após 800ms
-    maxTimeoutRef.current = setTimeout(() => {
-      onChange([localValue[0], newMax])
-    }, 800)
+    const raw = e.target.value
+    setInputs((prev) => ({ ...prev, max: raw }))
   }
 
-  // Cleanup dos timeouts quando o componente é desmontado
-  useEffect(() => {
-    return () => {
-      if (minTimeoutRef.current) clearTimeout(minTimeoutRef.current)
-      if (maxTimeoutRef.current) clearTimeout(maxTimeoutRef.current)
+  const handleMinBlur = () => {
+    commitValues({})
+  }
+
+  const handleMaxBlur = () => {
+    commitValues({})
+  }
+
+  const handleMinKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitValues({})
     }
-  }, [])
+  }
+
+  const handleMaxKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      commitValues({})
+    }
+  }
 
   return (
     <div className="space-y-3">
@@ -85,11 +106,13 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
             <Input
               type="number"
               min={min}
-              max={localValue[1] || max}
-              value={localValue[0]}
+              max={Number(inputs.max) || max}
+              value={inputs.min}
               onChange={handleMinChange}
+              onBlur={handleMinBlur}
+              onKeyDown={handleMinKeyDown}
               placeholder={`Mín: ${min}`}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
         </div>
@@ -104,12 +127,14 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
             </span>
             <Input
               type="number"
-              min={localValue[0] || min}
+              min={Number(inputs.min) || min}
               max={max}
-              value={localValue[1]}
+              value={inputs.max}
               onChange={handleMaxChange}
+              onBlur={handleMaxBlur}
+              onKeyDown={handleMaxKeyDown}
               placeholder={`Máx: ${max}`}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
         </div>
