@@ -30,12 +30,6 @@ const footerLinks = {
     { name: 'Política de Privacidade', href: '/politica-privacidade' },
     { name: 'Termos de Uso', href: '/termos-uso' },
     { name: 'FAQ', href: '/faq' }
-  ],
-  recursos: [
-    { name: 'Para Escolas', href: '/para-escolas' },
-    { name: 'Para Pais', href: '/para-pais' },
-    { name: 'API', href: '/api' },
-    { name: 'Integrações', href: '/integracoes' }
   ]
 }
 
@@ -64,7 +58,7 @@ export function Footer() {
       <div className="container mx-auto px-4 relative z-10">
         {/* Seção principal do footer */}
         <div className="py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
             {/* Logo e descrição */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -165,27 +159,6 @@ export function Footer() {
               </ul>
             </motion.div>
 
-            {/* Links de recursos */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              viewport={{ once: true }}
-            >
-              <h4 className="text-lg font-semibold text-white mb-6">Recursos</h4>
-              <ul className="space-y-3">
-                {footerLinks.recursos.map((link, index) => (
-                  <li key={index}>
-                    <a
-                      href={link.href}
-                      className="text-gray-300 hover:text-primary-400 transition-colors duration-300"
-                    >
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
           </div>
         </div>
 
