@@ -199,11 +199,11 @@ export function ProductCard({
           <div className="flex items-center justify-between mb-3 min-h-[2rem]">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xl font-bold text-gray-900">
-                R$ {preco.toLocaleString('pt-BR')}
+                R$ {preco.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               {precoOriginal && precoOriginal > preco && (
                 <span className="text-sm text-gray-500 line-through">
-                  R$ {precoOriginal.toLocaleString('pt-BR')}
+                  R$ {precoOriginal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               )}
             </div>

@@ -320,11 +320,11 @@ export default function ProductDetailsPage() {
 
               <div className="flex items-center space-x-3 lg:space-x-4 mb-4 lg:mb-6">
                 <span className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  R$ {mockProduct.preco.toLocaleString('pt-BR')}
+                  R$ {mockProduct.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
                 {mockProduct.precoOriginal && (
                   <span className="text-lg sm:text-xl text-gray-500 line-through">
-                    R$ {mockProduct.precoOriginal.toLocaleString('pt-BR')}
+                    R$ {mockProduct.precoOriginal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 )}
               </div>

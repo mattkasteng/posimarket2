@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { SearchBar } from '@/components/ui/SearchBar'
 import { FiltersSidebar } from '@/components/products/FiltersSidebar'
@@ -23,6 +23,7 @@ export default function ProductsPage() {
   const [addedProductId, setAddedProductId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const productsPerPage = 12
+  const hasMountedRef = useRef(false)
   
   const [filters, setFilters] = useState({
     categoria: [] as string[],
@@ -189,6 +190,15 @@ export default function ProductsPage() {
   useEffect(() => {
     setCurrentPage(1)
   }, [searchQuery, filters, sortBy])
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true
+      return
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [currentPage])
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
