@@ -58,13 +58,14 @@ export function Footer() {
       <div className="container mx-auto px-4 relative z-10">
         {/* Seção principal do footer */}
         <div className="py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             {/* Logo e descrição */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
+              className="lg:col-span-6"
             >
               <h4 className="text-lg font-semibold text-white mb-4 md:mb-6">
                 PosiMarket
@@ -121,6 +122,7 @@ export function Footer() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.1 }}
               viewport={{ once: true }}
+              className="lg:col-span-3"
             >
               <h4 className="text-lg font-semibold text-white mb-6">Empresa</h4>
               <ul className="space-y-3">
@@ -143,6 +145,7 @@ export function Footer() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
               viewport={{ once: true }}
+              className="lg:col-span-3"
             >
               <h4 className="text-lg font-semibold text-white mb-6">Suporte</h4>
               <ul className="space-y-3">

@@ -16,6 +16,7 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
     min: value[0].toString(),
     max: value[1].toString()
   })
+  const [isDirty, setIsDirty] = useState(false)
 
   useEffect(() => {
     setInputs({
@@ -53,16 +54,19 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
       max: nextMax.toString()
     })
     onChange([nextMin, nextMax])
+    setIsDirty(false)
   }
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value
     setInputs((prev) => ({ ...prev, min: raw }))
+    setIsDirty(true)
   }
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value
     setInputs((prev) => ({ ...prev, max: raw }))
+    setIsDirty(true)
   }
 
   const handleMinBlur = () => {
@@ -82,6 +86,18 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
   const handleMaxKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       commitValues({})
+    }
+  }
+
+  const handleMinFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (!isDirty && e.target.value === min.toString()) {
+      setInputs((prev) => ({ ...prev, min: '' }))
+    }
+  }
+
+  const handleMaxFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (!isDirty && e.target.value === max.toString()) {
+      setInputs((prev) => ({ ...prev, max: '' }))
     }
   }
 
@@ -111,8 +127,9 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
               onChange={handleMinChange}
               onBlur={handleMinBlur}
               onKeyDown={handleMinKeyDown}
+              onFocus={handleMinFocus}
               placeholder={`Mín: ${min}`}
-              className="pl-10 w-full"
+              className="pl-10 w-full rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm"
             />
           </div>
         </div>
@@ -133,8 +150,9 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
               onChange={handleMaxChange}
               onBlur={handleMaxBlur}
               onKeyDown={handleMaxKeyDown}
+              onFocus={handleMaxFocus}
               placeholder={`Máx: ${max}`}
-              className="pl-10 w-full"
+              className="pl-10 w-full rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm"
             />
           </div>
         </div>
