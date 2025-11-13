@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
 interface VendedorStats {
@@ -237,7 +237,8 @@ export default function VendedorDashboard() {
               onClick={() => {
                 localStorage.removeItem('user')
                 localStorage.removeItem('isLoggedIn')
-                window.location.href = '/login'
+                localStorage.removeItem('nextauth-login')
+                signOut({ callbackUrl: '/login' })
               }}
               className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
             >
