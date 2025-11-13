@@ -91,11 +91,13 @@ export default function MensagensPage() {
     }
   }, [currentUser, activeTab])
 
-  const loadConversations = async () => {
+  const loadConversations = async (silent = false) => {
     if (!currentUser?.id) return
 
     try {
-      setIsLoading(true)
+      if (!silent) {
+        setIsLoading(true)
+      }
       
       const response = await fetch(`/api/chat?usuarioId=${currentUser.id}`)
       const data = await response.json()
@@ -106,15 +108,19 @@ export default function MensagensPage() {
     } catch (error) {
       console.error('Erro ao carregar conversas:', error)
     } finally {
-      setIsLoading(false)
+      if (!silent) {
+        setIsLoading(false)
+      }
     }
   }
 
-  const loadDeletedConversations = async () => {
+  const loadDeletedConversations = async (silent = false) => {
     if (!currentUser?.id) return
 
     try {
-      setIsLoading(true)
+      if (!silent) {
+        setIsLoading(true)
+      }
       
       const response = await fetch(`/api/chat?usuarioId=${currentUser.id}&deletadas=true`)
       const data = await response.json()
@@ -125,7 +131,9 @@ export default function MensagensPage() {
     } catch (error) {
       console.error('Erro ao carregar conversas deletadas:', error)
     } finally {
-      setIsLoading(false)
+      if (!silent) {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -149,8 +157,11 @@ export default function MensagensPage() {
   }
 
   // Carregar mensagens de uma conversa específica
-  const loadConversationMessages = async (conversationId: string) => {
+  const loadConversationMessages = async (conversationId: string, options: { silent?: boolean } = {}) => {
     try {
+      if (!options.silent) {
+        setIsLoading(true)
+      }
       const deletadas = activeTab === 'deleted'
       const response = await fetch(`/api/chat?usuarioId=${currentUser.id}&conversaId=${conversationId}${deletadas ? '&deletadas=true' : ''}`)
       const data = await response.json()
@@ -169,6 +180,10 @@ export default function MensagensPage() {
       }
     } catch (error) {
       console.error('Erro ao carregar mensagens da conversa:', error)
+    } finally {
+      if (!options.silent) {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -257,9 +272,52 @@ export default function MensagensPage() {
 
       const data = await response.json()
 
-      if (data.success) {
-        // Recarregar mensagens da conversa
-        await loadConversationMessages(selectedConversation.id)
+      if (data.success && data.mensagem) {
+        const newMessage: Message = {
+          id: data.mensagem.id,
+          texto: data.mensagem.texto,
+          remetenteId: data.mensagem.remetenteId,
+          remetenteNome: currentUser?.nome || 'Você',
+          destinatarioId: data.mensagem.destinatarioId,
+          destinatarioNome: selectedConversation.outroUsuario.nome,
+          lida: data.mensagem.lida,
+          createdAt: data.mensagem.createdAt
+        }
+
+        setSelectedConversation(prev => {
+          if (!prev || prev.id !== selectedConversation.id) return prev
+          const mensagensAtualizadas = [...(prev.mensagens ?? []), newMessage]
+          return {
+            ...prev,
+            mensagens: mensagensAtualizadas,
+            ultimaMensagem: {
+              texto: newMessage.texto,
+              remetenteNome: newMessage.remetenteNome,
+              createdAt: newMessage.createdAt
+            },
+            mensagensNaoLidas: prev.mensagensNaoLidas ?? 0
+          }
+        })
+
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === selectedConversation.id
+              ? {
+                  ...conv,
+                  ultimaMensagem: {
+                    texto: newMessage.texto,
+                    remetenteNome: newMessage.remetenteNome,
+                    createdAt: newMessage.createdAt
+                  },
+                  mensagensNaoLidas: conv.mensagensNaoLidas
+                }
+              : conv
+          )
+        )
+
+        // Atualizar do backend para manter sincronizado em background
+        loadConversationMessages(selectedConversation.id, { silent: true })
+        loadConversations(true)
         setReplyText('')
         
         // Disparar evento para atualizar contador
