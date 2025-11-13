@@ -12,16 +12,17 @@ interface PriceRangeSliderProps {
 }
 
 export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSliderProps) {
+  const defaultMax = 100
   const [inputs, setInputs] = useState<{ min: string; max: string }>({
     min: value[0].toString(),
-    max: value[1].toString()
+    max: (value[1] ?? defaultMax).toString()
   })
   const [isDirty, setIsDirty] = useState(false)
 
   useEffect(() => {
     setInputs({
       min: value[0].toString(),
-      max: value[1].toString()
+      max: (value[1] ?? defaultMax).toString()
     })
   }, [value])
 
@@ -96,7 +97,9 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
   }
 
   const handleMaxFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (!isDirty && e.target.value === max.toString()) {
+    if (!isDirty && e.target.value === defaultMax.toString()) {
+      setInputs((prev) => ({ ...prev, max: '' }))
+    } else if (!isDirty && e.target.value === max.toString()) {
       setInputs((prev) => ({ ...prev, max: '' }))
     }
   }
@@ -129,7 +132,7 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
               onKeyDown={handleMinKeyDown}
               onFocus={handleMinFocus}
               placeholder={`Mín: ${min}`}
-              className="pl-10 w-full rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm"
+              className="pl-10 w-full rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm text-sm"
             />
           </div>
         </div>
@@ -151,8 +154,8 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
               onBlur={handleMaxBlur}
               onKeyDown={handleMaxKeyDown}
               onFocus={handleMaxFocus}
-              placeholder={`Máx: ${max}`}
-              className="pl-10 w-full rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm"
+              placeholder={`Máx: ${defaultMax}`}
+              className="pl-10 w-full rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm text-sm"
             />
           </div>
         </div>
