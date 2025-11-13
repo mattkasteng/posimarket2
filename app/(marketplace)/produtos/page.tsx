@@ -12,6 +12,8 @@ import { useFavorites } from '@/hooks/useFavorites'
 import { useCart } from '@/hooks/useCart'
 
 export default function ProductsPage() {
+  const DEFAULT_MAX_PRICE = 10000
+  const DEFAULT_DISPLAY_PRICE = 100
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -29,7 +31,7 @@ export default function ProductsPage() {
     categoria: [] as string[],
     condicao: [] as string[],
     tamanho: [] as string[],
-    preco: [0, 1000] as [number, number],
+    preco: [0, DEFAULT_DISPLAY_PRICE] as [number, number],
     escola: [] as string[],
     avaliacaoMinima: 0
   })
@@ -136,7 +138,7 @@ export default function ProductsPage() {
       )
     }
 
-    if (filters.preco[0] > 0 || filters.preco[1] < 1000) {
+    if (filters.preco[0] > 0 || filters.preco[1] < DEFAULT_MAX_PRICE) {
       filtered = filtered.filter(product =>
         product.preco >= filters.preco[0] && product.preco <= filters.preco[1]
       )
@@ -361,7 +363,7 @@ export default function ProductsPage() {
                         categoria: [],
                         condicao: [],
                         tamanho: [],
-                        preco: [0, 1000],
+                        preco: [0, DEFAULT_DISPLAY_PRICE],
                         escola: [],
                         avaliacaoMinima: 0
                       })

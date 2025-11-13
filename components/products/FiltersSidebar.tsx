@@ -100,7 +100,7 @@ export function FiltersSidebar({ isOpen, onClose, filters, onFiltersChange }: Fi
       categoria: [],
       condicao: [],
       tamanho: [],
-      preco: [0, 1000],
+      preco: [0, 100],
       escola: [],
       avaliacaoMinima: 0
     })
@@ -233,7 +233,7 @@ export function FiltersSidebar({ isOpen, onClose, filters, onFiltersChange }: Fi
                   <FilterSection title="Faixa de Preço" section="preco">
                     <PriceRangeSlider
                       min={0}
-                      max={1000}
+                      max={10000}
                       value={filters.preco}
                       onChange={(value) => onFiltersChange({ ...filters, preco: value })}
                       step={10}
