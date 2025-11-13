@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { signIn, signOut, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
@@ -10,6 +9,7 @@ import Link from 'next/link'
 const enableGoogleSSO = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_SSO === 'true'
 
 export function LoginForm() {
+  const { status } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [email, setEmail] = useState('')
@@ -19,7 +19,32 @@ export function LoginForm() {
   const [useBackupCode, setUseBackupCode] = useState(false)
   const [mfaRequired, setMfaRequired] = useState(false)
   const [challengeId, setChallengeId] = useState<string | null>(null)
-  const router = useRouter()
+  const [isClearingSession, setIsClearingSession] = useState(true)
+
+  useEffect(() => {
+    const ensureCleanSession = async () => {
+      if (typeof window === 'undefined') return
+
+      localStorage.removeItem('user')
+      localStorage.removeItem('isLoggedIn')
+      localStorage.removeItem('nextauth-login')
+
+      if (status === 'authenticated') {
+        try {
+          await signOut({ redirect: false })
+          console.log('🔄 Sessão anterior encerrada antes do novo login.')
+        } catch (err) {
+          console.warn('⚠️ Não foi possível encerrar sessão anterior automaticamente.', err)
+        }
+      }
+
+      setIsClearingSession(false)
+    }
+
+    if (status !== 'loading') {
+      ensureCleanSession()
+    }
+  }, [status])
 
   const handleGoogleLogin = async () => {
     try {
@@ -37,8 +62,18 @@ export function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isClearingSession) {
+      setError('Aguarde a finalização da sessão anterior...')
+      return
+    }
     setIsLoading(true)
     setError(null)
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user')
+      localStorage.removeItem('isLoggedIn')
+      localStorage.removeItem('nextauth-login')
+    }
     
     try {
       console.log('🔍 Tentando login com NextAuth:', email, password.substring(0, 3) + '***')
@@ -275,9 +310,9 @@ export function LoginForm() {
         <Button
           type="submit"
           className="w-full"
-          disabled={isLoading}
+          disabled={isLoading || isClearingSession}
         >
-          {isLoading ? 'Entrando...' : 'Entrar'}
+          {isLoading ? 'Entrando...' : isClearingSession ? 'Finalizando sessão...' : 'Entrar'}
         </Button>
 
         {enableGoogleSSO && (
