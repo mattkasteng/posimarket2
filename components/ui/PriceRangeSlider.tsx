@@ -12,17 +12,18 @@ interface PriceRangeSliderProps {
 }
 
 export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSliderProps) {
-  const defaultMax = 100
+  const defaultDisplayMax = 100
+  const effectiveMax = max ?? 10000
   const [inputs, setInputs] = useState<{ min: string; max: string }>({
     min: value[0].toString(),
-    max: (value[1] ?? defaultMax).toString()
+    max: (value[1] ?? defaultDisplayMax).toString()
   })
   const [isDirty, setIsDirty] = useState(false)
 
   useEffect(() => {
     setInputs({
       min: value[0].toString(),
-      max: (value[1] ?? defaultMax).toString()
+      max: (value[1] ?? defaultDisplayMax).toString()
     })
   }, [value])
 
@@ -35,7 +36,7 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
     }
 
     if (rawMax === '' || Number.isNaN(parsedMax)) {
-      parsedMax = max
+      parsedMax = effectiveMax
     }
 
     // Garante ordem correta e respeito aos limites
@@ -97,9 +98,9 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
   }
 
   const handleMaxFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (!isDirty && e.target.value === defaultMax.toString()) {
+    if (!isDirty && e.target.value === defaultDisplayMax.toString()) {
       setInputs((prev) => ({ ...prev, max: '' }))
-    } else if (!isDirty && e.target.value === max.toString()) {
+    } else if (!isDirty && e.target.value === effectiveMax.toString()) {
       setInputs((prev) => ({ ...prev, max: '' }))
     }
   }
@@ -109,7 +110,7 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
       {/* Display dos valores */}
       <div className="flex justify-between text-xs text-gray-600 mb-2">
         <span>Mínimo: R$ {min.toLocaleString('pt-BR')}</span>
-        <span>Máximo: R$ {max.toLocaleString('pt-BR')}</span>
+        <span>Máximo: R$ {effectiveMax.toLocaleString('pt-BR')}</span>
       </div>
       
       {/* Inputs para min e max */}
@@ -125,7 +126,7 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
             <Input
               type="number"
               min={min}
-              max={Number(inputs.max) || max}
+              max={Number(inputs.max) || effectiveMax}
               value={inputs.min}
               onChange={handleMinChange}
               onBlur={handleMinBlur}
@@ -148,13 +149,13 @@ export function PriceRangeSlider({ min, max, value, onChange }: PriceRangeSlider
             <Input
               type="number"
               min={Number(inputs.min) || min}
-              max={max}
+              max={effectiveMax}
               value={inputs.max}
               onChange={handleMaxChange}
               onBlur={handleMaxBlur}
               onKeyDown={handleMaxKeyDown}
               onFocus={handleMaxFocus}
-              placeholder={`Máx: ${defaultMax}`}
+              placeholder={`Máx: ${defaultDisplayMax}`}
               className="pl-10 w-full rounded-lg border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 shadow-sm text-sm"
             />
           </div>
