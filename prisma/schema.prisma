@@ -44,6 +44,7 @@ model Usuario {
   pedidos               Pedido[]              @relation("Comprador")
   produtos              Produto[]             @relation("Vendedor")
   transacoesFinanceiras TransacaoFinanceira[]
+  carrinho              Carrinho?
   endereco              Endereco?             @relation("EnderecoPrincipal", fields: [enderecoId], references: [id])
   escola                Escola?               @relation(fields: [escolaId], references: [id])
   conversasUsuario1     Conversa[]            @relation("ConversaUsuario1")
@@ -124,8 +125,36 @@ model Produto {
   vendedor           Usuario         @relation("Vendedor", fields: [vendedorId], references: [id])
   modelo             ModeloUniforme? @relation(fields: [modeloId], references: [id])
   conversas          Conversa[]
+  itensCarrinho      ItemCarrinho[]
 
   @@map("produtos")
+}
+
+model Carrinho {
+  id        String         @id @default(cuid())
+  usuarioId String         @unique
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  usuario   Usuario        @relation(fields: [usuarioId], references: [id])
+  itens     ItemCarrinho[]
+
+  @@map("carrinhos")
+}
+
+model ItemCarrinho {
+  id             String    @id @default(cuid())
+  carrinhoId     String
+  produtoId      String
+  quantidade     Int       @default(1)
+  reservadoDesde DateTime  @default(now())
+  expiraEm       DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  carrinho       Carrinho  @relation(fields: [carrinhoId], references: [id])
+  produto        Produto   @relation(fields: [produtoId], references: [id])
+
+  @@unique([carrinhoId, produtoId])
+  @@map("itens_carrinho")
 }
 
 model Pedido {
@@ -157,6 +186,7 @@ model Pedido {
   itens              ItemPedido[]
   pagamentos         Pagamento[]
   comprador          Usuario      @relation("Comprador", fields: [compradorId], references: [id])
+  historico          HistoricoStatus[]
 
   @@map("pedidos")
 }
@@ -188,6 +218,17 @@ model Pagamento {
   pedido        Pedido    @relation(fields: [pedidoId], references: [id])
 
   @@map("pagamentos")
+}
+
+model HistoricoStatus {
+  id          String   @id @default(cuid())
+  pedidoId    String
+  status      String
+  observacao  String?
+  createdAt   DateTime @default(now())
+  pedido      Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  @@map("historico_status")
 }
 
 model Avaliacao {
