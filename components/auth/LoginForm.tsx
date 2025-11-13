@@ -145,6 +145,20 @@ export function LoginForm() {
           
           if (userData.success && userData.user) {
             console.log('✅ Dados do usuário obtidos:', userData.user.email)
+
+            const loggedEmail = (userData.user.email || '').toLowerCase()
+            const requestedEmail = email.toLowerCase().trim()
+
+            if (!loggedEmail || loggedEmail !== requestedEmail) {
+              console.error('❌ E-mail retornado não corresponde ao solicitado. Encerrando sessão.')
+              localStorage.removeItem('user')
+              localStorage.removeItem('isLoggedIn')
+              localStorage.removeItem('nextauth-login')
+              await signOut({ redirect: false })
+              setError('Credenciais inválidas. Verifique o e-mail e a senha e tente novamente.')
+              setIsLoading(false)
+              return
+            }
             
             // Salvar no localStorage como backup
             localStorage.setItem('user', JSON.stringify(userData.user))
