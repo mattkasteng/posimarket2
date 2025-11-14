@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
 
 const enableGoogleSSO = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_SSO === 'true'
+
+// Helper para aguardar um tempo
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -33,12 +36,109 @@ export function LoginForm() {
     }
   }
 
-  const clearServerSession = async () => {
+  // Função para limpar completamente a sessão anterior
+  const clearPreviousSession = async (): Promise<void> => {
+    console.log('🧹 Limpando sessão anterior...')
+    
+    // 1. Limpar localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user')
+      localStorage.removeItem('isLoggedIn')
+      localStorage.removeItem('nextauth-login')
+    }
+
+    // 2. Fazer signOut do NextAuth (limpa cookies HTTP-only)
+    try {
+      await signOut({ redirect: false })
+      console.log('✅ SignOut do NextAuth concluído')
+    } catch (err) {
+      console.warn('⚠️ Erro ao fazer signOut:', err)
+    }
+
+    // 3. Aguardar um pouco para garantir que os cookies foram limpos
+    await sleep(300)
+    
+    // 4. Limpar cookies manualmente via API (backup)
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
+      console.log('✅ Cookies limpos via API')
     } catch (err) {
-      console.warn('⚠️ Não foi possível limpar sessão anterior automaticamente.', err)
+      console.warn('⚠️ Erro ao limpar cookies via API:', err)
     }
+
+    // 5. Aguardar mais um pouco
+    await sleep(200)
+    
+    console.log('✅ Limpeza de sessão concluída')
+  }
+
+  // Função para validar que o usuário logado corresponde ao email digitado
+  const validateLoggedInUser = async (expectedEmail: string, maxRetries = 5): Promise<{ success: boolean; user?: any; error?: string }> => {
+    const normalizedExpected = expectedEmail.toLowerCase().trim()
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`🔍 Validação de usuário - Tentativa ${attempt}/${maxRetries}`)
+      
+      // Aguardar um pouco para garantir que a sessão foi atualizada
+      // Aumenta o delay a cada tentativa para dar tempo ao servidor processar
+      await sleep(300 * attempt)
+      
+      try {
+        const userResponse = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+          cache: 'no-store', // Não usar cache
+        })
+        
+        const userData = await userResponse.json()
+        
+        if (userData.success && userData.user) {
+          const loggedEmail = (userData.user.email || '').toLowerCase().trim()
+          
+          console.log(`🔍 Email esperado: ${normalizedExpected}, Email logado: ${loggedEmail}`)
+          
+          if (loggedEmail === normalizedExpected) {
+            console.log('✅ Validação bem-sucedida!')
+            return { success: true, user: userData.user }
+          } else {
+            console.warn(`⚠️ Email não corresponde (tentativa ${attempt}/${maxRetries})`)
+            // Se ainda não é a última tentativa, aguardar e tentar novamente
+            // (pode ser que o cookie ainda não tenha sido atualizado)
+            if (attempt < maxRetries) {
+              continue
+            } else {
+              // Na última tentativa, retornar erro
+              return { 
+                success: false, 
+                error: 'Credenciais inválidas. Verifique o e-mail e a senha e tente novamente.' 
+              }
+            }
+          }
+        } else {
+          console.warn(`⚠️ Não foi possível obter dados do usuário (tentativa ${attempt}/${maxRetries})`)
+          if (attempt < maxRetries) {
+            continue
+          } else {
+            return { 
+              success: false, 
+              error: userData.error ?? 'Erro ao carregar dados do usuário' 
+            }
+          }
+        }
+      } catch (apiError) {
+        console.error(`❌ Erro na API (tentativa ${attempt}/${maxRetries}):`, apiError)
+        if (attempt < maxRetries) {
+          continue
+        } else {
+          return { success: false, error: 'Erro ao carregar dados do usuário' }
+        }
+      }
+    }
+    
+    return { success: false, error: 'Falha ao validar usuário após múltiplas tentativas' }
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -46,22 +146,15 @@ export function LoginForm() {
     setIsLoading(true)
     setError(null)
 
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('user')
-      localStorage.removeItem('isLoggedIn')
-      localStorage.removeItem('nextauth-login')
-    }
-
-    await clearServerSession()
+    // Limpar sessão anterior completamente
+    await clearPreviousSession()
     
     try {
-      console.log('🔍 Tentando login com NextAuth:', email, password.substring(0, 3) + '***')
-      
-      // SOLUÇÃO HÍBRIDA: NextAuth + localStorage
-      console.log('🔄 Iniciando login híbrido (NextAuth + localStorage)...')
+      const normalizedEmail = email.toLowerCase().trim()
+      console.log('🔍 Tentando login com NextAuth:', normalizedEmail)
       
       const result = await signIn('credentials', {
-        email,
+        email: normalizedEmail,
         password,
         otp: mfaRequired && !useBackupCode ? otp : undefined,
         backupCode: mfaRequired && useBackupCode ? backupCode : undefined,
@@ -79,11 +172,13 @@ export function LoginForm() {
           setMfaRequired(true)
           setChallengeId(newChallengeId ?? null)
           setError('Autenticação em duas etapas necessária. Informe o código do aplicativo autenticador.')
+          setIsLoading(false)
           return
         }
 
         if (result.error === 'MFA_INVALID_CODE') {
           setError('Código MFA inválido. Verifique o código do aplicativo autenticador ou utilize um código de backup.')
+          setIsLoading(false)
           return
         }
 
@@ -93,6 +188,7 @@ export function LoginForm() {
           setOtp('')
           setBackupCode('')
           setMfaRequired(false)
+          setIsLoading(false)
           return
         }
 
@@ -102,69 +198,57 @@ export function LoginForm() {
           setOtp('')
           setBackupCode('')
           setMfaRequired(false)
+          setIsLoading(false)
           return
         }
 
         setError(result.error)
+        setIsLoading(false)
         return
       }
 
       if (result?.ok) {
         console.log('✅ NextAuth login bem-sucedido!')
         
-        // SOLUÇÃO HÍBRIDA: Buscar dados do usuário diretamente da API
-        console.log('🔍 Buscando dados do usuário da API...')
-        try {
-          const userResponse = await fetch('/api/auth/me', {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-          })
-          
-          const userData = await userResponse.json()
-          
-          if (userData.success && userData.user) {
-            console.log('✅ Dados do usuário obtidos:', userData.user.email)
+        // Aguardar um pouco para garantir que o cookie foi atualizado no navegador
+        console.log('⏳ Aguardando atualização do cookie...')
+        await sleep(500)
+        
+        // Validar que o usuário logado corresponde ao email digitado
+        const validation = await validateLoggedInUser(normalizedEmail)
+        
+        if (!validation.success) {
+          console.error('❌ Validação falhou:', validation.error)
+          await clearPreviousSession()
+          setError(validation.error ?? 'Erro ao validar login')
+          setIsLoading(false)
+          return
+        }
 
-            const loggedEmail = (userData.user.email || '').toLowerCase()
-            const requestedEmail = email.toLowerCase().trim()
-
-            if (!loggedEmail || loggedEmail !== requestedEmail) {
-              console.error('❌ E-mail retornado não corresponde ao solicitado. Encerrando sessão.')
-              localStorage.removeItem('user')
-              localStorage.removeItem('isLoggedIn')
-              localStorage.removeItem('nextauth-login')
-              await clearServerSession()
-              setError('Credenciais inválidas. Verifique o e-mail e a senha e tente novamente.')
-              setIsLoading(false)
-              return
-            }
-            
-            // Salvar no localStorage como backup
-            localStorage.setItem('user', JSON.stringify(userData.user))
-            localStorage.setItem('isLoggedIn', 'true')
-            localStorage.setItem('nextauth-login', 'true') // Marcar que NextAuth foi usado
-            
-            console.log('✅ Dados salvos no localStorage')
-            
-            // Redirecionar baseado no tipo de usuário
-            const tipoUsuario = userData.user.tipoUsuario
-            if (tipoUsuario === 'ESCOLA' || tipoUsuario === 'ADMIN_ESCOLA') {
-              console.log('👑 Redirecionando para /dashboard/admin')
-              window.location.href = '/dashboard/admin'
-            } else if (tipoUsuario === 'PAI_RESPONSAVEL') {
-              console.log('👤 Redirecionando para /dashboard/vendedor')
-              window.location.href = '/dashboard/vendedor'
-            } else {
-              console.log('❌ Tipo desconhecido:', tipoUsuario)
-              setError('Tipo de usuário não reconhecido')
-            }
-          } else {
-            console.log('❌ Erro ao buscar dados do usuário:', userData.error)
-            setError(userData.error ?? 'Erro ao carregar dados do usuário')
-          }
-        } catch (apiError) {
-          console.error('❌ Erro na API:', apiError)
-          setError('Erro ao carregar dados do usuário')
+        const userData = validation.user!
+        console.log('✅ Usuário validado:', userData.email)
+        
+        // Salvar no localStorage como backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData))
+          localStorage.setItem('isLoggedIn', 'true')
+          localStorage.setItem('nextauth-login', 'true')
+        }
+        
+        console.log('✅ Dados salvos no localStorage')
+        
+        // Redirecionar baseado no tipo de usuário
+        const tipoUsuario = userData.tipoUsuario
+        if (tipoUsuario === 'ESCOLA' || tipoUsuario === 'ADMIN_ESCOLA') {
+          console.log('👑 Redirecionando para /dashboard/admin')
+          window.location.href = '/dashboard/admin'
+        } else if (tipoUsuario === 'PAI_RESPONSAVEL') {
+          console.log('👤 Redirecionando para /dashboard/vendedor')
+          window.location.href = '/dashboard/vendedor'
+        } else {
+          console.log('❌ Tipo desconhecido:', tipoUsuario)
+          setError('Tipo de usuário não reconhecido')
+          setIsLoading(false)
         }
         
         setOtp('')
@@ -175,12 +259,12 @@ export function LoginForm() {
       } else {
         console.log('❌ Login falhou - result.ok = false')
         setError('Email ou senha incorretos')
+        setIsLoading(false)
       }
 
     } catch (error: any) {
       console.error('❌ Exceção no login:', error)
       setError('Erro no login. Tente novamente.')
-    } finally {
       setIsLoading(false)
     }
   }
