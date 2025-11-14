@@ -36,52 +36,24 @@ export function LoginForm() {
     }
   }
 
-  // Função para limpar completamente a sessão anterior
-  const clearPreviousSession = async (): Promise<void> => {
-    console.log('🧹 Limpando sessão anterior...')
-    
-    // 1. Limpar localStorage
+  // Função para limpar localStorage (sem fazer signOut que pode interferir)
+  const clearLocalStorage = (): void => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user')
       localStorage.removeItem('isLoggedIn')
       localStorage.removeItem('nextauth-login')
     }
-
-    // 2. Fazer signOut do NextAuth (limpa cookies HTTP-only)
-    try {
-      await signOut({ redirect: false })
-      console.log('✅ SignOut do NextAuth concluído')
-    } catch (err) {
-      console.warn('⚠️ Erro ao fazer signOut:', err)
-    }
-
-    // 3. Aguardar um pouco para garantir que os cookies foram limpos
-    await sleep(300)
-    
-    // 4. Limpar cookies manualmente via API (backup)
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      console.log('✅ Cookies limpos via API')
-    } catch (err) {
-      console.warn('⚠️ Erro ao limpar cookies via API:', err)
-    }
-
-    // 5. Aguardar mais um pouco
-    await sleep(200)
-    
-    console.log('✅ Limpeza de sessão concluída')
   }
 
-  // Função para validar que o usuário logado corresponde ao email digitado
-  const validateLoggedInUser = async (expectedEmail: string, maxRetries = 5): Promise<{ success: boolean; user?: any; error?: string }> => {
-    const normalizedExpected = expectedEmail.toLowerCase().trim()
-    
+  // Função para buscar dados do usuário logado
+  const fetchUserData = async (maxRetries = 3): Promise<{ success: boolean; user?: any; error?: string }> => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      console.log(`🔍 Validação de usuário - Tentativa ${attempt}/${maxRetries}`)
+      console.log(`🔍 Buscando dados do usuário - Tentativa ${attempt}/${maxRetries}`)
       
-      // Aguardar um pouco para garantir que a sessão foi atualizada
-      // Aumenta o delay a cada tentativa para dar tempo ao servidor processar
-      await sleep(300 * attempt)
+      // Aguardar um pouco para garantir que a sessão foi estabelecida
+      if (attempt > 1) {
+        await sleep(500 * attempt)
+      }
       
       try {
         const userResponse = await fetch('/api/auth/me', {
@@ -90,35 +62,16 @@ export function LoginForm() {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
           },
-          cache: 'no-store', // Não usar cache
+          cache: 'no-store',
         })
         
         const userData = await userResponse.json()
         
         if (userData.success && userData.user) {
-          const loggedEmail = (userData.user.email || '').toLowerCase().trim()
-          
-          console.log(`🔍 Email esperado: ${normalizedExpected}, Email logado: ${loggedEmail}`)
-          
-          if (loggedEmail === normalizedExpected) {
-            console.log('✅ Validação bem-sucedida!')
-            return { success: true, user: userData.user }
-          } else {
-            console.warn(`⚠️ Email não corresponde (tentativa ${attempt}/${maxRetries})`)
-            // Se ainda não é a última tentativa, aguardar e tentar novamente
-            // (pode ser que o cookie ainda não tenha sido atualizado)
-            if (attempt < maxRetries) {
-              continue
-            } else {
-              // Na última tentativa, retornar erro
-              return { 
-                success: false, 
-                error: 'Credenciais inválidas. Verifique o e-mail e a senha e tente novamente.' 
-              }
-            }
-          }
+          console.log('✅ Dados do usuário obtidos:', userData.user.email)
+          return { success: true, user: userData.user }
         } else {
-          console.warn(`⚠️ Não foi possível obter dados do usuário (tentativa ${attempt}/${maxRetries})`)
+          console.warn(`⚠️ Não foi possível obter dados do usuário (tentativa ${attempt}/${maxRetries}):`, userData.error)
           if (attempt < maxRetries) {
             continue
           } else {
@@ -138,7 +91,7 @@ export function LoginForm() {
       }
     }
     
-    return { success: false, error: 'Falha ao validar usuário após múltiplas tentativas' }
+    return { success: false, error: 'Falha ao obter dados do usuário após múltiplas tentativas' }
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -146,8 +99,8 @@ export function LoginForm() {
     setIsLoading(true)
     setError(null)
 
-    // Limpar sessão anterior completamente
-    await clearPreviousSession()
+    // Limpar apenas localStorage (não fazer signOut que pode interferir)
+    clearLocalStorage()
     
     try {
       const normalizedEmail = email.toLowerCase().trim()
@@ -210,22 +163,34 @@ export function LoginForm() {
       if (result?.ok) {
         console.log('✅ NextAuth login bem-sucedido!')
         
-        // Aguardar um pouco para garantir que o cookie foi atualizado no navegador
-        console.log('⏳ Aguardando atualização do cookie...')
-        await sleep(500)
+        // Aguardar um pouco para garantir que a sessão foi estabelecida
+        console.log('⏳ Aguardando estabelecimento da sessão...')
+        await sleep(300)
         
-        // Validar que o usuário logado corresponde ao email digitado
-        const validation = await validateLoggedInUser(normalizedEmail)
+        // Buscar dados do usuário logado
+        const userDataResult = await fetchUserData()
         
-        if (!validation.success) {
-          console.error('❌ Validação falhou:', validation.error)
-          await clearPreviousSession()
-          setError(validation.error ?? 'Erro ao validar login')
+        if (!userDataResult.success) {
+          console.error('❌ Erro ao buscar dados do usuário:', userDataResult.error)
+          setError(userDataResult.error ?? 'Erro ao carregar dados do usuário')
           setIsLoading(false)
           return
         }
 
-        const userData = validation.user!
+        const userData = userDataResult.user!
+        
+        // Validação simples: verificar se o email corresponde
+        const loggedEmail = (userData.email || '').toLowerCase().trim()
+        if (loggedEmail !== normalizedEmail) {
+          console.error('❌ Email não corresponde! Esperado:', normalizedEmail, 'Obtido:', loggedEmail)
+          // Fazer signOut e limpar
+          await signOut({ redirect: false })
+          clearLocalStorage()
+          setError('Erro ao validar login. Tente novamente.')
+          setIsLoading(false)
+          return
+        }
+        
         console.log('✅ Usuário validado:', userData.email)
         
         // Salvar no localStorage como backup
