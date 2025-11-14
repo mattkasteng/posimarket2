@@ -36,13 +36,42 @@ export function LoginForm() {
     }
   }
 
-  // Função para limpar localStorage (sem fazer signOut que pode interferir)
-  const clearLocalStorage = (): void => {
+  // Função para limpar completamente a sessão anterior
+  const clearPreviousSession = async (): Promise<void> => {
+    console.log('🧹 Limpando sessão anterior...')
+    
+    // 1. Limpar localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user')
       localStorage.removeItem('isLoggedIn')
       localStorage.removeItem('nextauth-login')
     }
+
+    // 2. Sempre fazer signOut para garantir que não há sessão anterior
+    // (mesmo que não detectemos uma sessão ativa, pode haver cookies)
+    try {
+      console.log('🔍 Fazendo signOut para limpar qualquer sessão anterior...')
+      await signOut({ redirect: false })
+      console.log('✅ SignOut concluído')
+      // Aguardar um pouco para garantir que os cookies foram limpos
+      await sleep(500)
+    } catch (err) {
+      console.warn('⚠️ Erro ao fazer signOut (pode não haver sessão):', err)
+      // Continuar mesmo se houver erro (pode não haver sessão para limpar)
+    }
+
+    // 3. Limpar cookies manualmente via API (backup)
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      console.log('✅ Cookies limpos via API')
+    } catch (err) {
+      console.warn('⚠️ Erro ao limpar cookies via API:', err)
+    }
+
+    // 4. Aguardar mais um pouco para garantir que tudo foi limpo
+    await sleep(300)
+    
+    console.log('✅ Limpeza de sessão concluída')
   }
 
   // Função para buscar dados do usuário logado
@@ -99,8 +128,8 @@ export function LoginForm() {
     setIsLoading(true)
     setError(null)
 
-    // Limpar apenas localStorage (não fazer signOut que pode interferir)
-    clearLocalStorage()
+    // Limpar sessão anterior completamente antes de fazer novo login
+    await clearPreviousSession()
     
     try {
       const normalizedEmail = email.toLowerCase().trim()
@@ -179,14 +208,13 @@ export function LoginForm() {
 
         const userData = userDataResult.user!
         
-        // Validação simples: verificar se o email corresponde
+        // Validação crítica: verificar se o email corresponde
         const loggedEmail = (userData.email || '').toLowerCase().trim()
         if (loggedEmail !== normalizedEmail) {
           console.error('❌ Email não corresponde! Esperado:', normalizedEmail, 'Obtido:', loggedEmail)
-          // Fazer signOut e limpar
-          await signOut({ redirect: false })
-          clearLocalStorage()
-          setError('Erro ao validar login. Tente novamente.')
+          // Fazer signOut e limpar completamente
+          await clearPreviousSession()
+          setError('Erro ao validar login. A sessão anterior pode estar interferindo. Tente novamente.')
           setIsLoading(false)
           return
         }
