@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn, signOut } from 'next-auth/react'
+import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import Link from 'next/link'
@@ -33,6 +33,14 @@ export function LoginForm() {
     }
   }
 
+  const clearServerSession = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (err) {
+      console.warn('⚠️ Não foi possível limpar sessão anterior automaticamente.', err)
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -44,11 +52,7 @@ export function LoginForm() {
       localStorage.removeItem('nextauth-login')
     }
 
-    try {
-      await signOut({ redirect: false })
-    } catch (err) {
-      console.warn('⚠️ Não foi possível encerrar sessão anterior automaticamente.', err)
-    }
+    await clearServerSession()
     
     try {
       console.log('🔍 Tentando login com NextAuth:', email, password.substring(0, 3) + '***')
@@ -129,7 +133,7 @@ export function LoginForm() {
               localStorage.removeItem('user')
               localStorage.removeItem('isLoggedIn')
               localStorage.removeItem('nextauth-login')
-              await signOut({ redirect: false })
+              await clearServerSession()
               setError('Credenciais inválidas. Verifique o e-mail e a senha e tente novamente.')
               setIsLoading(false)
               return
