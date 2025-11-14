@@ -159,10 +159,10 @@ export function FiltersSidebar({ isOpen, onClose, filters, onFiltersChange }: Fi
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 lg:relative lg:shadow-none lg:w-full lg:h-auto lg:transform-none lg:sticky lg:top-24 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
+            className="fixed left-0 top-0 h-full w-80 bg-white shadow-2xl z-50 lg:relative lg:shadow-none lg:w-full lg:h-auto lg:transform-none lg:sticky lg:top-24 lg:self-start"
           >
-            <Card className="h-full glass-card-weak border-0 rounded-none lg:rounded-2xl">
-              <CardContent className="p-6 h-full overflow-y-auto">
+            <Card className="h-full glass-card-weak border-0 rounded-none lg:rounded-2xl lg:max-h-[calc(100vh-8rem)]">
+              <CardContent className="p-6 h-full overflow-y-auto lg:max-h-[calc(100vh-8rem)]">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Filtros</h3>
                   <Button
